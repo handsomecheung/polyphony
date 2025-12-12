@@ -1,0 +1,24 @@
+---
+- hosts: localhost
+  vars:
+    hostname: "{{ ansible_hostname }}"
+    home_dir: "{{ ansible_env.HOME }}"
+    scripts_dir: /mnt/coder-workspaces/private-workspace/repos/local/polyphony/koishi/scripts
+  tasks:
+    - name: Ensure directories exist
+      file:
+        path: "{{ item }}"
+        state: directory
+      loop:
+        - "{{ home_dir }}/scripts/"
+
+    - file:
+        src: "{{ scripts_dir }}"
+        dest: "{{ home_dir }}/scripts/koishi"
+        state: link
+
+    - name: Add koishi scripts to PATH
+      lineinfile:
+        path: "{{ home_dir }}/.zshrc"
+        line: 'export PATH="{{ home_dir }}/scripts/koishi:$PATH"'
+        create: yes
