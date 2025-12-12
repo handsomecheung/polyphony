@@ -1,0 +1,136 @@
+#!/usr/bin/env bash
+set -e
+
+name=$1
+namespace=$2
+deployments=$3
+
+script_name="$(basename "${BASH_SOURCE[0]}")"
+script_dir="$(dirname "${BASH_SOURCE[0]}")"
+
+bash ~/.kube/get-token.devbox-user.sh session >/dev/null
+
+cmd_kubectl="kubectl"
+host_cloudpublic=$(my-secret getpassword --key=koishi.deploy.cloudpublic_registry_host --collections=Infra 2>/dev/null)
+host_cloudprivate=$(my-secret getpassword --key=koishi.deploy.cloudprivate_registry_host --collections=Infra 2>/dev/null)
+
+cloudpublic_registry_id=$(my-secret getpassword --key=koishi.deploy.cloudpublic_registry_id --collections=Infra 2>/dev/null)
+cloudprivate_registry_id=$(my-secret getpassword --key=koishi.deploy.cloudprivate_registry_id --collections=Infra 2>/dev/null)
+cloudpublic_registry_password=$(my-secret getpassword --key=github.docker-image.token --collections=Infra 2>/dev/null)
+
+# for push cache layer and cloudprivate
+docker login "${host_cloudpublic}" --username "${cloudpublic_registry_id}" --password "${cloudpublic_registry_password}"
+
+if [[ "${name}" == "cloudpublic/"* ]]; then
+	host="${host_cloudpublic}"
+	image="${name/cloudpublic/"${host}/${cloudpublic_registry_id}"}"
+elif [[ "${name}" == "cloudprivate/"* ]]; then
+	host="${host_cloudprivate}"
+	image="${name/cloudprivate/"${host}/${cloudprivate_registry_id}/docker"}"
+	gcloud auth print-access-token | docker login -u oauth2accesstoken --password-stdin "${host}"
+else
+	echo "warning type must start with cloudpublic/ or cloudprivate/"
+fi
+
+build_namespace=builder
+build_root_dir=/mnt/coder-sharepoint/build-image
+build_work_dir=$(mktemp --tmpdir="${build_root_dir}" -d "$(date +%Y-%m-%d_%H%M).XXXXXX")
+
+build_code_dir=${build_work_dir}/code
+mkdir "${build_code_dir}"
+
+build_config_dir=${build_work_dir}/config
+mkdir "${build_config_dir}"
+
+echo "build in direcotry ${build_code_dir}"
+# rsync is more powerful and flexible than cp and it can handle hidden files without any issues.
+rsync -a --exclude='node_modules' . "${build_code_dir}"
+cd "${build_code_dir}"
+
+echo "build_code_dir is ${build_code_dir}"
+echo "image is ${image}"
+
+template_file="${script_dir}/${script_name}.dir/job-template.yaml"
+job_name="kaniko-build-$(date +%s)-$(printf '%04x' $RANDOM)"
+job_file=${build_config_dir}/k8s.job.yaml
+cachebust=$(date +%s)
+
+sed -e "s|PLACEHOLDER_NAMESPACE|${build_namespace}|g" \
+	-e "s|PLACEHOLDER_JOB_NAME|${job_name}|g" \
+	-e "s|PLACEHOLDER_IMAGE|${image}|g" \
+	-e "s|PLACEHOLDER_BUILD_ROOT_DIR|${build_root_dir}|g" \
+	-e "s|PLACEHOLDER_BUILD_CODE_DIR|${build_code_dir}|g" \
+	-e "s|PLACEHOLDER_CACHEBUST|${cachebust}|g" \
+	"${template_file}" >"${job_file}"
+
+echo "render code files ..."
+my-secret render .
+
+echo "render config files ..."
+my-secret render "${build_config_dir}"
+
+${cmd_kubectl} apply -f "${job_file}"
+
+echo "Waiting for job ${job_name} to complete..."
+
+log_follow_pid=""
+is_failed=0
+while true; do
+	pod_name=$(${cmd_kubectl} -n ${build_namespace} get pods -l job-name=${job_name} -o jsonpath='{.items[0].metadata.name}' 2>/dev/null || true)
+	if [ -n "${pod_name}" ]; then
+		pod_phase=$(${cmd_kubectl} -n ${build_namespace} get pod "${pod_name}" -o jsonpath='{.status.phase}' 2>/dev/null || true)
+		if [ "${pod_phase}" = "Running" ] || [ "${pod_phase}" = "Succeeded" ]; then
+			echo "Found pod ${pod_name} in ${pod_phase} state, starting log follow..."
+			${cmd_kubectl} -n ${build_namespace} logs -f "${pod_name}" &
+			log_follow_pid=$!
+			break
+		elif [ "${pod_phase}" = "Failed" ]; then
+			echo "Pod ${pod_name} failed, showing logs..."
+			${cmd_kubectl} -n ${build_namespace} logs "${pod_name}" || true
+			is_failed=1
+			break
+		else
+			echo "Pod ${pod_name} is in ${pod_phase} state, waiting..."
+		fi
+	else
+		echo "Waiting for pod to be created..."
+	fi
+	sleep 1
+done
+
+if [ ${is_failed} -eq 0 ]; then
+	${cmd_kubectl} -n ${build_namespace} wait --for=condition=complete --timeout=3600s "job/${job_name}"
+fi
+
+if [ -n "${log_follow_pid}" ]; then
+	echo "Stopping log follow process..."
+	kill ${log_follow_pid} 2>/dev/null || true
+	wait ${log_follow_pid} 2>/dev/null || true
+fi
+
+exit_code=0
+if [ ${is_failed} -eq 0 ]; then
+	if ${cmd_kubectl} -n ${build_namespace} get job ${job_name} -o jsonpath='{.status.conditions[?(@.type=="Complete")].status}' | grep -q True; then
+		echo "Build completed successfully"
+	else
+		echo "Build failed"
+		exit_code=1
+	fi
+fi
+
+echo "delete job ..."
+${cmd_kubectl} -n ${build_namespace} delete job "${job_name}"
+
+echo "delete work direcotry ${build_work_dir} ..."
+rm -rf "${build_work_dir}"
+
+if [ ${exit_code} -ne 0 ]; then
+	echo "exit since of failed job"
+	exit 1
+fi
+
+if [ "${namespace}" = "" ] || [ "${deployments}" = "" ]; then
+	echo "skip restarting"
+else
+	${cmd_kubectl} -n "${namespace}" rollout restart deployments "${deployments}" || true
+fi
