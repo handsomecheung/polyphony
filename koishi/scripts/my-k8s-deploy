@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+set -e
+
+if [[ -f ${HOME}/.kube/get-token.devbox-user.sh ]]; then
+    bash "${HOME}/.kube/get-token.devbox-user.sh" session >/dev/null
+fi
+
+current="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+deploy_rb="${current}/../deploy/deploy.rb"
+
+ruby "${deploy_rb}" "$@"
