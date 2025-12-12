@@ -1,0 +1,53 @@
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: PLACEHOLDER_NAMESPACE
+  labels:
+    name: PLACEHOLDER_NAMESPACE
+
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: PLACEHOLDER_JOB_NAME
+  namespace: PLACEHOLDER_NAMESPACE
+spec:
+  backoffLimit: 2
+  activeDeadlineSeconds: 3600
+  template:
+    spec:
+      nodeSelector:
+        kubernetes.io/hostname: nur
+      restartPolicy: Never
+      volumes:
+        - name: docker-config
+          hostPath:
+            path: /mnt/coder-workspaces/private-workspace/workspace/encrypted-configs/.docker
+            type: Directory
+        - name: build-root-dir
+          hostPath:
+            path: PLACEHOLDER_BUILD_ROOT_DIR
+            type: Directory
+      containers:
+        - name: kaniko
+          image: gcr.io/kaniko-project/executor:v1.24.0
+          args:
+            - --dockerfile=Dockerfile
+            - --context=PLACEHOLDER_BUILD_CODE_DIR
+            - --destination=PLACEHOLDER_IMAGE
+            - --cache=true
+            - --cache-repo=__{{koishi.deploy.cloudprivate_registry_host}}__/__{{koishi.deploy.cloudprivate_registry_id}}__/docker/cache/kaniko
+            - --cache-ttl=24h
+            - --compressed-caching=false
+            - --verbosity=info
+            - --build-arg=CACHEBUST=PLACEHOLDER_CACHEBUST
+          securityContext:
+            runAsUser: 0
+            runAsGroup: 0
+          volumeMounts:
+            - name: docker-config
+              mountPath: /kaniko/.docker
+              readOnly: true
+            - name: build-root-dir
+              mountPath: PLACEHOLDER_BUILD_ROOT_DIR
