@@ -53,7 +53,7 @@ for FILE in $FILES; do
     fi
 
     for KEYWORD in "${KEYWORDS[@]}"; do
-        if grep -q "$KEYWORD" "$FILE"; then
+        if grep -qi "$KEYWORD" "$FILE"; then
             if [ $FOUND -eq 0 ]; then
                 echo -e "${RED}ERROR: Sensitive keywords found in staged files!${NC}"
                 echo ""
@@ -62,7 +62,7 @@ for FILE in $FILES; do
             echo -e "${YELLOW}  File: $FILE${NC}"
             echo -e "${RED}  Keyword: $KEYWORD${NC}"
             # Show the line where keyword was found
-            grep -n "$KEYWORD" "$FILE" | head -n 3
+            grep -ni "$KEYWORD" "$FILE" | head -n 3
             echo ""
         fi
     done
