@@ -1,0 +1,87 @@
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: my-ddns
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: common-envs
+  namespace: my-ddns
+data:
+  DOMAIN_X: "__{{infra.domains:f:x}}__"
+  DOMAIN_Y: "__{{infra.domains:f:y}}__"
+  DOMAIN_P: "__{{infra.domains:f:p}}__"
+  DOMAIN_C: "__{{infra.domains:f:c}}__"
+  DOMAIN_T: "__{{infra.domains:f:t}}__"
+  DOMAIN_U: "__{{infra.domains:f:u}}__"
+  COMAPI_HOST_NUR: "http://__{{koishi.ip.home4p.nur}}__:__{{koishi.comapi.port}}__"
+  COMAPI_HOST_NIPPON: "http://__{{koishi.ip.home4p.nippon}}__:__{{koishi.comapi.port}}__"
+  COMAPI_HOST_MINIBA: "http://__{{koishi.ip.home4p.miniba}}__:__{{koishi.comapi.port}}__"
+  COMAPI_PATH_IPV6: "/ipv6"
+
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: cloudflare
+  namespace: my-ddns
+spec:
+  schedule: "*/5 * * * *"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 2
+  failedJobsHistoryLimit: 5
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          containers:
+            - name: app
+              image: cloudpublic/default/ddns:latest
+              imagePullPolicy: Always
+              envFrom:
+                - configMapRef:
+                    name: common-envs
+              env:
+                - name: CLOUDFLARE_API_TOKEN
+                  value: "__{{cloudflare.dns-update.token}}__"
+              command:
+                - python3
+                - -u
+                - run-cloudflare.py
+          restartPolicy: Never
+
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: aliyun
+  namespace: my-ddns
+spec:
+  schedule: "*/5 * * * *"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 2
+  failedJobsHistoryLimit: 5
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          containers:
+            - name: app
+              image: cloudpublic/default/ddns:latest
+              imagePullPolicy: Always
+              envFrom:
+                - configMapRef:
+                    name: common-envs
+              env:
+                - name: ACCESS_ID
+                  value: "__{{aliyun.dns-update.key:f:id}}__"
+                - name: ACCESS_SECRET
+                  value: "__{{aliyun.dns-update.key:f:secret}}__"
+              command:
+                - python3
+                - -u
+                - run-aliyun.py
+          restartPolicy: Never
