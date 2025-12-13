@@ -57,7 +57,7 @@ metadata:
 spec:
   ingressClassName: traefik
   rules:
-    - host: ip2location.home4p.__{{koishi.base.domain1}}__
+    - host: ip2location.home4p.__{{infra.domains:f:x}}__
       http:
         paths:
           - path: /
@@ -69,5 +69,5 @@ spec:
                   name: default
   tls:
     - hosts:
-        - ip2location.home4p.__{{koishi.base.domain1}}__
+        - ip2location.home4p.__{{infra.domains:f:x}}__
       secretName: ip2location-home4p
