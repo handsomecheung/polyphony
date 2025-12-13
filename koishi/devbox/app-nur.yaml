@@ -1,0 +1,228 @@
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: devbox-nur-box-password
+  namespace: default
+type: Opaque
+data:
+  password: __{{koishi.machine.devbox-nur:_:b64}}__
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: devbox-nur
+  namespace: default
+  labels:
+    app: devbox-nur
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: devbox-nur
+  template:
+    metadata:
+      labels:
+        app: devbox-nur
+    spec:
+      nodeSelector:
+        kubernetes.io/hostname: nur
+      hostname: devbox
+      securityContext:
+        supplementalGroups:
+          - 988 # run docker command
+      volumes:
+        - name: user-data-slight
+          hostPath:
+            path: /mnt/user-data-slight
+            type: DirectoryOrCreate
+
+        - name: coder-workspaces
+          hostPath:
+            path: /mnt/coder-workspaces
+            type: DirectoryOrCreate
+        - name: coder-sharepoint
+          hostPath:
+            path: /mnt/coder-sharepoint
+            type: DirectoryOrCreate
+
+        - name: docker-sock
+          hostPath:
+            path: /var/run/docker.sock
+            type: Socket
+
+      containers:
+        - name: app
+          image: cloudpublic/default/devbox:latest
+          imagePullPolicy: Always
+          command: ["bash", "/home/box/entrypoint.root.sh"]
+          env:
+            - name: BOX_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: devbox-nur-box-password
+                  key: password
+          volumeMounts:
+            - name: user-data-slight
+              mountPath: /mnt/user-data-slight
+            - name: coder-sharepoint
+              mountPath: /mnt/coder-sharepoint
+
+            - name: docker-sock
+              mountPath: /var/run/docker.sock
+
+            - name: coder-workspaces
+              mountPath: /mnt/coder-workspaces
+
+            - name: coder-workspaces
+              subPath: private-workspace/repos/local/polyphony/koishi/devbox/default.nix
+              mountPath: /home/box/default.nix
+            - name: coder-workspaces
+              subPath: private-workspace/repos/local/polyphony/koishi/devbox/default.editor.nix
+              mountPath: /home/box/default.editor.nix
+            - name: coder-workspaces
+              subPath: private-workspace/repos/local/polyphony/koishi/devbox/entrypoint.root.sh
+              mountPath: /home/box/entrypoint.root.sh
+            - name: coder-workspaces
+              subPath: private-workspace/repos/local/polyphony/koishi/devbox/entrypoint.box.sh
+              mountPath: /home/box/entrypoint.box.sh
+
+            - name: coder-workspaces
+              subPath: public-workspace/cache-global/huggingface
+              mountPath: /home/box/.cache/huggingface
+
+            - name: coder-workspaces
+              subPath: private-workspace/repos/local/doom.d
+              mountPath: /home/box/.doom.d
+            - name: coder-workspaces
+              subPath: public-workspace/editor/emacs.d
+              mountPath: /home/box/.config/emacs
+
+            - name: coder-workspaces
+              subPath: public-workspace/editor/cursor-server
+              mountPath: /home/box/.cursor-server
+            - name: coder-workspaces
+              subPath: private-workspace/workspace/configs/cursor-server/settings.json
+              mountPath: /home/box/.cursor-server/data/Machine/settings.json
+            - name: coder-workspaces
+              subPath: private-workspace/workspace/configs/cursor-server/extensions.json
+              mountPath: /home/box/.cursor-server/data/Machine/extensions.json
+
+            - name: coder-workspaces
+              subPath: public-workspace/editor/vscode-server
+              mountPath: /home/box/.vscode-server
+            - name: coder-workspaces
+              subPath: private-workspace/workspace/configs/vscode-server/code-workspace
+              mountPath: /home/box/code-workspace
+            - name: coder-workspaces
+              subPath: private-workspace/workspace/configs/vscode-server/settings.json
+              mountPath: /home/box/.vscode-server/data/Machine/settings.json
+            - name: coder-workspaces
+              subPath: private-workspace/workspace/configs/vscode-server/extensions.json
+              mountPath: /home/box/.vscode-server/data/Machine/extensions.json
+
+            - name: coder-workspaces
+              subPath: public-workspace/system/zsh # .zhistory is not suitable for symbolic link
+              mountPath: /home/box/.zsh
+            - name: coder-workspaces
+              subPath: private-workspace/workspace/encrypted-configs/.ssh # for something unknown reason, .ssh/authroized_keys is not working if symbol link
+              mountPath: /home/box/.ssh
+          ports:
+            - name: ssh
+              containerPort: 22
+              protocol: TCP
+            - name: codeserver
+              containerPort: 8050
+              protocol: TCP
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+          livenessProbe:
+            tcpSocket:
+              port: 22
+            initialDelaySeconds: 120
+            periodSeconds: 20
+          readinessProbe:
+            tcpSocket:
+              port: 22
+            initialDelaySeconds: 5
+            periodSeconds: 10
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: devbox-nur
+  namespace: default
+  labels:
+    app: devbox-nur
+  finalizers:
+    - service.kubernetes.io/load-balancer-cleanup
+spec:
+  type: LoadBalancer
+  selector:
+    app: devbox-nur
+  allocateLoadBalancerNodePorts: true
+  externalTrafficPolicy: Cluster
+  internalTrafficPolicy: Cluster
+  ipFamilies:
+    - IPv4
+  ipFamilyPolicy: SingleStack
+  ports:
+    - name: ssh
+      port: __{{koishi.machine.devbox-nur:f:ssh-port}}__
+      protocol: TCP
+      targetPort: ssh
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: devbox-nur-internal
+  namespace: default
+  labels:
+    app: devbox-nur-internal
+spec:
+  type: ClusterIP
+  selector:
+    app: devbox-nur
+  ports:
+    - name: codeserver
+      port: 8050
+      protocol: TCP
+      targetPort: codeserver
+
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: devbox-nur-codeserver
+  namespace: default
+  annotations:
+    cert-manager.io/cluster-issuer: cluster-letsencrypt-dns-cloudflare
+    traefik.ingress.kubernetes.io/router.middlewares: middleware-playonjan@kubernetescrd,middleware-antimitm@kubernetescrd,sso-domainx@kubernetescrd
+    gethomepage.dev/enabled: "true"
+    gethomepage.dev/group: Development
+    gethomepage.dev/icon: code-server
+    gethomepage.dev/href: https://devbox-nur-codeserver.__{{infra.domains:f:x}}__
+    gethomepage.dev/siteMonitor: https://devbox-nur-codeserver.__{{infra.domains:f:x}}__
+    gethomepage.dev/weight: "20"
+spec:
+  ingressClassName: traefik
+  rules:
+    - host: devbox-nur-codeserver.__{{infra.domains:f:x}}__
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: devbox-nur-internal
+                port:
+                  name: codeserver
+  tls:
+    - hosts:
+        - devbox-nur-codeserver.__{{infra.domains:f:x}}__
+      secretName: devbox-nurcodeserver
