@@ -21,13 +21,14 @@ cloudpublic_registry_password=$(my-secret getpassword --key=github.docker-image.
 # for push cache layer and cloudprivate
 docker login "${host_cloudpublic}" --username "${cloudpublic_registry_id}" --password "${cloudpublic_registry_password}"
 
+image_prefix_cloudpublic="${host_cloudpublic}/${cloudpublic_registry_id}"
+image_prefix_cloudprivate="${host_cloudprivate}/${cloudprivate_registry_id}/docker"
+
 if [[ "${name}" == "cloudpublic/"* ]]; then
-	host="${host_cloudpublic}"
-	image="${name/cloudpublic/"${host}/${cloudpublic_registry_id}"}"
+	image="${name/cloudpublic/${image_prefix_cloudpublic}}"
 elif [[ "${name}" == "cloudprivate/"* ]]; then
-	host="${host_cloudprivate}"
-	image="${name/cloudprivate/"${host}/${cloudprivate_registry_id}/docker"}"
-	gcloud auth print-access-token | docker login -u oauth2accesstoken --password-stdin "${host}"
+	image="${name/cloudprivate/${image_prefix_cloudprivate}}"
+	gcloud auth print-access-token | docker login -u oauth2accesstoken --password-stdin "${host_cloudprivate}"
 else
 	echo "warning type must start with cloudpublic/ or cloudprivate/"
 fi
@@ -68,6 +69,17 @@ my-secret render .
 
 echo "render config files ..."
 my-secret render "${build_config_dir}"
+
+# Handle `FROM cloudpublic/` `FROM cloudprivate/` in Dockerfile
+echo "Processing Dockerfile FROM instructions..."
+first_line=$(head -n 1 Dockerfile)
+if echo "${first_line}" | grep -qE '^FROM[[:space:]]+cloudpublic/'; then
+	sed -i "1 s|FROM[[:space:]]\+cloudpublic/|FROM ${image_prefix_cloudpublic}/|" Dockerfile
+	echo "Replaced cloudpublic/ in Dockerfile FROM instruction"
+elif echo "${first_line}" | grep -qE '^FROM[[:space:]]+cloudprivate/'; then
+	sed -i "1 s|FROM[[:space:]]\+cloudprivate/|FROM ${image_prefix_cloudprivate}/|" Dockerfile
+	echo "Replaced cloudprivate/ in Dockerfile FROM instruction"
+fi
 
 ${cmd_kubectl} apply -f "${job_file}"
 
