@@ -1,0 +1,50 @@
+---
+coder:
+  # https://github.com/coder/coder/tree/f57ce97b5aadd825ddb9a9a129bb823a3725252b/helm/coder/templates
+  # You can specify any environment variables you'd like to pass to Coder
+  # here. Coder consumes environment variables listed in
+  # `coder server --help`, and these environment variables are also passed
+  # to the workspace provisioner (so you can consume them in your Terraform
+  # templates for auth keys etc.).
+  #
+  # Please keep in mind that you should not set `CODER_HTTP_ADDRESS`,
+  # `CODER_TLS_ENABLE`, `CODER_TLS_CERT_FILE` or `CODER_TLS_KEY_FILE` as
+  # they are already set by the Helm chart and will cause conflicts.
+  env:
+    - name: TZ
+      value: "__{{koishi.deploy.timezone}}__"
+    - name: CODER_PG_CONNECTION_URL
+      value: "postgresql://coder:__{{database.postgres.accounts:f:coder}}__@db-postgres.my-database:5432/coder?sslmode=disable"
+    - name: CODER_ACCESS_URL
+      value: "https://coder.__{{infra.domains:f:x}}__"
+    - name: CODER_OAUTH2_GITHUB_CLIENT_ID
+      value: "__{{coder.github-token.org:f:id}}__"
+    - name: CODER_OAUTH2_GITHUB_CLIENT_SECRET
+      value: "__{{coder.github-token.org:f:secret}}__"
+    - name: CODER_DISABLE_PASSWORD_AUTH
+      value: "true"
+    - name: CODER_OAUTH2_GITHUB_ALLOW_SIGNUPS
+      value: "true"
+    - name: CODER_OAUTH2_GITHUB_ALLOWED_ORGS
+      value: "__{{coder.github-token.org:f:name}}__"
+  service:
+    type: ClusterIP
+  ingress:
+    enable: true
+    annotations:
+      cert-manager.io/cluster-issuer: cluster-letsencrypt-dns-cloudflare
+      traefik.ingress.kubernetes.io/router.middlewares: middleware-antimitm@kubernetescrd
+      gethomepage.dev/enabled: "true"
+      gethomepage.dev/group: Development
+      gethomepage.dev/name: coder
+      gethomepage.dev/icon: coder
+      gethomepage.dev/href: https://coder.__{{infra.domains:f:x}}__/
+      gethomepage.dev/siteMonitor: https://coder.__{{infra.domains:f:x}}__/
+      gethomepage.dev/weight: "10"
+    host: coder.__{{infra.domains:f:x}}__
+    tls:
+      enable: true
+      secretName: coder-domainx
+
+  podAnnotations:
+    cluster-autoscaler.kubernetes.io/safe-to-evict: "false"
