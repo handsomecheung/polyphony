@@ -31,6 +31,10 @@ spec:
         port: 443
         middlewares:
           - default-noindex@kubernetescrd
+      traefik:
+        port: 9000
+        expose:
+          default: true
       tcpep:
         port: 7030
         protocol: TCP
