@@ -1,0 +1,233 @@
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: nfs-disk-user-data-others
+  namespace: default
+  labels:
+    storage.k8s.io/name: nfs
+    storage.k8s.io/part-of: kubernetes-complete-reference
+    storage.k8s.io/created-by: chou
+spec:
+  accessModes:
+    - ReadOnlyMany
+    - ReadWriteOnce
+    - ReadWriteMany
+  capacity:
+    storage: 100Gi
+  storageClassName: nfs-disk-user-data-others
+  persistentVolumeReclaimPolicy: Retain
+  volumeMode: Filesystem
+  nfs:
+    server: __{{koishi.infra.machine.nur:f:ip}}__
+    path: /mnt/nfs/exports/disk/user-data-others
+    readOnly: no
+
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: nfs-disk-user-data-others
+  namespace: default
+spec:
+  storageClassName: nfs-disk-user-data-others
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 100Gi
+
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: nfs-disk-user-data-music
+  namespace: default
+  labels:
+    storage.k8s.io/name: nfs
+    storage.k8s.io/part-of: kubernetes-complete-reference
+    storage.k8s.io/created-by: chou
+spec:
+  accessModes:
+    - ReadOnlyMany
+    - ReadWriteOnce
+    - ReadWriteMany
+  capacity:
+    storage: 100Gi
+  storageClassName: nfs-disk-user-data-music
+  persistentVolumeReclaimPolicy: Retain
+  volumeMode: Filesystem
+  nfs:
+    server: __{{koishi.infra.machine.nur:f:ip}}__
+    path: /mnt/nfs/exports/disk/user-data-music
+    readOnly: no
+
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: nfs-disk-user-data-music
+  namespace: default
+spec:
+  storageClassName: nfs-disk-user-data-music
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 100Gi
+
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: nfs-disk-user-data-slight
+  namespace: default
+  labels:
+    storage.k8s.io/name: nfs
+    storage.k8s.io/part-of: kubernetes-complete-reference
+    storage.k8s.io/created-by: chou
+spec:
+  accessModes:
+    - ReadOnlyMany
+    - ReadWriteOnce
+    - ReadWriteMany
+  capacity:
+    storage: 100Gi
+  storageClassName: nfs-disk-user-data-slight
+  persistentVolumeReclaimPolicy: Retain
+  volumeMode: Filesystem
+  nfs:
+    server: __{{koishi.infra.machine.nur:f:ip}}__
+    path: /mnt/nfs/exports/disk/user-data-slight
+    readOnly: no
+
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: nfs-disk-user-data-slight
+  namespace: default
+spec:
+  storageClassName: nfs-disk-user-data-slight
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 100Gi
+
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: nfs-disk-coder-sharepoint
+  namespace: default
+  labels:
+    storage.k8s.io/name: nfs
+    storage.k8s.io/part-of: kubernetes-complete-reference
+    storage.k8s.io/created-by: chou
+spec:
+  accessModes:
+    - ReadOnlyMany
+    - ReadWriteOnce
+    - ReadWriteMany
+  capacity:
+    storage: 200Gi
+  storageClassName: nfs-disk-coder-sharepoint
+  persistentVolumeReclaimPolicy: Retain
+  volumeMode: Filesystem
+  nfs:
+    server: __{{koishi.infra.machine.nur:f:ip}}__
+    path: /mnt/nfs/exports/disk/coder-sharepoint
+    readOnly: no
+
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: nfs-disk-coder-sharepoint
+  namespace: default
+spec:
+  storageClassName: nfs-disk-coder-sharepoint
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 100Gi
+
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: nfs-disk-coder-workspaces
+  namespace: default
+  labels:
+    storage.k8s.io/name: nfs
+    storage.k8s.io/part-of: kubernetes-complete-reference
+    storage.k8s.io/created-by: chou
+spec:
+  accessModes:
+    - ReadOnlyMany
+    - ReadWriteOnce
+    - ReadWriteMany
+  capacity:
+    storage: 100Gi
+  storageClassName: nfs-disk-coder-workspaces
+  persistentVolumeReclaimPolicy: Retain
+  volumeMode: Filesystem
+  nfs:
+    server: __{{koishi.infra.machine.nur:f:ip}}__
+    path: /mnt/nfs/exports/disk/coder-workspaces
+    readOnly: no
+
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: nfs-disk-coder-workspaces
+  namespace: default
+spec:
+  storageClassName: nfs-disk-coder-workspaces
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 100Gi
+
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: nfs-data-download
+  namespace: default
+  labels:
+    storage.k8s.io/name: nfs
+    storage.k8s.io/part-of: kubernetes-complete-reference
+    storage.k8s.io/created-by: hc
+spec:
+  accessModes:
+    - ReadOnlyMany
+    - ReadWriteOnce
+    - ReadWriteMany
+  capacity:
+    storage: 120Gi
+  storageClassName: nfs-data-download
+  persistentVolumeReclaimPolicy: Retain
+  volumeMode: Filesystem
+  nfs:
+    server: __{{koishi.infra.machine.nippon:f:ip}}__
+    path: /mnt/nfs/exports/data/nfs-data-download
+    readOnly: no
+
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: nfs-data-download
+  namespace: default
+spec:
+  storageClassName: nfs-data-download
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 30Gi
