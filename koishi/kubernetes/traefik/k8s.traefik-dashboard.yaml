@@ -1,0 +1,48 @@
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: traefik-domainx
+  namespace: kube-system
+spec:
+  secretName: traefik-domainx
+  issuerRef:
+    name: cluster-letsencrypt-dns-cloudflare
+    kind: ClusterIssuer
+    group: cert-manager.io
+  dnsNames:
+    - traefik.__{{infra.domains:f:x}}__
+
+---
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: traefik-dashboard
+  namespace: kube-system
+  annotations:
+    gethomepage.dev/enabled: "true"
+    gethomepage.dev/group: Kubernetes
+    gethomepage.dev/name: traefik
+    gethomepage.dev/app: traefik
+    gethomepage.dev/icon: traefik
+    gethomepage.dev/href: https://traefik.__{{infra.domains:f:x}}__/dashboard/
+    gethomepage.dev/siteMonitor: https://traefik.__{{infra.domains:f:x}}__/dashboard/
+    gethomepage.dev/weight: "10"
+spec:
+  entryPoints:
+    - websecure
+  routes:
+    - match: Host(`traefik.__{{infra.domains:f:x}}__`) && (PathPrefix(`/dashboard`) || PathPrefix(`/api`))
+      kind: Rule
+      middlewares:
+        - name: playonjan
+          namespace: middleware
+        - name: antimitm
+          namespace: middleware
+        - name: domainx
+          namespace: sso
+      services:
+        - name: api@internal
+          kind: TraefikService
+  tls:
+    secretName: traefik-domainx
