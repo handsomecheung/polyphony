@@ -1,0 +1,49 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: longhorn-datamanager
+  namespace: default-vaultwarden
+  labels:
+    app: longhorn-datamanager
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: longhorn-datamanager
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 0
+      maxUnavailable: "100%"
+  template:
+    metadata:
+      labels:
+        app: longhorn-datamanager
+    spec:
+      terminationGracePeriodSeconds: 3
+      nodeSelector:
+        kubernetes.io/hostname: miniba
+      volumes:
+        - name: longhorn
+          persistentVolumeClaim:
+            claimName: vaultwarden-encrypted
+        - name: local
+          hostPath:
+            path: /mnt/coder-sharepoint
+            type: Directory
+      containers:
+        - name: app
+          image: ubuntu:22.04
+          imagePullPolicy: Always
+          command: ["sleep", "infinity"]
+          workingDir: /data
+          volumeMounts:
+            - name: longhorn
+              mountPath: /data/longhorn
+            - name: local
+              mountPath: /data/local
+          resources:
+            requests:
+              cpu: 500m
+              memory: 1Gi
