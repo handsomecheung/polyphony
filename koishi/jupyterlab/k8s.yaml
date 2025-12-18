@@ -1,0 +1,233 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: jupyterlab-torch
+  namespace: default
+  labels:
+    app.kubernetes.io/name: jupyterlab-torch
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: jupyterlab-torch
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: jupyterlab-torch
+    spec:
+      nodeSelector:
+        kubernetes.io/hostname: miniba
+      volumes:
+        - name: default-common
+          persistentVolumeClaim:
+            claimName: default-common-encrypted
+        - name: coder-workspaces
+          hostPath:
+            path: /mnt/coder-workspaces
+            type: DirectoryOrCreate
+        - name: coder-sharepoint
+          hostPath:
+            path: /mnt/coder-sharepoint
+            type: DirectoryOrCreate
+        - name: cache
+          emptyDir:
+            sizeLimit: 10Gi
+      containers:
+        - name: app
+          image: quay.io/jupyter/pytorch-notebook:latest
+          imagePullPolicy: Always
+          ports:
+            - name: default
+              containerPort: 8888
+          command:
+            - /bin/bash
+            - -c
+            - |
+              start.sh jupyter lab --LabApp.token='__{{jupyterlab.password}}__' --LabApp.ip='0.0.0.0' --LabApp.allow_root=True
+          volumeMounts:
+            - name: default-common
+              mountPath: /home/jovyan
+              subPath: jupyterlab-torch/jovyan
+            - name: coder-workspaces
+              mountPath: /home/jovyan/coder-workspaces
+            - name: coder-sharepoint
+              mountPath: /home/jovyan/coder-sharepoint
+            - name: cache
+              mountPath: /home/jovyan/.cache
+            - name: coder-workspaces
+              mountPath: /home/jovyan/.cache/huggingface
+              subPath: public-workspace/cache-global/huggingface
+          resources:
+            requests:
+              memory: 256Mi
+              cpu: 100m
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: jupyterlab-torch
+  namespace: default
+  labels:
+    app.kubernetes.io/name: jupyterlab-torch
+spec:
+  type: ClusterIP
+  ports:
+    - name: default
+      port: 80
+      protocol: TCP
+      targetPort: default
+  selector:
+    app.kubernetes.io/name: jupyterlab-torch
+
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: jupyterlab-torch
+  namespace: default
+  annotations:
+    cert-manager.io/cluster-issuer: cluster-letsencrypt-dns-cloudflare
+    traefik.ingress.kubernetes.io/router.middlewares: middleware-playonjan@kubernetescrd,middleware-antimitm@kubernetescrd,sso-domainx@kubernetescrd
+    gethomepage.dev/enabled: "true"
+    gethomepage.dev/group: Development
+    gethomepage.dev/name: Jupyterlab Pytorch
+    gethomepage.dev/icon: jupyter
+    gethomepage.dev/href: https://jupyterlab-torch.__{{infra.domains:f:x}}__/
+    gethomepage.dev/siteMonitor: https://jupyterlab-torch.__{{infra.domains:f:x}}__/
+    gethomepage.dev/weight: "4"
+spec:
+  ingressClassName: traefik
+  rules:
+    - host: jupyterlab-torch.__{{infra.domains:f:x}}__
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: jupyterlab-torch
+                port:
+                  name: default
+  tls:
+    - hosts:
+        - jupyterlab-torch.__{{infra.domains:f:x}}__
+      secretName: jupyterlab-torch-domainx
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: jupyterlab-tensor
+  namespace: default
+  labels:
+    app.kubernetes.io/name: jupyterlab-tensor
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: jupyterlab-tensor
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: jupyterlab-tensor
+    spec:
+      nodeSelector:
+        kubernetes.io/hostname: miniba
+      volumes:
+        - name: default-common
+          persistentVolumeClaim:
+            claimName: default-common-encrypted
+        - name: coder-workspaces
+          persistentVolumeClaim:
+            claimName: nfs-disk-coder-workspaces
+
+        - name: coder-sharepoint
+          hostPath:
+            path: /mnt/coder-sharepoint
+            type: DirectoryOrCreate
+        - name: cache
+          emptyDir:
+            sizeLimit: 10Gi
+      containers:
+        - name: app
+          image: quay.io/jupyter/tensorflow-notebook:latest
+          imagePullPolicy: Always
+          ports:
+            - name: default
+              containerPort: 8888
+          command:
+            - /bin/bash
+            - -c
+            - |
+              start.sh jupyter lab --LabApp.token='__{{jupyterlab.password}}__' --LabApp.ip='0.0.0.0' --LabApp.allow_root=True
+          volumeMounts:
+            - name: default-common
+              mountPath: /home/jovyan
+              subPath: jupyterlab-tensor/jovyan
+            - name: coder-workspaces
+              mountPath: /home/jovyan/coder-workspaces
+            - name: coder-sharepoint
+              mountPath: /home/jovyan/coder-sharepoint
+            - name: cache
+              mountPath: /home/jovyan/.cache
+            - name: coder-workspaces
+              mountPath: /home/jovyan/.cache/huggingface
+              subPath: public-workspace/cache-global/huggingface
+          resources:
+            requests:
+              memory: 256Mi
+              cpu: 100m
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: jupyterlab-tensor
+  namespace: default
+  labels:
+    app.kubernetes.io/name: jupyterlab-tensor
+spec:
+  type: ClusterIP
+  ports:
+    - name: default
+      port: 80
+      protocol: TCP
+      targetPort: default
+  selector:
+    app.kubernetes.io/name: jupyterlab-tensor
+
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: jupyterlab-tensor
+  namespace: default
+  annotations:
+    cert-manager.io/cluster-issuer: cluster-letsencrypt-dns-cloudflare
+    traefik.ingress.kubernetes.io/router.middlewares: middleware-playonjan@kubernetescrd,middleware-antimitm@kubernetescrd,sso-domainx@kubernetescrd
+    gethomepage.dev/enabled: "true"
+    gethomepage.dev/group: Development
+    gethomepage.dev/name: Jupyterlab TensorFlow
+    gethomepage.dev/icon: jupyter
+    gethomepage.dev/href: https://jupyterlab-tensor.__{{infra.domains:f:x}}__/
+    gethomepage.dev/siteMonitor: https://jupyterlab-tensor.__{{infra.domains:f:x}}__/
+    gethomepage.dev/weight: "5"
+spec:
+  ingressClassName: traefik
+  rules:
+    - host: jupyterlab-tensor.__{{infra.domains:f:x}}__
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: jupyterlab-tensor
+                port:
+                  name: default
+  tls:
+    - hosts:
+        - jupyterlab-tensor.__{{infra.domains:f:x}}__
+      secretName: jupyterlab-tensor-domainx
