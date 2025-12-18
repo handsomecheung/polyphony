@@ -1,0 +1,165 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ollama
+  namespace: default
+  labels:
+    app.kubernetes.io/name: ollama
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: ollama
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: ollama
+    spec:
+      nodeSelector:
+        kubernetes.io/hostname: miniba
+      volumes:
+        - name: ollama
+          hostPath:
+            path: /mnt/runtime-data-app/ollama
+            type: Directory
+      containers:
+        - name: app
+          image: ollama/ollama:latest
+          ports:
+            - name: default
+              containerPort: 11434
+              protocol: TCP
+          volumeMounts:
+            - name: ollama
+              mountPath: /root/.ollama
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ollama
+  namespace: default
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: ollama
+  ports:
+    - name: default
+      port: 80
+      targetPort: default
+      protocol: TCP
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ollama-webui
+  namespace: default
+  labels:
+    app.kubernetes.io/name: ollama-webui
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: ollama-webui
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: ollama-webui
+    spec:
+      nodeSelector:
+        kubernetes.io/hostname: miniba
+      volumes:
+        - name: default-common
+          persistentVolumeClaim:
+            claimName: default-common-encrypted
+      containers:
+        - name: app
+          image: ghcr.io/open-webui/open-webui:main
+          imagePullPolicy: Always
+          env:
+            - name: OLLAMA_BASE_URL
+              value: "http://ollama"
+          ports:
+            - name: default
+              containerPort: 8080
+              protocol: TCP
+          volumeMounts:
+            - name: default-common
+              mountPath: /app/backend/data
+              subPath: ollama-webui
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ollama-webui
+  namespace: default
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: ollama-webui
+  ports:
+    - name: default
+      port: 80
+      targetPort: default
+      protocol: TCP
+
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: ollama-webui
+  namespace: default
+  annotations:
+    cert-manager.io/cluster-issuer: cluster-letsencrypt-dns-cloudflare
+    traefik.ingress.kubernetes.io/router.middlewares: middleware-playonjan@kubernetescrd,middleware-antimitm@kubernetescrd,sso-domainx@kubernetescrd
+    gethomepage.dev/enabled: "true"
+    gethomepage.dev/group: AI
+    gethomepage.dev/name: Ollama-WebUI
+    gethomepage.dev/icon: https://ollama.com/public/icon-64x64.png
+    gethomepage.dev/href: https://ollama-webui.__{{infra.domains:f:x}}__
+    gethomepage.dev/siteMonitor: https://ollama-webui.__{{infra.domains:f:x}}__
+    gethomepage.dev/weight: "10"
+spec:
+  ingressClassName: traefik
+  rules:
+    - host: ollama-webui.__{{infra.domains:f:x}}__
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: ollama-webui
+                port:
+                  name: default
+  tls:
+    - hosts:
+        - ollama-webui.__{{infra.domains:f:x}}__
+      secretName: ollama-webui-domainx
+
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: ollama
+  namespace: default
+  annotations:
+    cert-manager.io/cluster-issuer: cluster-letsencrypt-dns-cloudflare
+spec:
+  ingressClassName: traefik
+  rules:
+    - host: ollama.home4p.__{{infra.domains:f:x}}__
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: ollama
+                port:
+                  name: default
+  tls:
+    - hosts:
+        - ollama.home4p.__{{infra.domains:f:x}}__
+      secretName: ollama-home4p-domainx
