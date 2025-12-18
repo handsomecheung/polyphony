@@ -1,0 +1,34 @@
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: longhorn
+  namespace: longhorn-system
+  annotations:
+    cert-manager.io/cluster-issuer: cluster-letsencrypt-dns-cloudflare
+    traefik.ingress.kubernetes.io/router.middlewares: middleware-playonjan@kubernetescrd,middleware-antimitm@kubernetescrd,sso-domainx@kubernetescrd
+    gethomepage.dev/enabled: "true"
+    gethomepage.dev/group: Kubernetes
+    gethomepage.dev/name: longhorn
+    gethomepage.dev/icon: longhorn
+    gethomepage.dev/href: https://longhorn.__{{infra.domains:f:x}}__/
+    gethomepage.dev/siteMonitor: https://longhorn.__{{infra.domains:f:x}}__/
+    gethomepage.dev/weight: "30"
+    gethomepage.dev/pod-selector: ""
+spec:
+  ingressClassName: traefik
+  rules:
+    - host: longhorn.__{{infra.domains:f:x}}__
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: longhorn-frontend
+                port:
+                  name: http
+  tls:
+    - hosts:
+        - longhorn.__{{infra.domains:f:x}}__
+      secretName: longhorn-domainx
