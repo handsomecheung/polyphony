@@ -14,28 +14,28 @@ DOMAIN_C = common.get_os_env_force("DOMAIN_C")
 DEFAULT_TTL = 60
 DOMAINS_IPV4 = {
     DOMAIN_X: [
-        "",
-        "*.",
-        "home.",
-        "*.home.",
-        "nur.home.",
-        "*.nur.home.",
+        ["", True],
+        ["*.", True],
+        ["home.", False],
+        ["*.home.", False],
+        ["nur.home.", False],
+        ["*.nur.home.", False],
     ],
     DOMAIN_Y: [
-        "",
-        "*.",
+        ["", True],
+        ["*.", True],
     ],
     DOMAIN_T: [
-        "",
-        "*.",
+        ["", True],
+        ["*.", True],
     ],
     DOMAIN_P: [
-        "",
-        "*.",
+        ["", True],
+        ["*.", True],
     ],
     DOMAIN_C: [
-        "",
-        "*.",
+        ["", True],
+        ["*.", True],
     ],
 }
 
@@ -55,7 +55,7 @@ DOMAINS_IPV6 = {
 }
 
 
-def set_ip(client, zone, domain, rtype, ip):
+def set_ip(client, zone, domain, rtype, ip, proxied=True):
     common.print_log(f"set ip, domain: {domain}, rtype: {rtype}, ip: {ip}")
 
     zone_id = zone["id"]
@@ -67,7 +67,7 @@ def set_ip(client, zone, domain, rtype, ip):
 
     if len(records) == 0:
         common.print_log("add record due to empty records")
-        add_record(client, zone_id, domain, rtype, ip)
+        add_record(client, zone_id, domain, rtype, ip, proxied)
     else:
         matched = False
         for record in records:
@@ -79,11 +79,11 @@ def set_ip(client, zone, domain, rtype, ip):
                 matched = True
         if not matched:
             common.print_log("add record due to unmatched")
-            add_record(client, zone_id, domain, rtype, ip)
+            add_record(client, zone_id, domain, rtype, ip, proxied)
 
 
-def add_record(client, zone_id, domain, rtype, ip):
-    config = {"type": rtype, "name": domain, "content": ip, "ttl": DEFAULT_TTL, "proxied": False}
+def add_record(client, zone_id, domain, rtype, ip, proxied):
+    config = {"type": rtype, "name": domain, "content": ip, "ttl": DEFAULT_TTL, "proxied": proxied}
     client.zones.dns_records.post(zone_id, data=config)
 
 
@@ -96,12 +96,13 @@ def main():
     client = CloudFlare.CloudFlare()
     zones = client.zones.get()
 
-    for root_domain, sub_domains in DOMAINS_IPV4.items():
+    for root_domain, sub_domain_infos in DOMAINS_IPV4.items():
         common.print_log(f"set ip, root domain: {root_domain}, ipv4: {ipv4}")
         zone = [zone for zone in zones if zone["name"] == root_domain][0]
-        for sub_domain in sub_domains:
+        for sub_domain_info in sub_domain_infos:
+            sub_domain, proxied = sub_domain_info
             domain = sub_domain + root_domain
-            set_ip(client, zone, domain, "A", ipv4)
+            set_ip(client, zone, domain, "A", ipv4, proxied)
 
     for root_domain, sub_domain_map in DOMAINS_IPV6.items():
         zone = [zone for zone in zones if zone["name"] == root_domain][0]
