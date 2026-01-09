@@ -1,0 +1,55 @@
+---
+apiVersion: longhorn.io/v1beta2
+kind: RecurringJob
+metadata:
+  name: default-backup
+  namespace: longhorn-system
+spec:
+  cron: "0 0 * * *"
+  task: "backup"
+  retain: 10
+  concurrency: 1
+  groups:
+    - default
+
+---
+apiVersion: longhorn.io/v1beta2
+kind: RecurringJob
+metadata:
+  name: default-snapshot
+  namespace: longhorn-system
+spec:
+  cron: "0 */6 * * *"
+  task: "snapshot"
+  retain: 4
+  concurrency: 1
+  groups:
+    - default
+
+---
+apiVersion: longhorn.io/v1beta2
+kind: RecurringJob
+metadata:
+  name: high-priority-backup
+  namespace: longhorn-system
+spec:
+  cron: "0 */12 * * *"
+  task: "backup"
+  retain: 40
+  concurrency: 1
+  groups:
+    - high-priority
+
+---
+apiVersion: longhorn.io/v1beta2
+kind: RecurringJob
+metadata:
+  name: high-priority-snapshot
+  namespace: longhorn-system
+spec:
+  cron: "0 * * * *"
+  task: "snapshot"
+  retain: 72
+  concurrency: 1
+  groups:
+    - high-priority
