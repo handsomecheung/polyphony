@@ -1,0 +1,19 @@
+#!/usr/bin/env bash
+
+# Commit-msg hook to check for sensitive keywords in commit message
+# This hook prevents commits that contain certain keywords in the message
+
+source "$(dirname "${BASH_SOURCE[0]}")/../../../scripts/common.sh"
+
+GIT_ROOT=$(git rev-parse --show-toplevel)
+BLACKWORDS_FILE="$GIT_ROOT/infra/git/blackwords"
+COMMIT_MSG_FILE="$1"
+
+if ! check_commit_message_for_keywords "${BLACKWORDS_FILE}" "${COMMIT_MSG_FILE}"; then
+    echo -e "${RED}Commit rejected!${NC}"
+    echo "Please remove the sensitive keywords from message before committing."
+    exit 1
+fi
+
+echo "Proceeding with commit..."
+exit 0
