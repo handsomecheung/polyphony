@@ -1,0 +1,114 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: qbittorrent
+  namespace: default
+  labels:
+    app: qbittorrent
+    app.kubernetes.io/name: qbittorrent
+    app.kubernetes.io/instance: qbittorrent
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: qbittorrent
+      app.kubernetes.io/name: qbittorrent
+      app.kubernetes.io/instance: qbittorrent
+  template:
+    metadata:
+      labels:
+        app: qbittorrent
+        app.kubernetes.io/name: qbittorrent
+        app.kubernetes.io/instance: qbittorrent
+    spec:
+      volumes:
+        - name: default-common-encrypted
+          persistentVolumeClaim:
+            claimName: default-common-encrypted
+        - name: nfs-data-download
+          persistentVolumeClaim:
+            claimName: nfs-data-download
+      containers:
+        - name: app
+          image: linuxserver/qbittorrent
+          imagePullPolicy: Always
+          env:
+            - name: PUID
+              value: "1000"
+            - name: PGID
+              value: "1000"
+            - name: FLARE_URL
+              value: http://flaresolverr.default/
+            - name: WEBUI_PORT
+              value: "8080"
+          volumeMounts:
+            - name: default-common-encrypted
+              mountPath: /config
+              subPath: qbittorrent/config
+            - name: nfs-data-download
+              mountPath: /downloads
+              subPath: qbittorrent/data
+          ports:
+            # - containerPort: 6881/udp
+            - containerPort: 6881
+            - containerPort: 8080
+          resources:
+            requests:
+              cpu: 200m
+              memory: 256Mi
+            limits:
+              cpu: 400m
+              memory: 512Mi
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: qbittorrent
+  namespace: default
+  labels:
+    app: qbittorrent
+spec:
+  type: ClusterIP
+  ports:
+    - name: default
+      port: 80
+      protocol: TCP
+      targetPort: 8080
+  selector:
+    app: qbittorrent
+
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: qbittorrent
+  namespace: default
+  annotations:
+    cert-manager.io/cluster-issuer: cluster-letsencrypt-dns-cloudflare
+    traefik.ingress.kubernetes.io/router.middlewares: middleware-playonjan@kubernetescrd,middleware-antimitm@kubernetescrd,sso-domainx@kubernetescrd
+    gethomepage.dev/enabled: "true"
+    gethomepage.dev/group: Media
+    gethomepage.dev/name: qBittorrent
+    gethomepage.dev/icon: qbittorrent
+    gethomepage.dev/href: https://qbittorrent.__{{infra.domains:f:x}}__/
+    gethomepage.dev/siteMonitor: https://qbittorrent.__{{infra.domains:f:x}}__/
+    gethomepage.dev/weight: "50"
+spec:
+  ingressClassName: traefik
+  rules:
+    - host: qbittorrent.__{{infra.domains:f:x}}__
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: qbittorrent
+                port:
+                  name: default
+  tls:
+    - hosts:
+        - qbittorrent.__{{infra.domains:f:x}}__
+      secretName: qbittorrent-domainx

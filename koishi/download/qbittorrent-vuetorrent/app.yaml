@@ -1,0 +1,91 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: qbittorrent-vuetorrent
+  namespace: default
+  labels:
+    app: qbittorrent-vuetorrent
+    app.kubernetes.io/name: qbittorrent-vuetorrent
+    app.kubernetes.io/instance: qbittorrent-vuetorrent
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: qbittorrent-vuetorrent
+      app.kubernetes.io/name: qbittorrent-vuetorrent
+      app.kubernetes.io/instance: qbittorrent-vuetorrent
+  template:
+    metadata:
+      labels:
+        app: qbittorrent-vuetorrent
+        app.kubernetes.io/name: qbittorrent-vuetorrent
+        app.kubernetes.io/instance: qbittorrent-vuetorrent
+    spec:
+      containers:
+        - name: app
+          image: cloudpublic/default/qbittorrent-vuetorrent:latest
+          ports:
+            - containerPort: 80
+          resources:
+            requests:
+              cpu: 50m
+              memory: 32Mi
+            limits:
+              cpu: 100m
+              memory: 64Mi
+          imagePullPolicy: Always
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: qbittorrent-vuetorrent
+  namespace: default
+  labels:
+    app: qbittorrent-vuetorrent
+spec:
+  type: ClusterIP
+  ports:
+    - name: default
+      port: 80
+      protocol: TCP
+      targetPort: 80
+  selector:
+    app: qbittorrent-vuetorrent
+
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: qbittorrent-vuetorrent
+  namespace: default
+  annotations:
+    cert-manager.io/cluster-issuer: cluster-letsencrypt-dns-cloudflare
+    traefik.ingress.kubernetes.io/router.middlewares: middleware-playonjan@kubernetescrd,middleware-antimitm@kubernetescrd,sso-domainx@kubernetescrd
+    nginx.ingress.kubernetes.io/http2-push-preload: "true"
+    gethomepage.dev/enabled: "true"
+    gethomepage.dev/group: Media
+    gethomepage.dev/name: VueTorrent
+    gethomepage.dev/description: WebUI for qBittorrent made with Vue.js!
+    gethomepage.dev/icon: https://vuetorrent.github.io/demo/icon.svg
+    gethomepage.dev/href: https://qbittorrent-vuetorrent.__{{infra.domains:f:x}}__/
+    gethomepage.dev/siteMonitor: https://qbittorrent-vuetorrent.__{{infra.domains:f:x}}__/
+    gethomepage.dev/weight: "60"
+spec:
+  ingressClassName: traefik
+  rules:
+    - host: qbittorrent-vuetorrent.__{{infra.domains:f:x}}__
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: qbittorrent-vuetorrent
+                port:
+                  name: default
+  tls:
+    - hosts:
+        - qbittorrent-vuetorrent.__{{infra.domains:f:x}}__
+      secretName: qbittorrentvuetorrent-domainx

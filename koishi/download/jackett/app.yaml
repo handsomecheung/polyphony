@@ -1,0 +1,106 @@
+---
+# https://github.com/Jackett/Jackett
+# https://hub.docker.com/r/linuxserver/jackett/
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: jackett
+  namespace: default
+  labels:
+    app: jackett
+    app.kubernetes.io/name: jackett
+    app.kubernetes.io/instance: jackett
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: jackett
+      app.kubernetes.io/name: jackett
+      app.kubernetes.io/instance: jackett
+  template:
+    metadata:
+      labels:
+        app: jackett
+        app.kubernetes.io/name: jackett
+        app.kubernetes.io/instance: jackett
+    spec:
+      volumes:
+        - name: default-common-encrypted
+          persistentVolumeClaim:
+            claimName: default-common-encrypted
+      containers:
+        - name: app
+          image: linuxserver/jackett
+          imagePullPolicy: Always
+          env:
+            - name: PUID
+              value: "1000"
+            - name: PGID
+              value: "1000"
+            - name: FLARE_URL
+              value: http://flaresolverr.default/
+          volumeMounts:
+            - name: default-common-encrypted
+              mountPath: /config
+              subPath: jackett/config
+            - name: default-common-encrypted
+              mountPath: /downloads
+              subPath: jackett/downloads
+          ports:
+            - containerPort: 9117
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: jackett
+  namespace: default
+  labels:
+    app: jackett
+spec:
+  type: ClusterIP
+  ports:
+    - name: default
+      port: 80
+      protocol: TCP
+      targetPort: 9117
+  selector:
+    app: jackett
+
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: jackett
+  namespace: default
+  annotations:
+    cert-manager.io/cluster-issuer: cluster-letsencrypt-dns-cloudflare
+    traefik.ingress.kubernetes.io/router.middlewares: middleware-playonjan@kubernetescrd,middleware-antimitm@kubernetescrd
+    gethomepage.dev/enabled: "true"
+    gethomepage.dev/group: Media
+    gethomepage.dev/name: jackett
+    gethomepage.dev/icon: jackett
+    gethomepage.dev/href: https://jackett.__{{infra.domains:f:x}}__/
+    gethomepage.dev/siteMonitor: https://jackett.__{{infra.domains:f:x}}__/
+    gethomepage.dev/weight: "70"
+spec:
+  ingressClassName: traefik
+  rules:
+    - host: jackett.__{{infra.domains:f:x}}__
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: jackett
+                port:
+                  name: default
+  tls:
+    - hosts:
+        - jackett.__{{infra.domains:f:x}}__
+      secretName: jackett-domainx
