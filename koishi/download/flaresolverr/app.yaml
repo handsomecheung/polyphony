@@ -1,0 +1,80 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: flaresolverr
+  namespace: default
+  labels:
+    app.kubernetes.io/name: flaresolverr
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: flaresolverr
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: flaresolverr
+    spec:
+      containers:
+        - name: app
+          image: ghcr.io/flaresolverr/flaresolverr:latest
+          imagePullPolicy: Always
+          ports:
+            - name: default
+              containerPort: 8191
+          resources:
+            requests:
+              cpu: 100m
+              memory: 512Mi
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: flaresolverr
+  namespace: default
+  labels:
+    app.kubernetes.io/name: flaresolverr
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: flaresolverr
+  ports:
+    - name: default
+      port: 80
+      protocol: TCP
+      targetPort: default
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: flaresolverr
+  namespace: default
+  annotations:
+    cert-manager.io/cluster-issuer: cluster-letsencrypt-dns-cloudflare
+    traefik.ingress.kubernetes.io/router.middlewares: middleware-playonjan@kubernetescrd,middleware-antimitm@kubernetescrd,sso-domainx@kubernetescrd
+    gethomepage.dev/enabled: "true"
+    gethomepage.dev/group: Media
+    gethomepage.dev/name: FlareSolverr
+    gethomepage.dev/icon: https://avatars.githubusercontent.com/u/75936191
+    gethomepage.dev/href: https://flaresolverr.__{{infra.domains:f:x}}__/
+    gethomepage.dev/siteMonitor: https://flaresolverr.__{{infra.domains:f:x}}__/
+    gethomepage.dev/weight: "80"
+spec:
+  ingressClassName: traefik
+  rules:
+    - host: flaresolverr.__{{infra.domains:f:x}}__
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: flaresolverr
+                port:
+                  name: default
+  tls:
+    - hosts:
+        - flaresolverr.__{{infra.domains:f:x}}__
+      secretName: flaresolverr-domainx

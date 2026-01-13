@@ -1,0 +1,87 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: aria2
+  namespace: default
+  labels:
+    app.kubernetes.io/name: aria2
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: aria2
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: aria2
+    spec:
+      volumes:
+        - name: default-common-encrypted
+          persistentVolumeClaim:
+            claimName: default-common-encrypted
+        - name: nfs-data-download
+          persistentVolumeClaim:
+            claimName: nfs-data-download
+      containers:
+        - name: app
+          image: cloudpublic/default/aria2:latest
+          imagePullPolicy: Always
+          volumeMounts:
+            - name: default-common-encrypted
+              mountPath: /aria2/data
+              subPath: aria2/config
+            - name: nfs-data-download
+              mountPath: /aria2/downloads
+              subPath: aria2/data
+          ports:
+            - name: default
+              containerPort: 6800
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: aria2
+  namespace: default
+  labels:
+    app.kubernetes.io/name: aria2
+spec:
+  type: ClusterIP
+  ports:
+    - name: default
+      port: 80
+      protocol: TCP
+      targetPort: default
+  selector:
+    app.kubernetes.io/name: aria2
+
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: aria2
+  namespace: default
+  annotations:
+    cert-manager.io/cluster-issuer: cluster-letsencrypt-dns-cloudflare
+spec:
+  ingressClassName: traefik
+  rules:
+    - host: aria2.__{{infra.domains:f:x}}__
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: aria2
+                port:
+                  name: default
+  tls:
+    - hosts:
+        - aria2.__{{infra.domains:f:x}}__
+      secretName: aria2-domainx
