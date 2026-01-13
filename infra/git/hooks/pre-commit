@@ -17,7 +17,6 @@ if [ ! -f "$BLACKWORDS_FILE" ]; then
     exit 1
 fi
 
-# Read keywords from the blackwords file (one per line, ignore empty lines)
 KEYWORDS=()
 while IFS= read -r line; do
     # Skip empty lines and lines starting with #
@@ -26,7 +25,6 @@ while IFS= read -r line; do
     fi
 done <"$BLACKWORDS_FILE"
 
-# If no keywords are defined, reject the commit
 if [ ${#KEYWORDS[@]} -eq 0 ]; then
     echo -e "${RED}ERROR: No keywords defined in $BLACKWORDS_FILE${NC}"
     echo "The blackwords file is empty or contains only comments."
@@ -47,6 +45,19 @@ FOUND=0
 echo "Checking for sensitive keywords..."
 
 for FILE in $FILES; do
+    for KEYWORD in "${KEYWORDS[@]}"; do
+        if echo "$FILE" | grep -qi "$KEYWORD"; then
+            if [ $FOUND -eq 0 ]; then
+                echo -e "${RED}ERROR: Sensitive keywords found in staged files!${NC}"
+                echo ""
+                FOUND=1
+            fi
+            echo -e "${YELLOW}  File: $FILE${NC}"
+            echo -e "${RED}  Keyword found in FILENAME: $KEYWORD${NC}"
+            echo ""
+        fi
+    done
+
     # Skip if file doesn't exist (deleted files)
     if [ ! -f "$FILE" ]; then
         continue
@@ -60,7 +71,7 @@ for FILE in $FILES; do
                 FOUND=1
             fi
             echo -e "${YELLOW}  File: $FILE${NC}"
-            echo -e "${RED}  Keyword: $KEYWORD${NC}"
+            echo -e "${RED}  Keyword found in CONTENT: $KEYWORD${NC}"
             # Show the line where keyword was found
             grep -ni "$KEYWORD" "$FILE" | head -n 3
             echo ""
