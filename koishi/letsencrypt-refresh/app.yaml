@@ -1,0 +1,96 @@
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: letsencrypt-refresh--aliyun-credentials
+  namespace: default
+type: Opaque
+stringData:
+  credentials.ini: |
+    dns_aliyun_access_key = __{{aliyun.letsencrypt-refresh.key:f:id}}__
+    dns_aliyun_access_key_secret = __{{aliyun.letsencrypt-refresh.key:f:secret}}__
+
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: letsencrypt-refresh-umbilical
+  namespace: default
+spec:
+  backoffLimit: 0
+  template:
+    spec:
+      restartPolicy: Never
+      nodeSelector:
+        kubernetes.io/hostname: nur
+      volumes:
+        - name: letsencrypt-etc
+          hostPath:
+            path: /mnt/coder-workspaces/private-workspace/repos/local/polyphony/koishi/letsencrypt-refresh/cache/etc
+            type: DirectoryOrCreate
+        - name: letsencrypt-var
+          hostPath:
+            path: /mnt/coder-workspaces/private-workspace/repos/local/polyphony/koishi/letsencrypt-refresh/cache/var
+            type: DirectoryOrCreate
+        - name: credentials
+          secret:
+            secretName: letsencrypt-refresh--aliyun-credentials
+        - name: certs-output
+          hostPath:
+            path: /mnt/coder-workspaces/private-workspace/repos/local/home-service/static/letsencrypt
+            type: DirectoryOrCreate
+      initContainers:
+        - name: generate
+          image: cloudpublic/default/dns-aliyun:latest
+          args:
+            - certonly
+            - --non-interactive
+            - --agree-tos
+            - --email=__{{infra-emails:f:hh}}__
+            - --authenticator=dns-aliyun
+            - --dns-aliyun-credentials=/credentials.ini
+            - -d
+            - "__{{infra.domains:f:u}}__"
+            - -d
+            - "*.__{{infra.domains:f:u}}__"
+            - -d
+            - "*.public.__{{infra.domains:f:u}}__"
+            - -d
+            - "*.silver.__{{infra.domains:f:u}}__"
+            - -d
+            - "*.direct.__{{infra.domains:f:u}}__"
+            - -d
+            - "*.j.__{{infra.domains:f:u}}__"
+          volumeMounts:
+            - name: letsencrypt-etc
+              mountPath: /etc/letsencrypt
+            - name: letsencrypt-var
+              mountPath: /var/lib/letsencrypt
+            - name: credentials
+              mountPath: /credentials.ini
+              subPath: credentials.ini
+              readOnly: true
+
+      containers:
+        - name: copy
+          image: ubuntu:22.04
+          command:
+            - /bin/bash
+            - -c
+            - |
+              set -e
+              domain="__{{infra.domains:f:u}}__"
+              mkdir -p "/data/certs/${domain}"
+              chown 1000:1000 "/data/certs/${domain}"
+              for file in cert.pem chain.pem fullchain.pem privkey.pem; do
+                echo "copy file ${file}"
+                cp -L --remove-destination "/etc/letsencrypt/live/${domain}/${file}" "/data/certs/${domain}/${file}"
+                chown 1000:1000 "/data/certs/${domain}/${file}"
+              done
+              echo done
+          volumeMounts:
+            - name: letsencrypt-etc
+              mountPath: /etc/letsencrypt
+              readOnly: true
+            - name: certs-output
+              mountPath: /data/certs
