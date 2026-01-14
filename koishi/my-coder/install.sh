@@ -2,13 +2,13 @@
 set -e
 
 cd "$(dirname "${BASH_SOURCE[0]}")"
+kubectl create namespace my-coder
 my-k8s-deploy --meta=pullsecret-cloudprivate --namespace=my-coder
 
 dir=$(mktemp -d -t k8s-deploy-coder-XXXXXX)
 cp values.yaml "${dir}"
 my-secret render "${dir}"
 
-kubectl create namespace my-coder
 helm repo add coder-v2 https://helm.coder.com/v2
 helm repo update
 
