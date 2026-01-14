@@ -17,9 +17,9 @@ data:
   DOMAIN_C: "__{{infra.domains:f:c}}__"
   DOMAIN_T: "__{{infra.domains:f:t}}__"
   DOMAIN_U: "__{{infra.domains:f:u}}__"
-  COMAPI_HOST_NUR: "http://__{{koishi.infra.machine.nur:f:ip}}__:__{{koishi.comapi.port}}__"
-  COMAPI_HOST_NIPPON: "http://__{{koishi.infra.machine.nippon:f:ip}}__:__{{koishi.comapi.port}}__"
-  COMAPI_HOST_MINIBA: "http://__{{koishi.infra.machine.miniba:f:ip}}__:__{{koishi.comapi.port}}__"
+  COMAPI_HOST_NUR: "http://__{{infra.machine.nur:f:ip}}__:__{{koishi.comapi.port}}__"
+  COMAPI_HOST_NIPPON: "http://__{{infra.machine.nippon:f:ip}}__:__{{koishi.comapi.port}}__"
+  COMAPI_HOST_MINIBA: "http://__{{infra.machine.miniba:f:ip}}__:__{{koishi.comapi.port}}__"
   COMAPI_PATH_IPV6: "/ipv6"
 
 ---

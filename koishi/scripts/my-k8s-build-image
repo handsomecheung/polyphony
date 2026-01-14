@@ -11,12 +11,12 @@ script_dir="$(dirname "${BASH_SOURCE[0]}")"
 bash ~/.kube/get-token.devbox-user.sh session >/dev/null
 
 cmd_kubectl="kubectl"
-host_cloudpublic=$(my-secret getpassword --key=koishi.deploy.cloudpublic_registry_host --collections=Infra 2>/dev/null)
-host_cloudprivate=$(my-secret getpassword --key=koishi.deploy.cloudprivate_registry_host --collections=Infra 2>/dev/null)
+host_cloudpublic=$(my-secret getpassword --key=koishi.deploy.cloudpublic_registry_host 2>/dev/null)
+host_cloudprivate=$(my-secret getpassword --key=koishi.deploy.cloudprivate_registry_host 2>/dev/null)
 
-cloudpublic_registry_id=$(my-secret getpassword --key=koishi.deploy.cloudpublic_registry_id --collections=Infra 2>/dev/null)
-cloudprivate_registry_id=$(my-secret getpassword --key=koishi.deploy.cloudprivate_registry_id --collections=Infra 2>/dev/null)
-cloudpublic_registry_password=$(my-secret getpassword --key=github.docker-image.token --collections=Infra 2>/dev/null)
+cloudpublic_registry_id=$(my-secret getpassword --key=koishi.deploy.cloudpublic_registry_id 2>/dev/null)
+cloudprivate_registry_id=$(my-secret getpassword --key=koishi.deploy.cloudprivate_registry_id 2>/dev/null)
+cloudpublic_registry_password=$(my-secret getpassword --key=github.docker-image.token 2>/dev/null)
 
 # for push cache layer and cloudprivate
 docker login "${host_cloudpublic}" --username "${cloudpublic_registry_id}" --password "${cloudpublic_registry_password}"

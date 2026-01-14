@@ -19,7 +19,7 @@ spec:
   persistentVolumeReclaimPolicy: Retain
   volumeMode: Filesystem
   nfs:
-    server: __{{koishi.infra.machine.nur:f:ip}}__
+    server: __{{infra.machine.nur:f:ip}}__
     path: /mnt/nfs/exports/disk/user-data-others
     readOnly: no
 
@@ -58,7 +58,7 @@ spec:
   persistentVolumeReclaimPolicy: Retain
   volumeMode: Filesystem
   nfs:
-    server: __{{koishi.infra.machine.nur:f:ip}}__
+    server: __{{infra.machine.nur:f:ip}}__
     path: /mnt/nfs/exports/disk/user-data-music
     readOnly: no
 
@@ -97,7 +97,7 @@ spec:
   persistentVolumeReclaimPolicy: Retain
   volumeMode: Filesystem
   nfs:
-    server: __{{koishi.infra.machine.nur:f:ip}}__
+    server: __{{infra.machine.nur:f:ip}}__
     path: /mnt/nfs/exports/disk/user-data-slight
     readOnly: no
 
@@ -136,7 +136,7 @@ spec:
   persistentVolumeReclaimPolicy: Retain
   volumeMode: Filesystem
   nfs:
-    server: __{{koishi.infra.machine.nur:f:ip}}__
+    server: __{{infra.machine.nur:f:ip}}__
     path: /mnt/nfs/exports/disk/coder-sharepoint
     readOnly: no
 
@@ -175,7 +175,7 @@ spec:
   persistentVolumeReclaimPolicy: Retain
   volumeMode: Filesystem
   nfs:
-    server: __{{koishi.infra.machine.nur:f:ip}}__
+    server: __{{infra.machine.nur:f:ip}}__
     path: /mnt/nfs/exports/disk/coder-workspaces
     readOnly: no
 
@@ -202,7 +202,7 @@ metadata:
   labels:
     storage.k8s.io/name: nfs
     storage.k8s.io/part-of: kubernetes-complete-reference
-    storage.k8s.io/created-by: hc
+    storage.k8s.io/created-by: CHoU
 spec:
   accessModes:
     - ReadOnlyMany
@@ -214,7 +214,7 @@ spec:
   persistentVolumeReclaimPolicy: Retain
   volumeMode: Filesystem
   nfs:
-    server: __{{koishi.infra.machine.nippon:f:ip}}__
+    server: __{{infra.machine.nippon:f:ip}}__
     path: /mnt/nfs/exports/data/nfs-data-download
     readOnly: no
 
