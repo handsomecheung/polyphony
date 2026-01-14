@@ -1,0 +1,10 @@
+[package]
+name = "comapi"
+version = "0.0.2"
+authors = ["Chou S. <handsomecheung@gmail.com>"]
+edition = "2018"
+
+[dependencies]
+warp = "0.3"
+tokio = { version = "1", features = ["full"] }
+pnet = "0.34.0"

@@ -1,0 +1,50 @@
+---
+services:
+  watchtower:
+    image: containrrr/watchtower:latest
+    environment:
+      TZ: "__{{koishi.deploy.timezone}}__"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /home/box/.docker/config.json:/config.json
+    command: --interval 120
+    restart: unless-stopped
+
+  comapi:
+    image: __{{koishi.deploy.cloudpublic_registry_host}}__/__{{koishi.deploy.cloudpublic_registry_id}}__/compose/comapi:latest
+    environment:
+      TZ: "__{{koishi.deploy.timezone}}__"
+      KOISHI_IPV4_PREFIX: "__{{koishi.infra.infos:f:subnetv4}}__."
+    pid: host
+    network_mode: host # exposed port 37900
+    restart: unless-stopped
+
+  wakeup:
+    image: __{{koishi.deploy.cloudpublic_registry_host}}__/__{{koishi.deploy.cloudpublic_registry_id}}__/compose/wakeup:latest
+    environment:
+      TZ: "__{{koishi.deploy.timezone}}__"
+      GOTTY_WS_ORIGIN: ".*"
+      TERM: "xterm-256color"
+      GOTTY_PORT: "37902"
+      MAC_NUR: "__{{infra.machine.nur:f:mac}}__"
+      MAC_MINIBA: "__{{infra.machine.miniba:f:mac}}__"
+      MAC_NIPPON: "__{{infra.machine.nippon:f:mac}}__"
+      KOISHI_IPV4_PREFIX: "__{{koishi.infra.infos:f:subnetv4}}__."
+    volumes:
+      - /home/box/.kube/config:/root/.kube/config
+    privileged: true
+    network_mode: host # exposed port 37902
+    restart: unless-stopped
+
+  dnsmasq:
+    image: __{{koishi.deploy.cloudprivate_registry_host}}__/__{{koishi.deploy.cloudprivate_registry_id}}__/docker/compose/dnsmasq:latest
+    environment:
+      TZ: "__{{koishi.deploy.timezone}}__"
+      DNS1: "1.0.0.1"
+      DNS2: "1.1.1.1"
+    ports:
+      - "53:53/udp"
+      - "53:53/tcp"
+    cap_add:
+      - NET_ADMIN
+    restart: always

@@ -1,0 +1,35 @@
+---
+services:
+  watchtower:
+    image: containrrr/watchtower:latest
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /home/box/.docker/config.json:/config.json
+    command: --interval 120
+    restart: always
+
+  comapi:
+    image: __{{koishi.deploy.cloudpublic_registry_host}}__/__{{koishi.deploy.cloudpublic_registry_id}}__/compose/comapi:latest
+    environment:
+      TZ: "__{{koishi.deploy.timezone}}__"
+      KOISHI_IPV4_PREFIX: "__{{koishi.infra.infos:f:subnetv4}}__."
+    pid: host
+    network_mode: host # exposed port 37900
+    restart: always
+
+  shutdown:
+    image: __{{koishi.deploy.cloudpublic_registry_host}}__/__{{koishi.deploy.cloudpublic_registry_id}}__/compose/shutdown:latest
+    environment:
+      TZ: "__{{koishi.deploy.timezone}}__"
+      TERM: "xterm-256color"
+      GOTTY_PORT: "37901"
+      GOTTY_WS_ORIGIN: ".*"
+    volumes:
+      - /home/box/.kube/config:/root/.kube/config
+      - /bin/systemctl:/bin/systemctl
+      - /run/systemd/system:/run/systemd/system
+      - /var/run/dbus/system_bus_socket:/var/run/dbus/system_bus_socket
+      - /sys/fs/cgroup:/sys/fs/cgroup
+    privileged: true
+    network_mode: host # exposed port 37901
+    restart: always
