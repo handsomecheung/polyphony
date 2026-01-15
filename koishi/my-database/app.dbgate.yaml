@@ -1,0 +1,522 @@
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: my-database-nfs-subscout
+  labels:
+    storage.k8s.io/name: nfs
+    storage.k8s.io/part-of: kubernetes-complete-reference
+    storage.k8s.io/created-by: chou
+spec:
+  accessModes:
+    - ReadOnlyMany
+    - ReadWriteOnce
+    - ReadWriteMany
+  capacity:
+    storage: 100Gi
+  storageClassName: my-database-nfs-subscout
+  persistentVolumeReclaimPolicy: Retain
+  volumeMode: Filesystem
+  nfs:
+    server: __{{infra.machine.nur:f:ip}}__
+    path: /mnt/nfs/exports/disk/coder-workspaces/private-workspace/workspace/encrypted-configs/.subscout
+    readOnly: no
+
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: my-database-nfs-subscout
+  namespace: my-database
+spec:
+  storageClassName: my-database-nfs-subscout
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 100Gi
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: dbgate-dns-config
+  namespace: my-database
+data:
+  hosts: |
+    __{{db.ci-jsf.newsub.aws.prod:f:ip}}__ __{{db.ci-jsf.newsub.aws.prod:f:host}}__
+    __{{db.ci-jsf.newsub.aws.dev:f:ip}}__ __{{db.ci-jsf.newsub.aws.dev:f:host}}__
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: tool-dbgate
+  namespace: my-database
+  labels:
+    app.kubernetes.io/name: tool-dbgate
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: tool-dbgate
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: tool-dbgate
+    spec:
+      volumes:
+        - name: dns-config
+          configMap:
+            name: dbgate-dns-config
+        - name: subscout
+          persistentVolumeClaim:
+            claimName: my-database-nfs-subscout
+      containers:
+        - name: app
+          image: dbgate/dbgate:latest
+          imagePullPolicy: Always
+          volumeMounts:
+            - name: dns-config
+              mountPath: /etc/hosts
+              subPath: hosts
+              readOnly: true
+            - name: subscout
+              subPath: subscout.db
+              mountPath: /tmp/subscout/subscout.db
+          env:
+            - name: CONNECTIONS
+              value: postgres,pushionsdev,pushionsprod,cijsfawsdev,cijsfawsprod,ciipasssystem,ciipasseucdev,ciipasseucprod,ciipasslibrary,subscout
+
+            - name: LABEL_postgres
+              value: Koishi-PostgreSQL
+            - name: SERVER_postgres
+              value: db-postgres.my-database
+            - name: PORT_postgres
+              value: "5432"
+            - name: USER_postgres
+              value: postgres
+            - name: PASSWORD_postgres
+              value: "__{{database.postgres.accounts:f:postgres}}__"
+            - name: ENGINE_postgres
+              value: postgres@dbgate-plugin-postgres
+
+            - name: LABEL_pushionsdev
+              value: Pushions-Dev
+            - name: SERVER_pushionsdev
+              value: database.chou-pushion-dev
+            - name: PORT_pushionsdev
+              value: "5432"
+            - name: USER_pushionsdev
+              value: pushions
+            - name: PASSWORD_pushionsdev
+              value: "__{{pushion.dev.db.pushions}}__"
+            - name: ENGINE_pushionsdev
+              value: postgres@dbgate-plugin-postgres
+
+            - name: LABEL_pushionsprod
+              value: Pushions-Prod
+            - name: SERVER_pushionsprod
+              value: database.chou-pushion-prod
+            - name: PORT_pushionsprod
+              value: "5432"
+            - name: USER_pushionsprod
+              value: pushions
+            - name: PASSWORD_pushionsprod
+              value: "__{{pushion.db.pushions}}__"
+            - name: ENGINE_pushionsprod
+              value: postgres@dbgate-plugin-postgres
+
+            - name: LABEL_cijsfawsdev
+              value: CI-JSF-Dev
+            - name: SERVER_cijsfawsdev
+              value: __{{db.ci-jsf.newsub.aws.dev:f:host}}__
+            - name: PORT_cijsfawsdev
+              value: "3306"
+            - name: USER_cijsfawsdev
+              value: jsfnewsubuser
+            - name: PASSWORD_cijsfawsdev
+              value: "__{{db.ci-jsf.newsub.aws.dev}}__"
+            - name: ENGINE_cijsfawsdev
+              value: mysql@dbgate-plugin-mysql
+
+            - name: LABEL_cijsfawsprod
+              value: CI-JSF-Prod
+            - name: SERVER_cijsfawsprod
+              value: __{{db.ci-jsf.newsub.aws.prod:f:host}}__
+            - name: PORT_cijsfawsprod
+              value: "3306"
+            - name: USER_cijsfawsprod
+              value: jsfprodadmin
+            - name: PASSWORD_cijsfawsprod
+              value: "__{{db.ci-jsf.newsub.aws.prod}}__"
+            - name: ENGINE_cijsfawsprod
+              value: mysql@dbgate-plugin-mysql
+
+            - name: LABEL_ciipasssystem
+              value: CI-IPASS-System
+            - name: SERVER_ciipasssystem
+              value: database-system.ci-ipass
+            - name: PORT_ciipasssystem
+              value: "1433"
+            - name: USER_ciipasssystem
+              value: sa
+            - name: PASSWORD_ciipasssystem
+              value: "Test@123"
+            - name: ENGINE_ciipasssystem
+              value: mssql@dbgate-plugin-mssql
+
+            - name: LABEL_ciipasseucdev
+              value: CI-IPASS-EUC-Dev
+            - name: SERVER_ciipasseucdev
+              value: database-eucdev.ci-ipass
+            - name: PORT_ciipasseucdev
+              value: "1433"
+            - name: USER_ciipasseucdev
+              value: sa
+            - name: PASSWORD_ciipasseucdev
+              value: "Test@123"
+            - name: ENGINE_ciipasseucdev
+              value: mssql@dbgate-plugin-mssql
+
+            - name: LABEL_ciipasseucprod
+              value: CI-IPASS-EUC-Prod
+            - name: SERVER_ciipasseucprod
+              value: database-eucprod.ci-ipass
+            - name: PORT_ciipasseucprod
+              value: "1433"
+            - name: USER_ciipasseucprod
+              value: sa
+            - name: PASSWORD_ciipasseucprod
+              value: "Test@123"
+            - name: ENGINE_ciipasseucprod
+              value: mssql@dbgate-plugin-mssql
+
+            - name: LABEL_ciipasslibrary
+              value: CI-IPASS-Library
+            - name: SERVER_ciipasslibrary
+              value: database-library.ci-ipass
+            - name: PORT_ciipasslibrary
+              value: "1433"
+            - name: USER_ciipasslibrary
+              value: sa
+            - name: PASSWORD_ciipasslibrary
+              value: "Test@123"
+            - name: ENGINE_ciipasslibrary
+              value: mssql@dbgate-plugin-mssql
+
+            - name: LABEL_subscout
+              value: SubScout
+            - name: FILE_subscout
+              value: /tmp/subscout/subscout.db
+            - name: ENGINE_subscout
+              value: sqlite@dbgate-plugin-sqlite
+
+          ports:
+            - name: default
+              containerPort: 3000
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: tool-dbgate
+  namespace: my-database
+  labels:
+    app.kubernetes.io/name: tool-dbgate
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: tool-dbgate
+  ports:
+    - name: default
+      port: 3000
+      protocol: TCP
+      targetPort: default
+
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: tool-dbgate
+  namespace: my-database
+  annotations:
+    cert-manager.io/cluster-issuer: cluster-letsencrypt-dns-cloudflare
+    traefik.ingress.kubernetes.io/router.middlewares: middleware-playonjan@kubernetescrd,middleware-antimitm@kubernetescrd,sso-domainx@kubernetescrd
+    gethomepage.dev/enabled: "true"
+    gethomepage.dev/group: Development
+    gethomepage.dev/name: dbgate
+    gethomepage.dev/icon: https://avatars.githubusercontent.com/u/78292618
+    gethomepage.dev/href: https://dbgate.__{{infra.domains:f:x}}__/
+    gethomepage.dev/siteMonitor: https://dbgate.__{{infra.domains:f:x}}__/
+    gethomepage.dev/weight: "40"
+spec:
+  ingressClassName: traefik
+  rules:
+    - host: dbgate.__{{infra.domains:f:x}}__
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: tool-dbgate
+                port:
+                  name: default
+  tls:
+    - hosts:
+        - dbgate.__{{infra.domains:f:x}}__
+      secretName: dbgate-domainx
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: tool-dbgate-lite
+  namespace: my-database
+  labels:
+    app.kubernetes.io/name: tool-dbgate-lite
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: tool-dbgate-lite
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: tool-dbgate-lite
+    spec:
+      volumes:
+        - name: dns-config
+          configMap:
+            name: dbgate-dns-config
+      containers:
+        - name: app
+          image: dbgate/dbgate:latest
+          imagePullPolicy: Always
+          volumeMounts:
+            - name: dns-config
+              mountPath: /etc/hosts
+              subPath: hosts
+              readOnly: true
+          env:
+            - name: CONNECTIONS
+              value: pushionsdev,cijsfawsdev,ciipasssystem,ciipasseucdev,ciipasseucprod,ciipasslibrary
+
+            - name: LABEL_pushionsdev
+              value: Pushions-Dev
+            - name: SERVER_pushionsdev
+              value: database.chou-pushion-dev
+            - name: PORT_pushionsdev
+              value: "5432"
+            - name: USER_pushionsdev
+              value: pushions
+            - name: PASSWORD_pushionsdev
+              value: "__{{pushion.dev.db.pushions}}__"
+            - name: ENGINE_pushionsdev
+              value: postgres@dbgate-plugin-postgres
+
+            - name: LABEL_cijsfawsdev
+              value: CI-JSF-Dev
+            - name: SERVER_cijsfawsdev
+              value: __{{db.ci-jsf.newsub.aws.dev:f:host}}__
+            - name: PORT_cijsfawsdev
+              value: "3306"
+            - name: USER_cijsfawsdev
+              value: jsfnewsubuser
+            - name: PASSWORD_cijsfawsdev
+              value: "__{{db.ci-jsf.newsub.aws.dev}}__"
+            - name: ENGINE_cijsfawsdev
+              value: mysql@dbgate-plugin-mysql
+
+            - name: LABEL_ciipasssystem
+              value: CI-IPASS-System
+            - name: SERVER_ciipasssystem
+              value: database-system.ci-ipass
+            - name: PORT_ciipasssystem
+              value: "1433"
+            - name: USER_ciipasssystem
+              value: sa
+            - name: PASSWORD_ciipasssystem
+              value: "Test@123"
+            - name: ENGINE_ciipasssystem
+              value: mssql@dbgate-plugin-mssql
+
+            - name: LABEL_ciipasseucdev
+              value: CI-IPASS-EUC-Dev
+            - name: SERVER_ciipasseucdev
+              value: database-eucdev.ci-ipass
+            - name: PORT_ciipasseucdev
+              value: "1433"
+            - name: USER_ciipasseucdev
+              value: sa
+            - name: PASSWORD_ciipasseucdev
+              value: "Test@123"
+            - name: ENGINE_ciipasseucdev
+              value: mssql@dbgate-plugin-mssql
+
+            - name: LABEL_ciipasseucprod
+              value: CI-IPASS-EUC-Prod
+            - name: SERVER_ciipasseucprod
+              value: database-eucprod.ci-ipass
+            - name: PORT_ciipasseucprod
+              value: "1433"
+            - name: USER_ciipasseucprod
+              value: sa
+            - name: PASSWORD_ciipasseucprod
+              value: "Test@123"
+            - name: ENGINE_ciipasseucprod
+              value: mssql@dbgate-plugin-mssql
+
+            - name: LABEL_ciipasslibrary
+              value: CI-IPASS-Library
+            - name: SERVER_ciipasslibrary
+              value: database-library.ci-ipass
+            - name: PORT_ciipasslibrary
+              value: "1433"
+            - name: USER_ciipasslibrary
+              value: sa
+            - name: PASSWORD_ciipasslibrary
+              value: "Test@123"
+            - name: ENGINE_ciipasslibrary
+              value: mssql@dbgate-plugin-mssql
+
+          ports:
+            - name: default
+              containerPort: 3000
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: tool-dbgate-lite
+  namespace: my-database
+  labels:
+    app.kubernetes.io/name: tool-dbgate-lite
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: tool-dbgate-lite
+  ports:
+    - name: default
+      port: 3000
+      protocol: TCP
+      targetPort: default
+
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: tool-dbgate-lite
+  namespace: my-database
+  annotations:
+    cert-manager.io/cluster-issuer: cluster-letsencrypt-dns-cloudflare
+    traefik.ingress.kubernetes.io/router.middlewares: middleware-playonjan@kubernetescrd,middleware-antimitm@kubernetescrd,sso-domainx@kubernetescrd
+    gethomepage.dev/enabled: "true"
+    gethomepage.dev/group: Development
+    gethomepage.dev/name: dbgate lite
+    gethomepage.dev/icon: https://avatars.githubusercontent.com/u/78292618
+    gethomepage.dev/href: https://dbgate-lite.__{{infra.domains:f:x}}__/
+    gethomepage.dev/siteMonitor: https://dbgate-lite.__{{infra.domains:f:x}}__/
+    gethomepage.dev/weight: "41"
+spec:
+  ingressClassName: traefik
+  rules:
+    - host: dbgate-lite.__{{infra.domains:f:x}}__
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: tool-dbgate-lite
+                port:
+                  name: default
+  tls:
+    - hosts:
+        - dbgate-lite.__{{infra.domains:f:x}}__
+      secretName: dbgate-lite-domainx
+
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: tool-dbgate
+  namespace: my-database
+spec:
+  podSelector:
+    matchExpressions:
+      - key: app.kubernetes.io/name
+        operator: In
+        values:
+          - tool-dbgate
+          - tool-dbgate-lite
+  policyTypes:
+    - Egress
+  egress:
+    # Allow communication to Kubernetes DNS service
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kube-system
+        - podSelector:
+            matchLabels:
+              k8s-app: kube-dns
+      ports:
+        - protocol: UDP
+          port: 53
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kube-system
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: traefik
+    - to:
+        - ipBlock:
+            cidr: __{{koishi.infra.infos:f:subnetv4}}__.0/24
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: my-database
+
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: chou-pushion-dev
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: chou-pushion-prod
+
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: ci-ipass
+
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: ci-ipass
+
+    # Allow access to specific external IP addresses only
+    - to:
+        - ipBlock:
+            cidr: __{{db.ci-jsf.newsub.aws.prod:f:ip}}__/32
+      ports:
+        - protocol: TCP
+          port: 3306
+    - to:
+        - ipBlock:
+            cidr: __{{db.ci-jsf.newsub.aws.dev:f:ip}}__/32
+      ports:
+        - protocol: TCP
+          port: 3306

@@ -1,0 +1,60 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: db-redis
+  namespace: my-database
+  labels:
+    app.kubernetes.io/name: db-redis
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: db-redis
+  replicas: 1
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: db-redis
+    spec:
+      nodeSelector:
+        kubernetes.io/hostname: nippon
+      volumes:
+        - name: data
+          hostPath:
+            path: /mnt/runtime-data-app/redis
+            type: DirectoryOrCreate
+      containers:
+        - name: app
+          image: redis:7-alpine
+          ports:
+            - name: default
+              containerPort: 6379
+          volumeMounts:
+            - name: data
+              mountPath: /data
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: db-redis
+  namespace: my-database
+  labels:
+    app.kubernetes.io/name: db-redis
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: db-redis
+  ports:
+    - name: default
+      port: 6379
+      targetPort: default
