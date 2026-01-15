@@ -1,0 +1,151 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: wireguard
+  namespace: default
+  labels:
+    app.kubernetes.io/name: wireguard
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: wireguard
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: wireguard
+    spec:
+      volumes:
+        - name: default-common
+          persistentVolumeClaim:
+            claimName: default-common-encrypted
+      containers:
+        - name: app
+          # https://github.com/wg-easy/wg-easy
+          image: ghcr.io/wg-easy/wg-easy:latest
+          env:
+            - name: WG_HOST
+              value: home.__{{infra.domains:f:x}}__
+            - name: WG_PORT
+              value: "37004"
+            - name: PASSWORD_HASH
+              value: "__{{wireguard.webui:f:password_hash}}__"
+            - name: PORT
+              value: "51821"
+          securityContext:
+            capabilities:
+              add:
+                - NET_ADMIN
+                - SYS_MODULE
+          livenessProbe:
+            failureThreshold: 3
+            periodSeconds: 10
+            successThreshold: 1
+            tcpSocket:
+              port: webui
+            timeoutSeconds: 1
+          readinessProbe:
+            failureThreshold: 3
+            periodSeconds: 10
+            successThreshold: 1
+            tcpSocket:
+              port: webui
+            timeoutSeconds: 1
+          startupProbe:
+            failureThreshold: 30
+            periodSeconds: 5
+            successThreshold: 1
+            tcpSocket:
+              port: webui
+            timeoutSeconds: 1
+          ports:
+            - name: vpn
+              containerPort: 37004
+              protocol: UDP
+            - name: webui
+              containerPort: 51821
+              protocol: TCP
+          volumeMounts:
+            - name: default-common
+              mountPath: /etc/wireguard
+              subPath: wireguard
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: wireguard-vpn
+  namespace: default
+  labels:
+    app.kubernetes.io/name: wireguard
+  finalizers:
+    - service.kubernetes.io/load-balancer-cleanup
+spec:
+  type: LoadBalancer
+  selector:
+    app.kubernetes.io/name: wireguard
+  allocateLoadBalancerNodePorts: true
+  externalTrafficPolicy: Cluster
+  internalTrafficPolicy: Cluster
+  ipFamilies:
+    - IPv4
+  ipFamilyPolicy: SingleStack
+  ports:
+    - name: vpn
+      port: 37004
+      protocol: UDP
+      targetPort: vpn
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: wireguard-webui
+  namespace: default
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: wireguard
+  ports:
+    - name: webui
+      port: 80
+      protocol: TCP
+      targetPort: webui
+
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: wireguard-webui
+  namespace: default
+  annotations:
+    cert-manager.io/cluster-issuer: cluster-letsencrypt-dns-cloudflare
+    traefik.ingress.kubernetes.io/router.middlewares: middleware-playonjan@kubernetescrd,middleware-antimitm@kubernetescrd,sso-domainx@kubernetescrd
+    gethomepage.dev/enabled: "true"
+    gethomepage.dev/group: Network
+    gethomepage.dev/name: WireGuard
+    gethomepage.dev/icon: https://www.wireguard.com/img/icons/favicon-256.png
+    gethomepage.dev/href: https://wireguard.__{{infra.domains:f:x}}__
+    gethomepage.dev/siteMonitor: https://wireguard.__{{infra.domains:f:x}}__
+    gethomepage.dev/weight: "10"
+    gethomepage.dev/app: wireguard
+spec:
+  ingressClassName: traefik
+  rules:
+    - host: wireguard.__{{infra.domains:f:x}}__
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: wireguard-webui
+                port:
+                  name: webui
+  tls:
+    - hosts:
+        - wireguard.__{{infra.domains:f:x}}__
+      secretName: wireguard-domainx
