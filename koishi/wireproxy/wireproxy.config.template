@@ -1,0 +1,23 @@
+# real file in /mnt/volumes/default-common-encrypted/wireproxy/wireproxy.config
+
+[Interface]
+PrivateKey = placeholder
+Address = 10.8.0.5/24
+DNS = 1.1.1.1
+
+[Peer]
+PublicKey = placeholder
+PresharedKey = placeholder
+AllowedIPs = 0.0.0.0/0, ::/0
+PersistentKeepalive = 0
+Endpoint = wireguard.__{{infra.domains:f:u}}__:51820
+
+[Socks5]
+BindAddress = 0.0.0.0:1080
+Username = default
+Password = __{{wireproxy:f:socks5}}__
+
+[HTTP]
+BindAddress = 0.0.0.0:8080
+Username = default
+Password = __{{wireproxy:f:http}}__

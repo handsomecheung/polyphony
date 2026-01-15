@@ -1,0 +1,87 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: wireproxy
+  namespace: default
+  labels:
+    app.kubernetes.io/name: wireproxy
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: wireproxy
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: wireproxy
+    spec:
+      volumes:
+        - name: default-common
+          persistentVolumeClaim:
+            claimName: default-common-encrypted
+      containers:
+        - name: app
+          # https://github.com/pufferffish/wireproxy
+          image: cloudpublic/default/wireproxy:latest
+          ports:
+            - name: socks5
+              containerPort: 1080
+            - name: http
+              containerPort: 8080
+          securityContext:
+            capabilities:
+              add:
+                - NET_ADMIN
+          volumeMounts:
+            - name: default-common
+              mountPath: /etc/wireproxy/config
+              subPath: wireproxy/wireproxy.config
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: wireproxy
+  namespace: default
+  labels:
+    app.kubernetes.io/name: wireproxy
+spec:
+  selector:
+    app.kubernetes.io/name: wireproxy
+  ports:
+    - name: socks5
+      port: 1080
+      protocol: TCP
+      targetPort: socks5
+
+---
+# only for szdc in docker container
+apiVersion: v1
+kind: Service
+metadata:
+  name: wireproxy-host
+  namespace: default
+  labels:
+    app.kubernetes.io/name: wireproxy-host
+  finalizers:
+    - service.kubernetes.io/load-balancer-cleanup
+spec:
+  type: LoadBalancer
+  selector:
+    app.kubernetes.io/name: wireproxy
+  allocateLoadBalancerNodePorts: true
+  externalTrafficPolicy: Cluster
+  internalTrafficPolicy: Cluster
+  ipFamilies:
+    - IPv4
+  ipFamilyPolicy: SingleStack
+  ports:
+    - name: http
+      port: 37180
+      protocol: TCP
+      targetPort: 8080
