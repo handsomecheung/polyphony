@@ -1,0 +1,160 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: guacamole-guacd
+  namespace: default
+  labels:
+    app: guacamole-guacd
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: guacamole-guacd
+  template:
+    metadata:
+      labels:
+        app: guacamole-guacd
+    spec:
+      containers:
+        - name: app
+          image: guacamole/guacd:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 4822
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: guacamole-guacd
+  namespace: default
+  labels:
+    app: guacamole-guacd
+spec:
+  type: ClusterIP
+  ports:
+    - name: default
+      port: 4822
+      protocol: TCP
+      targetPort: 4822
+  selector:
+    app: guacamole-guacd
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: guacamole
+  namespace: default
+  labels:
+    app: guacamole
+    app.kubernetes.io/name: guacamole
+    app.kubernetes.io/instance: guacamole
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: guacamole
+      app.kubernetes.io/name: guacamole
+      app.kubernetes.io/instance: guacamole
+  template:
+    metadata:
+      labels:
+        app: guacamole
+        app.kubernetes.io/name: guacamole
+        app.kubernetes.io/instance: guacamole
+    spec:
+      affinity:
+        nodeAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              preference:
+                matchExpressions:
+                  - key: kubernetes.io/hostname
+                    operator: In
+                    values:
+                      - nur
+      containers:
+        - name: app
+          # docker run --rm guacamole/guacamole /opt/guacamole/bin/initdb.sh --postgresql > initdb.sql
+          # psql --username=guacamole --password guacamole < initdb.sql
+          image: guacamole/guacamole:latest
+          imagePullPolicy: Always
+          env:
+            - name: GUACD_HOSTNAME
+              value: guacamole-guacd
+            - name: POSTGRESQL_HOSTNAME
+              value: db-postgres.my-database
+            - name: POSTGRESQL_PORT
+              value: "5432"
+            - name: POSTGRESQL_USERNAME
+              value: guacamole
+            - name: POSTGRESQL_PASSWORD
+              value: "__{{database.postgres.accounts:f:guacamole}}__"
+            - name: POSTGRESQL_DATABASE
+              value: guacamole
+            # - name: LOGBACK_LEVEL
+            #   value: debug
+          ports:
+            - containerPort: 8080
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: guacamole
+  namespace: default
+  labels:
+    app: guacamole
+spec:
+  type: ClusterIP
+  selector:
+    app: guacamole
+  ports:
+    - name: default
+      port: 80
+      protocol: TCP
+      targetPort: 8080
+
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: guacamole
+  namespace: default
+  annotations:
+    cert-manager.io/cluster-issuer: cluster-letsencrypt-dns-cloudflare
+    traefik.ingress.kubernetes.io/router.middlewares: middleware-playonjan@kubernetescrd,middleware-antimitm@kubernetescrd,sso-domainx@kubernetescrd
+    gethomepage.dev/enabled: "true"
+    gethomepage.dev/group: Development
+    gethomepage.dev/name: guacamole
+    gethomepage.dev/icon: guacamole
+    gethomepage.dev/href: https://guacamole.__{{infra.domains:f:x}}__/guacamole/
+    gethomepage.dev/siteMonitor: https://guacamole.__{{infra.domains:f:x}}__/guacamole/
+    gethomepage.dev/weight: "30"
+spec:
+  ingressClassName: traefik
+  rules:
+    - host: guacamole.__{{infra.domains:f:x}}__
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: guacamole
+                port:
+                  name: default
+  tls:
+    - hosts:
+        - guacamole.__{{infra.domains:f:x}}__
+      secretName: guacamole-domainx
