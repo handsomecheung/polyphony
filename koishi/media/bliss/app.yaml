@@ -1,0 +1,117 @@
+---
+# https://hub.docker.com/r/romancin/bliss
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: bliss
+  namespace: default
+  labels:
+    app.kubernetes.io/name: bliss
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: bliss
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: bliss
+    spec:
+      nodeSelector:
+        kubernetes.io/hostname: nur
+      volumes:
+        - name: default-common
+          persistentVolumeClaim:
+            claimName: default-common-encrypted
+        - name: config
+          emptyDir:
+            sizeLimit: 1Gi
+        - name: tagging
+          hostPath:
+            path: /mnt/user-data-music/tagging
+            type: DirectoryOrCreate
+      initContainers:
+        - name: init
+          image: cloudpublic/base/bash:latest
+          imagePullPolicy: Always
+          args:
+            - bash
+            - -c
+            - >
+              set -e;
+              cp -r /bliss/config.100-fixes /data/config;
+              echo 'data inited, done!';
+          volumeMounts:
+            - name: default-common
+              mountPath: /bliss
+              subPath: bliss
+              readOnly: true
+            - name: config
+              mountPath: /data
+      containers:
+        - name: app
+          image: romancin/bliss
+          imagePullPolicy: Always
+          volumeMounts:
+            - name: config
+              mountPath: /config
+              subPath: config
+            - mountPath: /data/tagging
+              name: tagging
+          ports:
+            - containerPort: 3220
+          resources:
+            requests:
+              cpu: 50m
+              memory: 50Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: bliss
+  namespace: default
+  labels:
+    app.kubernetes.io/name: bliss
+spec:
+  type: ClusterIP
+  ports:
+    - name: default
+      port: 80
+      protocol: TCP
+      targetPort: 3220
+  selector:
+    app.kubernetes.io/name: bliss
+
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: bliss
+  namespace: default
+  annotations:
+    cert-manager.io/cluster-issuer: cluster-letsencrypt-dns-cloudflare
+    traefik.ingress.kubernetes.io/router.middlewares: middleware-playonjan@kubernetescrd,middleware-antimitm@kubernetescrd,sso-domainx@kubernetescrd
+    gethomepage.dev/enabled: "true"
+    gethomepage.dev/group: Media
+    gethomepage.dev/name: Bliss
+    gethomepage.dev/icon: https://bliss.__{{infra.domains:f:x}}__/favicon.ico
+    gethomepage.dev/href: https://bliss.__{{infra.domains:f:x}}__
+    gethomepage.dev/siteMonitor: https://bliss.__{{infra.domains:f:x}}__
+    gethomepage.dev/weight: "30"
+spec:
+  ingressClassName: traefik
+  rules:
+    - host: bliss.__{{infra.domains:f:x}}__
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: bliss
+                port:
+                  name: default
+  tls:
+    - hosts:
+        - bliss.__{{infra.domains:f:x}}__
+      secretName: bliss-domainx
