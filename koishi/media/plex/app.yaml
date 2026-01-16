@@ -1,0 +1,242 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: plex
+  namespace: default
+  labels:
+    app.kubernetes.io/name: plex
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: plex
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: plex
+    spec:
+      affinity:
+        podAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            - labelSelector:
+                matchExpressions:
+                  - key: app.kubernetes.io/name
+                    operator: In
+                    values:
+                      - rclone
+              topologyKey: "kubernetes.io/hostname"
+      terminationGracePeriodSeconds: 15
+      volumes:
+        - name: plex-data
+          hostPath:
+            path: /mnt/runtime-data-app/plex
+            type: Directory
+
+        - name: user-data-music
+          persistentVolumeClaim:
+            claimName: nfs-disk-user-data-music
+        - name: user-data-others
+          persistentVolumeClaim:
+            claimName: nfs-disk-user-data-others
+        - name: user-data-slight
+          persistentVolumeClaim:
+            claimName: nfs-disk-user-data-slight
+
+        - name: workspace-pikpak
+          hostPath:
+            path: /mnt/webdav/pikpak-readonly/workspace
+            # path: /mnt/remote/pikpak/workspace
+            type: Directory
+      initContainers:
+        - name: init
+          image: cloudpublic/base/bash:latest
+          imagePullPolicy: Always
+          args:
+            - bash
+            - -c
+            - >
+              set -e;
+              START=$(date +%s);
+              DIR=/data/warehouse/video/shows/jp/pikpak;
+              while [[ (! -d "${DIR}") || -z "$(ls -A ${DIR})" ]]; do
+                echo "$(date) wait for pikpak being mounted ...";
+
+                if [[ $(($(date +%s) - ${START})) -gt 60 ]]; then
+                  echo "timeout, exit";
+                  exit 1;
+                fi;
+
+                sleep 10;
+              done;
+              echo 'dir mounted, done!';
+          volumeMounts:
+            - name: workspace-pikpak
+              mountPath: /data/warehouse/video/shows/jp/pikpak
+              subPath: p/video/shows-jp
+              readOnly: true
+      hostname: plex
+      containers:
+        - name: app
+          image: cloudpublic/media/plex:latest
+          imagePullPolicy: Always
+          env:
+            - name: LANG
+              value: "C.UTF-8"
+            - name: PLEX_CLAIM
+              value: "__{{plex.claim-token}}__"
+            - name: ADVERTISE_IP
+              value: "https://plex.__{{infra.domains:f:x}}__"
+          volumeMounts:
+            - name: plex-data
+              mountPath: /config
+              subPath: database
+            - name: plex-data
+              mountPath: /transcode
+              subPath: transcode
+
+            - name: user-data-music
+              mountPath: /data/music
+              subPath: music/warehouse
+              readOnly: true
+            - name: workspace-pikpak
+              mountPath: /data/warehouse/music/pikpak
+              subPath: p/music
+              readOnly: true
+
+            - name: workspace-pikpak
+              mountPath: /data/warehouse/video/Others
+              subPath: p/video/others
+              readOnly: true
+            - name: workspace-pikpak
+              mountPath: /data/warehouse/video/Music
+              subPath: p/video/music
+              readOnly: true
+
+            - name: workspace-pikpak
+              mountPath: /data/warehouse/video/koiki/pikpak
+              subPath: p/video/koiki
+              readOnly: true
+            - name: user-data-others
+              mountPath: /data/warehouse/video/koiki/local
+              subPath: data/video/koiki
+              readOnly: true
+
+            - name: user-data-others
+              mountPath: /data/warehouse/video/shows/jp/local
+              subPath: data/video/shows-jp
+              readOnly: true
+            - name: user-data-others
+              mountPath: /data/warehouse/video/shows/en/local
+              subPath: data/video/shows-en
+              readOnly: true
+            - name: user-data-others
+              mountPath: /data/warehouse/video/shows/zh/local
+              subPath: data/video/shows-zh
+              readOnly: true
+
+            - name: user-data-others
+              mountPath: /data/warehouse/video/movies/en/local
+              subPath: data/video/movies-en
+              readOnly: true
+            - name: user-data-others
+              mountPath: /data/warehouse/video/movies/jp/local
+              subPath: data/video/movies-jp
+              readOnly: true
+            - name: user-data-others
+              mountPath: /data/warehouse/video/movies/zh/local
+              subPath: data/video/movies-zh
+              readOnly: true
+
+            - name: workspace-pikpak
+              mountPath: /data/warehouse/video/shows/jp/pikpak
+              subPath: p/video/shows-jp
+              readOnly: true
+            - name: workspace-pikpak
+              mountPath: /data/warehouse/video/shows/en/pikpak
+              subPath: p/video/shows-en
+              readOnly: true
+            - name: workspace-pikpak
+              mountPath: /data/warehouse/video/shows/zh/pikpak
+              subPath: p/video/shows-zh
+              readOnly: true
+            - name: workspace-pikpak
+              mountPath: /data/warehouse/video/movies/jp/pikpak
+              subPath: p/video/movies-jp
+              readOnly: true
+            - name: workspace-pikpak
+              mountPath: /data/warehouse/video/movies/en/pikpak
+              subPath: p/video/movies-en
+              readOnly: true
+            - name: workspace-pikpak
+              mountPath: /data/warehouse/video/movies/zh/pikpak
+              subPath: p/video/movies-zh
+              readOnly: true
+          ports:
+            - containerPort: 32400
+          resources:
+            requests:
+              cpu: 2000m
+              memory: 4Gi
+          livenessProbe:
+            exec:
+              command:
+                [
+                  "bash",
+                  "health-check.sh",
+                  "/data/warehouse/video/shows/jp/pikpak",
+                ]
+            initialDelaySeconds: 60
+            timeoutSeconds: 10
+            periodSeconds: 30
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: plex
+  namespace: default
+  labels:
+    app.kubernetes.io/name: plex
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: plex
+  ports:
+    - name: default
+      port: 80
+      protocol: TCP
+      targetPort: 32400
+
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: plex
+  namespace: default
+  annotations:
+    cert-manager.io/cluster-issuer: cluster-letsencrypt-dns-cloudflare
+    gethomepage.dev/enabled: "true"
+    gethomepage.dev/group: Media
+    gethomepage.dev/name: Plex
+    gethomepage.dev/icon: plex
+    gethomepage.dev/href: https://plex.__{{infra.domains:f:x}}__
+    gethomepage.dev/siteMonitor: https://plex.__{{infra.domains:f:x}}__
+    gethomepage.dev/weight: "0"
+spec:
+  ingressClassName: traefik
+  rules:
+    - host: plex.__{{infra.domains:f:x}}__
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: plex
+                port:
+                  name: default
+  tls:
+    - hosts:
+        - plex.__{{infra.domains:f:x}}__
+      secretName: plex-domainx

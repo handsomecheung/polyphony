@@ -1,0 +1,170 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: jellyfin
+  namespace: default
+  labels:
+    app.kubernetes.io/name: jellyfin
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: jellyfin
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: jellyfin
+    spec:
+      affinity:
+        podAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            - labelSelector:
+                matchExpressions:
+                  - key: app.kubernetes.io/name
+                    operator: In
+                    values:
+                      - rclone
+              topologyKey: "kubernetes.io/hostname"
+      terminationGracePeriodSeconds: 10
+      securityContext:
+        runAsUser: 1000
+        runAsGroup: 1000
+      volumes:
+        - name: default-common
+          persistentVolumeClaim:
+            claimName: default-common-encrypted
+        - name: default-slight
+          persistentVolumeClaim:
+            claimName: default-slight-encrypted
+        - name: user-data-slight
+          persistentVolumeClaim:
+            claimName: nfs-disk-user-data-slight
+        - name: workspace-pikpak
+          hostPath:
+            path: /mnt/webdav/pikpak-readonly/workspace
+            type: Directory
+      initContainers:
+        - name: init
+          image: cloudpublic/base/bash:latest
+          imagePullPolicy: Always
+          args:
+            - bash
+            - -c
+            - >
+              set -e;
+              START=$(date +%s);
+              DIR=/media/warehouse/hero/video/pikpak;
+              while [[ (! -d "${DIR}") || -z "$(ls -A ${DIR})" ]]; do
+                echo "$(date) wait for pikpak being mounted ...";
+
+                if [[ $(($(date +%s) - ${START})) -gt 60 ]]; then
+                  echo "timeout, exit";
+                  exit 1;
+                fi;
+
+                sleep 10;
+              done;
+              echo 'dir mounted, done!';
+          volumeMounts:
+            - name: workspace-pikpak
+              mountPath: /media/warehouse/hero/video/pikpak
+              subPath: p/hero/video
+              readOnly: true
+      hostname: jellyfin
+      containers:
+        - name: app
+          image: cloudpublic/media/jellyfin:latest
+          imagePullPolicy: Always
+          env:
+            - name: JELLYFIN_PublishedServerUrl
+              value: https://jellyfin.__{{infra.domains:f:x}}__
+          volumeMounts:
+            - name: default-common
+              mountPath: /config
+              subPath: jellyfin/config
+            - name: default-slight
+              mountPath: /cache
+              subPath: jellyfin/cache
+
+            - name: user-data-slight
+              mountPath: /media/warehouse/hero/video/local
+              subPath: private-data/hero/video
+              readOnly: true
+            - name: user-data-slight
+              subPath: private-data/hero-pending
+              mountPath: /media/warehouse/hero/video/local-pending
+              readOnly: true
+            - name: workspace-pikpak
+              subPath: p/hero/video
+              mountPath: /media/warehouse/hero/video/pikpak
+              readOnly: true
+          ports:
+            - name: default
+              containerPort: 8096
+          resources:
+            requests:
+              cpu: 100m
+              memory: 512Mi
+          livenessProbe:
+            exec:
+              command:
+                [
+                  "bash",
+                  "health-check.sh",
+                  "/media/warehouse/hero/video/pikpak",
+                ]
+            initialDelaySeconds: 60
+            timeoutSeconds: 10
+            periodSeconds: 30
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: jellyfin
+  namespace: default
+  labels:
+    app.kubernetes.io/name: jellyfin
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: jellyfin
+  ports:
+    - name: default
+      port: 80
+      protocol: TCP
+      targetPort: default
+
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: jellyfin
+  namespace: default
+  annotations:
+    cert-manager.io/cluster-issuer: cluster-letsencrypt-dns-cloudflare
+    gethomepage.dev/enabled: "true"
+    gethomepage.dev/group: Media
+    gethomepage.dev/name: Jellyfin
+    gethomepage.dev/icon: jellyfin
+    gethomepage.dev/href: https://jellyfin.__{{infra.domains:f:x}}__
+    gethomepage.dev/siteMonitor: https://jellyfin.__{{infra.domains:f:x}}__
+    gethomepage.dev/weight: "10"
+spec:
+  ingressClassName: traefik
+  rules:
+    - host: jellyfin.__{{infra.domains:f:x}}__
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: jellyfin
+                port:
+                  name: default
+  tls:
+    - hosts:
+        - jellyfin.__{{infra.domains:f:x}}__
+      secretName: jellyfin-domainx

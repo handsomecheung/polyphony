@@ -1,0 +1,120 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: aliyunpan-decrypt
+  namespace: default
+  labels:
+    app: aliyunpan-decrypt
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: aliyunpan-decrypt
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        app: aliyunpan-decrypt
+    spec:
+      affinity:
+        podAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            - labelSelector:
+                matchExpressions:
+                  - key: app.kubernetes.io/name
+                    operator: In
+                    values:
+                      - rclone
+              topologyKey: "kubernetes.io/hostname"
+      terminationGracePeriodSeconds: 5
+      volumes:
+        - name: default-common
+          persistentVolumeClaim:
+            claimName: default-common-encrypted
+        - name: webdav
+          hostPath:
+            path: /mnt/webdav
+            type: DirectoryOrCreate
+        - name: decrypted
+          hostPath:
+            path: /mnt/decrypted
+            type: DirectoryOrCreate
+      initContainers:
+        - name: init
+          image: cloudpublic/base/bash:latest
+          imagePullPolicy: Always
+          args:
+            - bash
+            - -c
+            - >
+              set -e;
+              DIR="/mnt/webdav/openlist/aliyunpan/workspace/e/LjeUG-qV,S-ljF3L2LcVap8,/";
+              START=$(date +%s);
+              echo "start at ${START}";
+              while [[ (! -d "${DIR}") || -z "$(ls -A ${DIR})" ]]; do
+                echo "$(date) wait for aliyunpan being mounted ...";
+
+                if [[ $(($(date +%s) - ${START})) -gt 60 ]]; then
+                  echo "timeout, exit";
+                  exit 1;
+                fi;
+
+                sleep 10;
+              done;
+              echo 'dir mounted, done!';
+          volumeMounts:
+            - name: webdav
+              mountPath: /mnt/webdav
+            - name: decrypted
+              mountPath: /mnt/decrypted
+      containers:
+        - name: app
+          image: cloudprivate/media/aliyunpan:latest
+          imagePullPolicy: Always
+          securityContext:
+            privileged: true
+            capabilities:
+              add:
+                - SYS_ADMIN
+          env:
+            - name: ALIYUNPAN_CONFIG_DIR
+              value: /aliyunpan
+            - name: ALIYUNPAN_REFRESH_TOKEN
+              value: "8674115e58b945e78dda44de2cb73915"
+            - name: ALIYUNPAN_DOWNLOAD_PARALLEL
+              value: "2"
+            - name: ALIYUNPAN_UPLOAD_PARALLEL
+              value: "2"
+            - name: ALIYUNPAN_DOWNLOAD_BLOCK_SIZE
+              value: "1024"
+            - name: ALIYUNPAN_UPLOAD_BLOCK_SIZE
+              value: "10240"
+          command: ["bash", "entrypoints/entrypoint-decrypt.sh"]
+          lifecycle:
+            preStop:
+              exec:
+                command:
+                  ["bash", "-c", "umount /mnt/decrypted/aliyunpan/workspace"]
+          volumeMounts:
+            - name: default-common
+              mountPath: /aliyunpan
+              subPath: aliyunpan
+            - name: webdav
+              mountPath: /mnt/webdav
+              mountPropagation: Bidirectional
+            - name: decrypted
+              mountPath: /mnt/decrypted
+              mountPropagation: Bidirectional
+          livenessProbe:
+            exec:
+              command:
+                [
+                  "bash",
+                  "health-check.sh",
+                  "/mnt/decrypted/aliyunpan/workspace/hero/video",
+                ]
+            initialDelaySeconds: 60
+            timeoutSeconds: 10
+            periodSeconds: 30
