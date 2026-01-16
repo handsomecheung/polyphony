@@ -1,0 +1,144 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: rclone
+  namespace: default
+  labels:
+    app.kubernetes.io/name: rclone
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: rclone
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: rclone
+    spec:
+      nodeSelector:
+        kubernetes.io/hostname: nur
+      terminationGracePeriodSeconds: 5
+      volumes:
+        - name: default-common
+          persistentVolumeClaim:
+            claimName: default-common-encrypted
+        - name: etc-passwd
+          hostPath:
+            path: /etc/passwd
+            type: File
+        - name: etc-group
+          hostPath:
+            path: /etc/group
+            type: File
+        - name: backup-scripts
+          hostPath:
+            path: /mnt/coder-workspaces/private-workspace/repos/local/polyphony/koishi/media/backup/scripts
+            type: Directory
+        - name: remote
+          hostPath:
+            path: /mnt/remote
+            type: DirectoryOrCreate
+        - name: webdav
+          hostPath:
+            path: /mnt/webdav
+            type: DirectoryOrCreate
+        - name: decrypted
+          hostPath:
+            path: /mnt/decrypted
+            type: DirectoryOrCreate
+
+        - name: user-data-music
+          hostPath:
+            path: /mnt/user-data-music
+            type: DirectoryOrCreate
+        - name: user-data-others
+          hostPath:
+            path: /mnt/user-data-others
+            type: DirectoryOrCreate
+      initContainers:
+        - name: init
+          image: cloudpublic/base/bash:latest
+          imagePullPolicy: Always
+          args:
+            - bash
+            - -c
+            - >
+              set -e;
+              while [[ "$(curl -s -o /dev/null -w ''%{http_code}'' http://openlist/dav)" != "401" ]]; do
+                echo "$(date) wait for openlist starting ..."
+                sleep 10;
+              done
+      containers:
+        - name: app
+          image: cloudpublic/media/rclone:latest
+          imagePullPolicy: Always
+          securityContext:
+            privileged: true
+            capabilities:
+              add:
+                - SYS_ADMIN
+          lifecycle:
+            preStop:
+              exec:
+                command: ["/bin/sh", "-c", "umount /mnt/webdav/pikpak-readonly"]
+          volumeMounts:
+            - name: default-common
+              mountPath: /config/rclone
+              subPath: rclone/config
+            - name: etc-passwd
+              mountPath: /etc/passwd
+              readOnly: true
+            - name: etc-group
+              mountPath: /etc/group
+              readOnly: true
+
+            - name: backup-scripts
+              mountPath: /backup-scripts
+              readOnly: true
+
+            - name: remote
+              mountPath: /mnt/remote
+              mountPropagation: Bidirectional
+            - name: webdav
+              mountPath: /mnt/webdav
+              mountPropagation: Bidirectional
+            - name: decrypted
+              mountPath: /mnt/decrypted
+              mountPropagation: Bidirectional
+
+            - name: user-data-music
+              subPath: music
+              mountPath: /mnt/user-data-music/music
+              readOnly: true
+            - name: user-data-others
+              subPath: data
+              mountPath: /mnt/user-data-others/data
+              readOnly: true
+
+            - name: user-data-others
+              subPath: upload
+              mountPath: /mnt/user-data-others/upload
+            - name: user-data-others
+              subPath: ebackup
+              mountPath: /mnt/user-data-others/ebackup
+            - name: user-data-others
+              subPath: backup
+              mountPath: /mnt/user-data-others/backup
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+          livenessProbe:
+            exec:
+              command:
+                [
+                  "sh",
+                  "health-check.sh",
+                  "/mnt/webdav/pikpak-readonly/workspace/p/video/shows-jp",
+                ]
+            initialDelaySeconds: 60
+            timeoutSeconds: 10
+            periodSeconds: 30

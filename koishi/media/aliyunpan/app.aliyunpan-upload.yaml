@@ -1,0 +1,135 @@
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: aliyunpan-upload
+  namespace: default
+spec:
+  schedule: "0 12 * * *"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 2
+  failedJobsHistoryLimit: 5
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          nodeSelector:
+            kubernetes.io/hostname: nur
+          terminationGracePeriodSeconds: 5
+          restartPolicy: Never
+          volumes:
+            - name: config
+              hostPath:
+                path: /mnt/runtime-data-app/aliyunpan
+                type: DirectoryOrCreate
+            - name: user-data-music
+              hostPath:
+                path: /mnt/user-data-music
+                type: Directory
+            - name: user-data-others
+              hostPath:
+                path: /mnt/user-data-others
+                type: Directory
+            - name: user-data-slight
+              hostPath:
+                path: /mnt/user-data-slight
+                type: Directory
+            - name: runtime-data-app
+              hostPath:
+                path: /mnt/runtime-data-app
+                type: Directory
+
+            - name: plain-hero
+              hostPath:
+                path: /mnt/user-data-slight/private-data/hero
+                type: Directory
+            - name: encrypted-hero
+              hostPath:
+                path: /mnt/encrypted/hero
+                type: DirectoryOrCreate
+
+            - name: plain-eupload
+              hostPath:
+                path: /mnt/user-data-slight/private-data/eupload
+                type: Directory
+            - name: encrypted-eupload
+              hostPath:
+                path: /mnt/encrypted/eupload
+                type: DirectoryOrCreate
+
+            - name: plain-others-eupload
+              hostPath:
+                path: /mnt/user-data-others/eupload
+                type: Directory
+            - name: encrypted-others-eupload
+              hostPath:
+                path: /mnt/encrypted/others-eupload
+                type: DirectoryOrCreate
+          containers:
+            - name: app
+              image: cloudprivate/media/aliyunpan:latest
+              imagePullPolicy: Always
+              env:
+                - name: ALIYUNPAN_CONFIG_DIR
+                  value: /config/aliyunpan
+                - name: ALIYUNPAN_REFRESH_TOKEN
+                  value: "8674115e58b945e78dda44de2cb73915"
+                - name: ALIYUNPAN_DOWNLOAD_PARALLEL
+                  value: "2"
+                - name: ALIYUNPAN_UPLOAD_PARALLEL
+                  value: "2"
+                - name: ALIYUNPAN_DOWNLOAD_BLOCK_SIZE
+                  value: "1024"
+                - name: ALIYUNPAN_UPLOAD_BLOCK_SIZE
+                  value: "10240"
+              securityContext:
+                privileged: true
+                capabilities:
+                  add:
+                    - SYS_ADMIN
+              command: ["bash", "entrypoints/entrypoint-upload.sh"]
+              lifecycle:
+                preStop:
+                  exec:
+                    command:
+                      [
+                        "bash",
+                        "-c",
+                        "umount /backup-encrypted/hero; umount /backup-encrypted/eupload; umount /backup-encrypted/others-eupload",
+                      ]
+              volumeMounts:
+                - name: config
+                  mountPath: /config/aliyunpan
+                - name: user-data-music
+                  mountPath: /backup/user-data-music
+                  readOnly: true
+                - name: user-data-others
+                  mountPath: /backup/user-data-others
+                  readOnly: true
+                - name: user-data-slight
+                  mountPath: /backup/user-data-slight
+                  readOnly: true
+                - name: runtime-data-app
+                  mountPath: /backup/runtime-data-app
+                  readOnly: true
+
+                - name: plain-hero
+                  mountPath: /data/plain/hero
+                  readOnly: true
+                - name: encrypted-hero
+                  mountPath: /backup-encrypted/hero
+                  mountPropagation: Bidirectional
+
+                - name: plain-eupload
+                  mountPath: /data/plain/eupload
+                  readOnly: true
+                - name: encrypted-eupload
+                  mountPath: /backup-encrypted/eupload
+                  mountPropagation: Bidirectional
+
+                - name: plain-others-eupload
+                  mountPath: /data/plain/others-eupload
+                  readOnly: true
+                - name: encrypted-others-eupload
+                  mountPath: /backup-encrypted/others-eupload
+                  mountPropagation: Bidirectional
