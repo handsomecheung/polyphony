@@ -1,0 +1,380 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Queue - Waiting for Access</title>
+        <link rel="icon" href="/favicon.ico" />
+        <style>
+            * {
+                margin: 0;
+                padding: 0;
+                box-sizing: border-box;
+            }
+
+            body {
+                font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                min-height: 100vh;
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                overflow: hidden;
+            }
+
+            .container {
+                background: rgba(255, 255, 255, 0.95);
+                padding: 3rem;
+                border-radius: 20px;
+                box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+                text-align: center;
+                max-width: 600px;
+                width: 90%;
+                position: relative;
+            }
+
+            h1 {
+                color: #333;
+                margin-bottom: 2rem;
+                font-size: 2.2rem;
+                font-weight: 300;
+                letter-spacing: -1px;
+            }
+
+            .progress-section {
+                margin: 2rem 0;
+                padding: 2rem;
+                background: rgba(102, 126, 234, 0.1);
+                border: 1px solid rgba(102, 126, 234, 0.3);
+                border-radius: 15px;
+            }
+
+            .progress-label {
+                font-size: 1.2rem;
+                margin-bottom: 1rem;
+                color: #667eea;
+                font-weight: 500;
+            }
+
+            .progress-container {
+                width: 100%;
+                height: 30px;
+                background: rgba(102, 126, 234, 0.1);
+                border: 2px solid rgba(102, 126, 234, 0.3);
+                border-radius: 15px;
+                overflow: hidden;
+                position: relative;
+                margin-bottom: 1.5rem;
+            }
+
+            .progress-bar {
+                height: 100%;
+                background: linear-gradient(45deg, #43e97b 0%, #38f9d7 100%);
+                background-size: 200% 100%;
+                animation: shimmer 2s infinite;
+                transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+                position: relative;
+                box-shadow: 0 8px 20px rgba(67, 233, 123, 0.3);
+            }
+
+            .progress-bar::before {
+                content: "";
+                position: absolute;
+                top: 0;
+                left: -100%;
+                width: 100%;
+                height: 100%;
+                background: linear-gradient(
+                    90deg,
+                    transparent,
+                    rgba(255, 255, 255, 0.3),
+                    transparent
+                );
+                animation: scan 3s infinite;
+            }
+
+            @keyframes shimmer {
+                0% {
+                    background-position: -200% 0;
+                }
+                100% {
+                    background-position: 200% 0;
+                }
+            }
+
+            @keyframes scan {
+                0% {
+                    left: -100%;
+                }
+                100% {
+                    left: 100%;
+                }
+            }
+
+            .progress-text {
+                position: absolute;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+                font-weight: bold;
+                font-size: 1rem;
+                text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.3);
+                z-index: 10;
+                color: #ffffff;
+            }
+
+            .queue-stats {
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                gap: 2rem;
+                margin: 2rem 0;
+            }
+
+            .stat-card {
+                background: linear-gradient(45deg, #f093fb 0%, #f5576c 100%);
+                color: white;
+                border-radius: 15px;
+                padding: 1.5rem;
+                transition: all 0.3s ease;
+                box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+            }
+
+            .stat-card:hover {
+                transform: translateY(-5px);
+                box-shadow: 0 15px 30px rgba(0, 0, 0, 0.2);
+            }
+
+            .stat-number {
+                font-size: 2.5rem;
+                font-weight: bold;
+                color: white;
+                margin-bottom: 0.5rem;
+                transition: all 0.3s ease;
+            }
+
+            .stat-label {
+                font-size: 0.9rem;
+                color: rgba(255, 255, 255, 0.9);
+                text-transform: uppercase;
+                letter-spacing: 1px;
+            }
+
+            .status-indicator {
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                margin: 2rem 0;
+                font-size: 1.1rem;
+                color: #666;
+            }
+
+            .pulse-dot {
+                width: 12px;
+                height: 12px;
+                background: #43e97b;
+                border-radius: 50%;
+                margin-right: 10px;
+                animation: pulse 1.5s infinite;
+                box-shadow: 0 0 10px rgba(67, 233, 123, 0.5);
+            }
+
+            @keyframes pulse {
+                0% {
+                    opacity: 1;
+                    transform: scale(1);
+                }
+                50% {
+                    opacity: 0.5;
+                    transform: scale(1.2);
+                }
+                100% {
+                    opacity: 1;
+                    transform: scale(1);
+                }
+            }
+
+            .actions {
+                display: flex;
+                flex-direction: column;
+                gap: 1rem;
+                margin-top: 2rem;
+            }
+
+            .btn {
+                padding: 1rem 2rem;
+                border: none;
+                border-radius: 15px;
+                font-size: 1rem;
+                font-family: inherit;
+                cursor: pointer;
+                transition: all 0.3s ease;
+                text-decoration: none;
+                display: inline-block;
+                background: linear-gradient(45deg, #4facfe 0%, #00f2fe 100%);
+                color: white;
+                font-weight: 500;
+                box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+            }
+
+            .btn:hover {
+                transform: translateY(-2px);
+                box-shadow: 0 15px 30px rgba(0, 0, 0, 0.2);
+                text-decoration: none;
+                color: white;
+            }
+
+            .btn-danger {
+                background: linear-gradient(45deg, #f093fb 0%, #f5576c 100%);
+            }
+
+            .btn-danger:hover {
+                transform: translateY(-2px);
+                box-shadow: 0 15px 30px rgba(240, 147, 251, 0.4);
+            }
+
+            @media (max-width: 600px) {
+                .container {
+                    padding: 2rem;
+                }
+
+                h1 {
+                    font-size: 1.8rem;
+                }
+
+                .queue-stats {
+                    grid-template-columns: 1fr;
+                    gap: 1rem;
+                }
+
+                .stat-number {
+                    font-size: 2rem;
+                }
+            }
+        </style>
+    </head>
+
+    <body>
+        <div class="container">
+            <h1>🚀 Queue Status</h1>
+
+            <div class="progress-section">
+                <div class="progress-label">Processing Queue...</div>
+                <div class="progress-container">
+                    <div
+                        class="progress-bar"
+                        id="progressBar"
+                        style="width: 0%"
+                    ></div>
+                    <div class="progress-text" id="progressText">0%</div>
+                </div>
+            </div>
+
+            <div class="queue-stats">
+                <div class="stat-card">
+                    <div class="stat-number" id="position">{{ .position }}</div>
+                    <div class="stat-label">Your Position</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="total">{{ .total }}</div>
+                    <div class="stat-label">Total Users</div>
+                </div>
+            </div>
+
+            <div class="status-indicator">
+                <div class="pulse-dot"></div>
+                <span>Monitoring queue status...</span>
+            </div>
+
+            <div class="actions">
+                <button class="btn btn-danger" onclick="leaveQueue()">
+                    Leave Queue
+                </button>
+                <a href="/" class="btn">Back to Home</a>
+            </div>
+        </div>
+
+        <script>
+            let checkInterval;
+            let previousNumerator = {{ .numerator }};
+            let previousDenominator = {{ .denominator }};
+
+            function updateProgress(numerator, denominator) {
+              const progressBar = document.getElementById('progressBar');
+              const progressText = document.getElementById('progressText');
+
+              if (numerator === 0) {
+                progressBar.style.width = '100%';
+                progressText.textContent = 'READY';
+                return;
+              }
+
+              // Calculate progress (higher percentage means closer to front)
+              const progressPercent = Math.max(0, Math.min(100, ((denominator - numerator + 1) / denominator) * 100));
+
+              progressBar.style.width = progressPercent + '%';
+              progressText.textContent = Math.round(progressPercent) + '%';
+            }
+
+            function animateStatChange(elementId, newValue) {
+              const element = document.getElementById(elementId);
+              const currentValue = parseInt(element.textContent);
+
+              if (currentValue !== newValue) {
+                element.style.transform = 'scale(1.1)';
+                element.style.color = '#667eea';
+
+                setTimeout(() => {
+                  element.textContent = newValue;
+                  element.style.transform = 'scale(1)';
+                  element.style.color = 'white';
+                }, 150);
+              }
+            }
+
+            function checkQueueStatus() {
+              fetch('{{ .pathCheck }}')
+                .then(response => response.json())
+                .then(data => {
+                  animateStatChange('position', data.position);
+                  animateStatChange('total', data.total);
+
+                  updateProgress(data.numerator, data.denominator);
+
+                  if (data.canAccess) {
+                    clearInterval(checkInterval);
+                    document.querySelector('.status-indicator span').textContent = 'Access granted! Redirecting...';
+                    document.querySelector('.pulse-dot').style.background = '#667eea';
+
+                    setTimeout(() => {
+                        window.location.href = data.pathRedirect;
+                    }, 1000);
+                  }
+
+                  previousNumerator = data.numerator;
+                  previousDenominator = data.denominator;
+                })
+                .catch(error => {
+                  console.error('Error checking queue status:', error);
+                  document.querySelector('.status-indicator span').textContent = 'Connection error - retrying...';
+                });
+            }
+
+            function leaveQueue() {
+              fetch('{{ .pathLeave }}', {
+                method: 'DELETE'
+              })
+              .then(() => {
+                window.location.href = '{{ .pathArticles }}';
+              })
+              .catch(error => {
+                console.error('Error leaving queue:', error);
+              });
+            }
+
+            // Initialize
+            updateProgress(previousNumerator, previousDenominator);
+
+            checkInterval = setInterval(checkQueueStatus, 5000);
+        </script>
+    </body>
+</html>

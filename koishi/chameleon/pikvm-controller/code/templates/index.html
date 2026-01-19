@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>PiKVM Screenshot Viewer</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #f0f0f0;
+            font-family: Arial, sans-serif;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        .container {
+            width: 100%;
+            max-width: 100%;
+            margin: 0;
+            padding: 20px;
+            box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+            flex: 1;
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        .screenshot-container {
+            flex: 1;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            overflow: hidden;
+            background-color: #000;
+            position: relative;
+        }
+        #screenshot {
+            max-width: 100%;
+            max-height: 100%;
+            width: auto;
+            height: auto;
+            object-fit: contain;
+        }
+        .timestamp {
+            color: #666;
+            margin-top: 10px;
+            font-size: 0.9em;
+            text-align: center;
+        }
+        .button-container {
+            margin: 20px 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+        .simulate-button {
+            padding: 10px 20px;
+            font-size: 16px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        .simulate-button:hover {
+            background-color: #45a049;
+        }
+        .status {
+            margin-top: 10px;
+            color: #666;
+            text-align: center;
+        }
+        .state-indicator {
+            padding: 10px 15px;
+            font-size: 16px;
+            background-color: #f8f8f8;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            min-width: 100px;
+            text-align: center;
+        }
+        .state-on {
+            color: #4CAF50;
+            font-weight: bold;
+        }
+        .state-off {
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>PiKVM Screenshot Viewer</h1>
+        <div class="button-container">
+            <button class="simulate-button" id="simulateButton">Toggle Always Simulate</button>
+            <div class="state-indicator" id="stateIndicator">
+                <span id="stateValue">Loading...</span>
+            </div>
+        </div>
+        <div class="status" id="status"></div>
+        <div class="screenshot-container">
+            <img id="screenshot" src="/latest_screenshot" alt="Latest Screenshot">
+        </div>
+        <div class="timestamp" id="timestamp"></div>
+    </div>
+
+    <script>
+        function updateScreenshot() {
+            const img = document.getElementById('screenshot');
+            const timestamp = document.getElementById('timestamp');
+
+            // Add a timestamp to the URL to prevent caching
+            const now = new Date().getTime();
+            img.src = `/latest_screenshot?t=${now}`;
+
+            // Update the timestamp display
+            timestamp.textContent = `Last updated: ${new Date().toLocaleString()}`;
+        }
+
+        // Update every 5 seconds
+        setInterval(updateScreenshot, 5000);
+
+        // Initial load
+        updateScreenshot();
+
+        async function updateState() {
+            try {
+                const response = await fetch('/get_always_simulate');
+                const data = await response.json();
+                const stateValue = document.getElementById('stateValue');
+                const stateIndicator = document.getElementById('stateIndicator');
+
+                if (data.value === "1") {
+                    stateValue.textContent = "ON";
+                    stateIndicator.classList.add('state-on');
+                    stateIndicator.classList.remove('state-off');
+                } else {
+                    stateValue.textContent = "OFF";
+                    stateIndicator.classList.add('state-off');
+                    stateIndicator.classList.remove('state-on');
+                }
+            } catch (error) {
+                console.error('Error updating state:', error);
+            }
+        }
+
+        // Handle simulate button click
+        document.getElementById('simulateButton').addEventListener('click', async () => {
+            const button = document.getElementById('simulateButton');
+            const status = document.getElementById('status');
+
+            button.disabled = true;
+            status.textContent = 'Toggling always simulate...';
+
+            try {
+                const response = await fetch('/set_always_simulate', {
+                    method: 'POST'
+                });
+                const data = await response.json();
+
+                if (response.ok) {
+                    status.textContent = `Always simulate set to ${data.value === "1" ? "ON" : "OFF"}!`;
+                    status.style.color = '#4CAF50';
+                    updateState();
+                } else {
+                    status.textContent = `Error: ${data.error}`;
+                    status.style.color = '#f44336';
+                }
+            } catch (error) {
+                status.textContent = `Error: ${error.message}`;
+                status.style.color = '#f44336';
+            } finally {
+                button.disabled = false;
+                // Clear status message after 3 seconds
+                setTimeout(() => {
+                    status.textContent = '';
+                }, 3000);
+            }
+        });
+
+        // Initial state update
+        updateState();
+        // Update state every 5 seconds
+        setInterval(updateState, 5000);
+    </script>
+</body>
+</html>

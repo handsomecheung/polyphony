@@ -1,0 +1,121 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: gollum
+  namespace: chameleon
+  labels:
+    app.kubernetes.io/name: gollum
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: gollum
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: gollum
+    spec:
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: data
+        - name: coder-sharepoint
+          hostPath:
+            path: /mnt/coder-sharepoint
+            type: DirectoryOrCreate
+      securityContext:
+        runAsUser: 1000
+        runAsGroup: 1000
+      nodeSelector:
+        kubernetes.io/hostname: nur
+      containers:
+        - name: app
+          image: gollumwiki/gollum:6.0
+          imagePullPolicy: Always
+          args: ["--allow-uploads", "dir"]
+          volumeMounts:
+            - name: data
+              subPath: articles
+              mountPath: /wiki
+          ports:
+            - name: default
+              protocol: TCP
+              containerPort: 4567
+          resources:
+            requests:
+              cpu: 100m
+              memory: 156Mi
+            limits:
+              cpu: 200m
+              memory: 256Mi
+        - name: generation
+          image: cloudpublic/chameleon/gollum:latest
+          imagePullPolicy: Always
+          env:
+            - name: WIKI_DIR
+              value: "/wiki"
+          volumeMounts:
+            - name: data
+              subPath: articles
+              mountPath: /wiki
+            - name: coder-sharepoint
+              mountPath: /mnt/coder-sharepoint
+          resources:
+            requests:
+              cpu: 50m
+              memory: 128Mi
+            limits:
+              cpu: 80m
+              memory: 256Mi
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: gollum
+  namespace: chameleon
+  labels:
+    app.kubernetes.io/name: gollum
+  annotations:
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: gollum
+  ports:
+    - name: default
+      port: 80
+      protocol: TCP
+      targetPort: default
+
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: gollum
+  namespace: chameleon
+  annotations:
+    cert-manager.io/cluster-issuer: cluster-letsencrypt-dns-cloudflare
+    traefik.ingress.kubernetes.io/router.middlewares: middleware-playonjan@kubernetescrd,middleware-antimitm@kubernetescrd,sso-domaint@kubernetescrd
+    gethomepage.dev/enabled: "true"
+    gethomepage.dev/group: Chameleon
+    gethomepage.dev/href: https://gollum.__{{infra.domains:f:t}}__
+    gethomepage.dev/siteMonitor: https://gollum.__{{infra.domains:f:t}}__
+    gethomepage.dev/weight: "80"
+spec:
+  ingressClassName: traefik
+  rules:
+    - host: gollum.__{{infra.domains:f:t}}__
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: gollum
+                port:
+                  name: default
+  tls:
+    - hosts:
+        - gollum.__{{infra.domains:f:t}}__
+      secretName: gollum-domaint

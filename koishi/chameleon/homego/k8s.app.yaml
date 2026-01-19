@@ -1,0 +1,196 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: homego
+  namespace: chameleon
+  labels:
+    app.kubernetes.io/name: homego
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: homego
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: homego
+    spec:
+      nodeSelector:
+        kubernetes.io/hostname: nur
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: data
+        - name: article-insert
+          hostPath:
+            path: /mnt/coder-sharepoint/chameleon/article-insert
+            type: DirectoryOrCreate
+      containers:
+        - name: app
+          image: cloudpublic/chameleon/homego:latest
+          imagePullPolicy: Always
+          env:
+            - name: GIN_MODE
+              value: "release"
+            - name: ARTICLE_ID_KEY
+              value: "__{{chameleon.home-sso.article_id_key}}__"
+            - name: MB64_KEY
+              value: "__{{chameleon.mb64-key}}__"
+            - name: TOTP_SECRET_KEY
+              value: "__{{chameleon.home-sso.totp-secret-key}}__"
+            - name: HOST_PUBLIC
+              value: "https://learn.__{{infra.domains:f:t}}__"
+            - name: HOST_PRIVATE
+              value: "https://chameleon.__{{infra.domains:f:t}}__"
+          volumeMounts:
+            - name: data
+              subPath: articles
+              mountPath: /homego/articles
+            - name: article-insert
+              mountPath: /homego/article-insert
+          ports:
+            - name: default
+              containerPort: 8000
+            - name: notfound
+              containerPort: 8404
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              cpu: 100m
+              memory: 128Mi
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: homego
+  namespace: chameleon
+  labels:
+    app.kubernetes.io/name: homego
+  annotations:
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: homego
+  ports:
+    - name: default
+      port: 80
+      protocol: TCP
+      targetPort: default
+    - name: notfound
+      port: 8404
+      protocol: TCP
+      targetPort: notfound
+
+---
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: homego
+  namespace: chameleon
+spec:
+  forwardAuth:
+    address: http://homego.chameleon.svc.cluster.local/auth
+    authResponseHeaders:
+      - X-Forwarded-User
+    trustForwardHeader: true
+
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: homego
+  namespace: chameleon
+  annotations:
+    cert-manager.io/cluster-issuer: cluster-letsencrypt-dns-cloudflare
+    gethomepage.dev/enabled: "true"
+    gethomepage.dev/group: Chameleon
+    gethomepage.dev/href: https://learn.__{{infra.domains:f:t}}__
+    gethomepage.dev/siteMonitor: https://learn.__{{infra.domains:f:t}}__
+    gethomepage.dev/weight: "10"
+spec:
+  ingressClassName: traefik
+  rules:
+    - host: learn.__{{infra.domains:f:t}}__
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: homego
+                port:
+                  name: default
+          - path: /admin
+            pathType: Prefix
+            backend:
+              service:
+                name: homego
+                port:
+                  name: notfound
+  tls:
+    - hosts:
+        - learn.__{{infra.domains:f:t}}__
+      secretName: learn-domaint
+
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: homego-sso
+  namespace: chameleon
+  annotations:
+    cert-manager.io/cluster-issuer: cluster-letsencrypt-dns-cloudflare
+    traefik.ingress.kubernetes.io/router.middlewares: sso-domaint@kubernetescrd
+    gethomepage.dev/enabled: "true"
+    gethomepage.dev/group: Chameleon
+    gethomepage.dev/name: Homego Admin Links
+    gethomepage.dev/href: https://chameleon.__{{infra.domains:f:t}}__/admin/links
+    gethomepage.dev/siteMonitor: https://chameleon.__{{infra.domains:f:t}}__/admin/links
+    gethomepage.dev/weight: "5"
+spec:
+  ingressClassName: traefik
+  rules:
+    - host: chameleon.__{{infra.domains:f:t}}__
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: homego
+                port:
+                  name: default
+  tls:
+    - hosts:
+        - chameleon.__{{infra.domains:f:t}}__
+      secretName: chameleon-domaint
+
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: homego-home4p
+  namespace: chameleon
+  annotations:
+    cert-manager.io/cluster-issuer: cluster-letsencrypt-dns-cloudflare
+spec:
+  ingressClassName: traefik
+  rules:
+    - host: chameleon.home4p.__{{infra.domains:f:t}}__
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: homego
+                port:
+                  name: default
+  tls:
+    - hosts:
+        - chameleon.home4p.__{{infra.domains:f:t}}__
+      secretName: chameleon-home4p-domaint

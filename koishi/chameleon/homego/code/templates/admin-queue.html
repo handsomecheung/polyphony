@@ -1,0 +1,375 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Admin - Queue Management</title>
+    <link rel="icon" href="/favicon.ico" />
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: "Monaco", "Menlo", "Ubuntu Mono", monospace;
+        background: #f8f9fa;
+        color: #495057;
+        min-height: 100vh;
+        padding: 20px;
+        line-height: 1.6;
+      }
+
+      .header {
+        text-align: center;
+        margin-bottom: 30px;
+        border-bottom: 2px solid #6c757d;
+        padding-bottom: 20px;
+      }
+
+      .header h1 {
+        font-size: 2.5rem;
+        margin-bottom: 10px;
+        color: #343a40;
+      }
+
+      .section {
+        background: #ffffff;
+        border: 1px solid #dee2e6;
+        border-radius: 8px;
+        padding: 20px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      }
+
+      .section h2 {
+        color: #495057;
+        margin-bottom: 15px;
+        border-bottom: 1px solid #dee2e6;
+        padding-bottom: 10px;
+        font-size: 1.5rem;
+      }
+
+      .field {
+        display: flex;
+        margin-bottom: 10px;
+        align-items: flex-start;
+      }
+
+      .field-name {
+        color: #495057;
+        min-width: 150px;
+        font-weight: bold;
+      }
+
+      .field-value {
+        color: #6c757d;
+        flex: 1;
+        word-break: break-all;
+      }
+
+      .null-value {
+        color: #dc3545;
+        font-style: italic;
+      }
+
+      .queue-item {
+        background: #f8f9fa;
+        border: 1px solid #e9ecef;
+        border-radius: 4px;
+        padding: 15px;
+        margin-bottom: 10px;
+      }
+
+      .queue-item h3 {
+        color: #495057;
+        margin-bottom: 10px;
+        font-size: 1.2rem;
+      }
+
+      .duration {
+        color: #6f42c1;
+        font-weight: bold;
+      }
+
+      .client-id {
+        font-family: "Courier New", monospace;
+        background: #e9ecef;
+        color: #495057;
+        padding: 2px 6px;
+        border-radius: 3px;
+        font-size: 0.9rem;
+      }
+
+      .json-view {
+        background: #f8f9fa;
+        border: 1px solid #dee2e6;
+        border-radius: 4px;
+        padding: 15px;
+        margin-top: 10px;
+        overflow-x: auto;
+        white-space: pre-wrap;
+        font-size: 0.9rem;
+        color: #495057;
+      }
+
+      .status-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 20px;
+      }
+
+      @media (max-width: 768px) {
+        .status-grid {
+          grid-template-columns: 1fr;
+        }
+
+        .field {
+          flex-direction: column;
+        }
+
+        .field-name {
+          min-width: auto;
+          margin-bottom: 5px;
+        }
+
+        .header h1 {
+          font-size: 1.8rem;
+        }
+      }
+      .auto-refresh-indicator {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        background: #28a745;
+        color: white;
+        padding: 8px 12px;
+        border-radius: 4px;
+        font-size: 0.9rem;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        z-index: 1000;
+      }
+
+      .auto-refresh-indicator.paused {
+        background: #ffc107;
+        color: #212529;
+      }
+    </style>
+  </head>
+
+  <body>
+    <div class="auto-refresh-indicator" id="refreshIndicator">
+      Auto-refresh: ON (5s)
+    </div>
+    <div class="header">
+      <h1>⚡ Queue Manager Admin</h1>
+      <p>All Queue Status Overview</p>
+    </div>
+
+    <div class="status-grid">
+      {{ range .queueStatuses }}
+      <div class="section">
+        <h2>{{ .Icon }} {{ .DisplayName }}</h2>
+
+        <!-- Active User -->
+        <h3
+          style="
+            color: #28a745;
+            margin: 15px 0 10px 0;
+            background: #d4edda;
+            padding: 8px 12px;
+            border-radius: 4px;
+            border-left: 4px solid #28a745;
+          "
+        >
+          🟢 Active User
+        </h3>
+        {{ if .Status.ActiveUser }}
+        <div class="field">
+          <span class="field-name">Client ID:</span>
+          <span class="field-value client-id">
+            {{ .Status.ActiveUser.ClientID }}
+          </span>
+        </div>
+        <div class="field">
+          <span class="field-name">Active Since:</span>
+          <span class="field-value">
+            {{ .Status.ActiveTime.Format "2006-01-02 15:04:05 MST" }}
+          </span>
+        </div>
+        <div class="field">
+          <span class="field-name">Position:</span>
+          <span class="field-value"> {{ .Status.ActiveUser.Position }} </span>
+        </div>
+        <div class="field">
+          <span class="field-name">Redirect Path:</span>
+          <span class="field-value">
+            {{ .Status.ActiveUser.PathRedirect }}
+          </span>
+        </div>
+        {{ else }}
+        <div class="field">
+          <span class="field-name">Status:</span>
+          <span class="field-value null-value">No active user</span>
+        </div>
+        {{ end }}
+
+        <!-- Active Connection -->
+        <h3
+          style="
+            color: #17a2b8;
+            margin: 15px 0 10px 0;
+            background: #d1ecf1;
+            padding: 8px 12px;
+            border-radius: 4px;
+            border-left: 4px solid #17a2b8;
+          "
+        >
+          🔌 Active Connection
+        </h3>
+        {{ if .Status.ActiveConnection }}
+        <div class="field">
+          <span class="field-name">Client ID:</span>
+          <span class="field-value client-id">
+            {{ .Status.ActiveConnection.ClientID }}
+          </span>
+        </div>
+        <div class="field">
+          <span class="field-name">Start Time:</span>
+          <span class="field-value">
+            {{ .Status.ActiveConnection.StartTime.Format "2006-01-02 15:04:05 MST" }}
+          </span>
+        </div>
+        <div class="field">
+          <span class="field-name">Duration:</span>
+          <span class="field-value duration">
+            {{ .Status.ActiveConnection.Duration }}
+          </span>
+        </div>
+        <div class="field">
+          <span class="field-name">Request URL:</span>
+          <span class="field-value">
+            {{ .Status.ActiveConnection.RequestURL }}
+          </span>
+        </div>
+        <div class="field">
+          <span class="field-name">CF Connecting IP:</span>
+          <span class="field-value">
+            {{ .Status.ActiveConnection.CFConnectingIp }}
+          </span>
+        </div>
+        <div class="field">
+          <span class="field-name">CF IP Country:</span>
+          <span class="field-value">
+            {{ .Status.ActiveConnection.CFIpcountry }}
+          </span>
+        </div>
+        {{ else }}
+        <div class="field">
+          <span class="field-name">Status:</span>
+          <span class="field-value null-value">No active connection</span>
+        </div>
+        {{ end }}
+
+        <!-- Queue -->
+        <h3
+          style="
+            color: #ffc107;
+            margin: 15px 0 10px 0;
+            background: #fff3cd;
+            padding: 8px 12px;
+            border-radius: 4px;
+            border-left: 4px solid #ffc107;
+          "
+        >
+          📋 Queue ({{ .Status.QueueLength }} users)
+        </h3>
+        {{ if .Status.Queue }} {{ range $index, $entry := .Status.Queue }}
+        <div class="queue-item">
+          <h3>Position {{ $entry.Position }}</h3>
+
+          <div class="field">
+            <span class="field-name">Client ID:</span>
+            <span class="field-value client-id">{{ $entry.ClientID }}</span>
+          </div>
+
+          <div class="field">
+            <span class="field-name">Max Wait Time:</span>
+            <span class="field-value"> {{ $entry.MaxWaitTime.Seconds }}s </span>
+          </div>
+
+          <div class="field">
+            <span class="field-name">Can Access By:</span>
+            <span class="field-value">
+              {{ $entry.CanAccessBy.Format "2006-01-02 15:04:05 MST" }}
+            </span>
+          </div>
+
+          <div class="field">
+            <span class="field-name">Promotion At:</span>
+            <span class="field-value">
+              {{ $entry.PromotionAt.Format "2006-01-02 15:04:05 MST" }}
+            </span>
+          </div>
+
+          <div class="field">
+            <span class="field-name">Redirect Path:</span>
+            <span class="field-value"> {{ $entry.PathRedirect }} </span>
+          </div>
+        </div>
+        {{ end }} {{ else }}
+        <div class="field">
+          <span class="field-name">Status:</span>
+          <span class="field-value null-value">Queue is empty</span>
+        </div>
+        {{ end }}
+      </div>
+      {{ end }}
+    </div>
+
+    <script>
+      let refreshInterval;
+      let isRefreshing = true;
+      const refreshTime = 5000; // 5 seconds
+      const indicator = document.getElementById("refreshIndicator");
+
+      function startAutoRefresh() {
+        refreshInterval = setInterval(() => {
+          if (isRefreshing) {
+            window.location.reload();
+          }
+        }, refreshTime);
+      }
+
+      function toggleAutoRefresh() {
+        isRefreshing = !isRefreshing;
+        updateIndicator();
+      }
+
+      function updateIndicator() {
+        if (isRefreshing) {
+          indicator.textContent = "Auto-refresh: ON (5s)";
+          indicator.className = "auto-refresh-indicator";
+        } else {
+          indicator.textContent = "Auto-refresh: PAUSED";
+          indicator.className = "auto-refresh-indicator paused";
+        }
+      }
+
+      // Toggle auto-refresh on click
+      indicator.addEventListener("click", toggleAutoRefresh);
+
+      // Start auto-refresh when page loads
+      startAutoRefresh();
+
+      // Pause auto-refresh when user interacts with the page
+      let userInteractionTimer;
+      document.addEventListener("mousemove", () => {
+        clearTimeout(userInteractionTimer);
+        userInteractionTimer = setTimeout(() => {
+          // Resume auto-refresh after 10 seconds of no interaction
+        }, 10000);
+      });
+    </script>
+  </body>
+</html>
