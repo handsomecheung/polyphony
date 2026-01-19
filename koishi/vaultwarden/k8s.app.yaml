@@ -1,0 +1,297 @@
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: vaultwarden-encrypted
+  namespace: default-vaultwarden
+spec:
+  storageClassName: longhorn-crypto-global
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 2Gi
+
+---
+# https://github.com/dani-garcia/vaultwarden
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: vaultwarden
+  namespace: default-vaultwarden
+  labels:
+    app: vaultwarden
+    app.kubernetes.io/name: vaultwarden
+    app.kubernetes.io/instance: vaultwarden
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: vaultwarden
+      app.kubernetes.io/name: vaultwarden
+      app.kubernetes.io/instance: vaultwarden
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        app: vaultwarden
+        app.kubernetes.io/name: vaultwarden
+        app.kubernetes.io/instance: vaultwarden
+    spec:
+      volumes:
+        - name: vaultwarden-encrypted
+          persistentVolumeClaim:
+            claimName: vaultwarden-encrypted
+      containers:
+        - name: app
+          image: vaultwarden/server:latest
+          imagePullPolicy: Always
+          volumeMounts:
+            - name: vaultwarden-encrypted
+              mountPath: /data
+              subPath: data
+          ports:
+            - containerPort: 80
+          resources:
+            requests:
+              cpu: 100m
+              memory: 50Mi
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: vaultwarden
+  namespace: default-vaultwarden
+  labels:
+    app: vaultwarden
+spec:
+  type: ClusterIP
+  ports:
+    - name: default
+      port: 80
+      protocol: TCP
+      targetPort: 80
+  selector:
+    app: vaultwarden
+
+---
+# Sets the maximum request body to 525MB
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: sizelimit
+  namespace: default-vaultwarden
+spec:
+  buffering:
+    maxRequestBodyBytes: 525000000
+
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: vaultwarden
+  namespace: default-vaultwarden
+  annotations:
+    cert-manager.io/cluster-issuer: cluster-letsencrypt-dns-cloudflare
+    traefik.ingress.kubernetes.io/router.middlewares: middleware-playonjan@kubernetescrd,middleware-antimitm@kubernetescrd,default-vaultwarden-sizelimit@kubernetescrd
+    gethomepage.dev/enabled: "true"
+    gethomepage.dev/group: Tool
+    gethomepage.dev/name: Vaultwarden
+    gethomepage.dev/icon: vaultwarden
+    gethomepage.dev/href: https://vaultwarden.__{{infra.domains:f:x}}__/
+    gethomepage.dev/siteMonitor: https://vaultwarden.__{{infra.domains:f:x}}__/
+    gethomepage.dev/weight: "30"
+spec:
+  ingressClassName: traefik
+  rules:
+    - host: vaultwarden.__{{infra.domains:f:x}}__
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: vaultwarden
+                port:
+                  name: default
+  tls:
+    - hosts:
+        - vaultwarden.__{{infra.domains:f:x}}__
+      secretName: vaultwarden-domainx
+
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: vaultwarden-admin
+  namespace: default-vaultwarden
+  annotations:
+    cert-manager.io/cluster-issuer: cluster-letsencrypt-dns-cloudflare
+    traefik.ingress.kubernetes.io/router.middlewares: middleware-playonjan@kubernetescrd,middleware-antimitm@kubernetescrd,sso-domainx@kubernetescrd
+    gethomepage.dev/enabled: "true"
+    gethomepage.dev/group: Tool
+    gethomepage.dev/name: Vaultwarden Admin
+    gethomepage.dev/app: vaultwarden
+    gethomepage.dev/icon: vaultwarden
+    gethomepage.dev/href: https://vaultwarden.__{{infra.domains:f:x}}__/admin
+    gethomepage.dev/siteMonitor: https://vaultwarden.__{{infra.domains:f:x}}__/admin
+    gethomepage.dev/weight: "40"
+spec:
+  ingressClassName: traefik
+  rules:
+    - host: vaultwarden.__{{infra.domains:f:x}}__
+      http:
+        paths:
+          - path: /admin
+            pathType: Prefix
+            backend:
+              service:
+                name: vaultwarden
+                port:
+                  name: default
+  tls:
+    - hosts:
+        - vaultwarden.__{{infra.domains:f:x}}__
+      secretName: vaultwarden-domainx
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: portwarden-dns-config
+  namespace: default-vaultwarden
+data:
+  hosts: |
+    __{{infra.machine.nippon:f:ip}}__ vaultwarden.__{{infra.domains:f:x}}__
+
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: portwarden
+  namespace: default-vaultwarden
+  labels:
+    app: portwarden
+spec:
+  schedule: "30 0 * * *"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 2
+  failedJobsHistoryLimit: 5
+  jobTemplate:
+    spec:
+      template:
+        metadata:
+          labels:
+            app: portwarden
+        spec:
+          restartPolicy: Never
+          nodeSelector:
+            kubernetes.io/hostname: nur
+          volumes:
+            - name: dns-config
+              configMap:
+                name: portwarden-dns-config
+            - name: env
+              hostPath:
+                path: /mnt/coder-workspaces/private-workspace/repos/local/polyphony/koishi/vaultwarden/portwarden/.env
+                type: File
+            - name: local
+              hostPath:
+                path: /mnt/user-data-others/ebackup/upload/local/vaultwarden/portwarden/
+                type: DirectoryOrCreate
+          containers:
+            - name: app
+              image: cloudprivate/default/portwarden:latest
+              imagePullPolicy: Always
+              env:
+                - name: URL_VW
+                  value: https://vaultwarden.__{{infra.domains:f:x}}__
+                - name: URL_PASS
+                  value: http://fs-downserver.default.svc.cluster.local/private/thepassbase
+              volumeMounts:
+                - name: dns-config
+                  mountPath: /etc/hosts
+                  subPath: hosts
+                  readOnly: true
+                - name: env
+                  mountPath: /.env
+                - name: local
+                  mountPath: /data/export
+              resources:
+                requests:
+                  cpu: 50m
+                  memory: 100Mi
+
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: restrict-vaultwarden
+  namespace: default-vaultwarden
+spec:
+  podSelector:
+    matchExpressions:
+      - key: app
+        operator: In
+        values:
+          - vaultwarden
+  policyTypes:
+    - Egress
+  egress: []
+
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: restrict-apps
+  namespace: default-vaultwarden
+spec:
+  podSelector:
+    matchExpressions:
+      - key: app
+        operator: In
+        values:
+          - datadirbackup
+          - portwarden
+  policyTypes:
+    - Egress
+  egress:
+    # Allow communication to Kubernetes DNS service
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kube-system
+        - podSelector:
+            matchLabels:
+              k8s-app: kube-dns
+      ports:
+        - protocol: UDP
+          port: 53
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kube-system
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: traefik
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: default
+        - podSelector:
+            matchLabels:
+              app: fs-downserver
+    - to:
+        - podSelector:
+            matchLabels:
+              app: vaultwarden
+    - to:
+        - ipBlock:
+            cidr: __{{koishi.infra.infos:f:subnetv4}}__.0/24
+      ports:
+        - protocol: TCP
+          port: 80
+        - protocol: TCP
+          port: 443
