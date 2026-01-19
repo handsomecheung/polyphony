@@ -1,0 +1,13 @@
+{
+  "outbounds": [
+    {
+      "type": "direct",
+      "tag": "direct",
+      "routing_mark": 255
+    },
+    {
+      "type": "block",
+      "tag": "block"
+    }
+  ]
+}

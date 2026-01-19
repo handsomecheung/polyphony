@@ -1,0 +1,27 @@
+{
+  "route": {
+    "auto_detect_interface": true,
+    "final": "node-Koishi",
+    "default_domain_resolver": "dns-resolver",
+    "rule_set": [
+      {
+        "tag": "geosite-cn",
+        "type": "local",
+        "format": "binary",
+        "path": "/etc/sing-box/rule-sets/geosite-cn.srs"
+      },
+      {
+        "tag": "geosite-private",
+        "type": "local",
+        "format": "binary",
+        "path": "/etc/sing-box/rule-sets/geosite-private.srs"
+      },
+      {
+        "tag": "geoip-cn",
+        "type": "local",
+        "format": "binary",
+        "path": "/etc/sing-box/rule-sets/geoip-cn.srs"
+      }
+    ]
+  }
+}
