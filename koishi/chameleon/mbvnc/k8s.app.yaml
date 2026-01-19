@@ -1,0 +1,129 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: mbvnc-config
+  namespace: chameleon
+data:
+  app.conf: |
+    [ui]
+    show_control_bar = true
+    show_extra_keys = true
+    show_connection_settings = true
+    show_clipboard = true
+    show_fullscreen = true
+    show_power = false
+    show_help = true
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mbvnc
+  namespace: chameleon
+  labels:
+    app.kubernetes.io/name: mbvnc
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: mbvnc
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: mbvnc
+    spec:
+      volumes:
+        - name: mbvnc-config
+          configMap:
+            name: mbvnc-config
+            optional: true
+      containers:
+        - name: app
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 1000
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+          image: cloudpublic/chameleon/mbvnc:latest
+          imagePullPolicy: Always
+          env:
+            - name: DISPLAY_WIDTH
+              value: "1920"
+            - name: DISPLAY_HEIGHT
+              value: "1080"
+            - name: WEBSOCKIFY_PORT
+              value: "4567"
+            - name: VNC_SERVER
+              value: "__{{infra.machine.nur:f:ip}}__:5907" # win11-pro
+            - name: NOVNC_ENCRYPTION_KEY
+              value: "__{{chameleon.mb64-key}}__"
+          ports:
+            - name: default
+              protocol: TCP
+              containerPort: 4567
+          resources:
+            requests:
+              cpu: 50m
+              memory: 256Mi
+            # TODO limit resources
+            # limits:
+            #   cpu: 200m
+            #   memory: 512Mi
+          volumeMounts:
+            - name: mbvnc-config
+              mountPath: /usr/share/mbvnc/config
+              readOnly: true
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mbvnc
+  namespace: chameleon
+  labels:
+    app.kubernetes.io/name: mbvnc
+  annotations:
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: mbvnc
+  ports:
+    - name: default
+      port: 80
+      protocol: TCP
+      targetPort: default
+
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: mbvnc
+  namespace: chameleon
+  annotations:
+    cert-manager.io/cluster-issuer: cluster-letsencrypt-dns-cloudflare
+    traefik.ingress.kubernetes.io/router.middlewares: middleware-playonjan@kubernetescrd,middleware-antimitm@kubernetescrd,sso-domaint@kubernetescrd
+    gethomepage.dev/enabled: "true"
+    gethomepage.dev/group: Chameleon
+    gethomepage.dev/href: https://mbvnc.__{{infra.domains:f:t}}__/vnc.html
+    gethomepage.dev/siteMonitor: https://mbvnc.__{{infra.domains:f:t}}__/vnc.html
+    gethomepage.dev/weight: "20"
+spec:
+  ingressClassName: traefik
+  rules:
+    - host: mbvnc.__{{infra.domains:f:t}}__
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: mbvnc
+                port:
+                  name: default
+  tls:
+    - hosts:
+        - mbvnc.__{{infra.domains:f:t}}__
+      secretName: mbvnc-domaint

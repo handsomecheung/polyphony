@@ -1,0 +1,334 @@
+<!doctype html>
+<html>
+  <head>
+    <title>{{ .title }}</title>
+    <link rel="icon" href="/favicon.ico" />
+    <style>
+      body {
+        font-family:
+          -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+          "Helvetica Neue", Arial, sans-serif;
+        max-width: 800px;
+        margin: 0 auto;
+        padding: 20px;
+        line-height: 1.6;
+      }
+      h1 {
+        color: #2c3e50;
+        border-bottom: 2px solid #eee;
+        padding-bottom: 10px;
+      }
+      .article-list {
+        list-style: none;
+        padding: 0;
+      }
+      .article-item {
+        margin: 15px 0;
+        padding: 15px;
+        background: #f8f9fa;
+        border-radius: 5px;
+        transition: transform 0.2s;
+      }
+      .article-item:hover {
+        transform: translateX(5px);
+        background: #e9ecef;
+      }
+      .article-link {
+        color: #2c3e50;
+        text-decoration: none;
+        font-size: 1.1em;
+        display: block;
+      }
+      .article-link:hover {
+        color: #3498db;
+      }
+      .article-number {
+        color: #6c757d;
+        margin-right: 8px;
+        font-size: 0.9em;
+      }
+    </style>
+
+    {{ if .isAuth }}
+    <style>
+      .tags-container {
+        margin-top: 40px;
+        padding-top: 20px;
+        border-top: 1px solid #eee;
+      }
+      .selected-tags-container {
+        margin-bottom: 20px;
+        padding: 15px;
+        background: #f8f9fa;
+        border-radius: 5px;
+        display: none; /* Hidden by default */
+      }
+      .selected-tags-container.visible {
+        display: block;
+      }
+      .selected-tags-title {
+        color: #2c3e50;
+        font-size: 1.1em;
+        margin-bottom: 10px;
+        font-weight: 500;
+      }
+      .selected-tags-list {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+      .selected-tag {
+        padding: 4px 10px;
+        background: #e9ecef;
+        border-radius: 12px;
+        color: #495057;
+        font-size: 0.9em;
+        display: inline-flex;
+        align-items: center;
+      }
+      .selected-tag::before {
+        content: "•";
+        margin-right: 4px;
+        color: #6c757d;
+      }
+      .tags-title {
+        color: #2c3e50;
+        font-size: 1.2em;
+        margin-bottom: 15px;
+      }
+      .tag-list {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+      }
+      .tag {
+        padding: 5px 12px;
+        background: #e9ecef;
+        border-radius: 15px;
+        color: #495057;
+        cursor: pointer;
+        transition: all 0.2s;
+        font-size: 0.9em;
+      }
+      .tag:hover {
+        background: #3498db;
+        color: white;
+        transform: translateY(-2px);
+      }
+    </style>
+    <script src="/wasm/wasm_exec.js"></script>
+    <script src="/static/wasm.js"></script>
+    <script>
+      let selectedTags = [];
+
+      function updateSelectedTagsDisplay() {
+        const container = document.querySelector(".selected-tags-container");
+        const list = document.querySelector(".selected-tags-list");
+
+        if (selectedTags.length > 0) {
+          container.classList.add("visible");
+          list.innerHTML = selectedTags
+            .map((tag) => `<span class="selected-tag">${tag}</span>`)
+            .join("");
+        } else {
+          container.classList.remove("visible");
+          list.innerHTML = "";
+        }
+      }
+
+      async function handleTagClick(tag, tagName, event) {
+        checkWasmStatus();
+
+        try {
+          const jsonResponse = await window.main.click(tag);
+          const response = JSON.parse(jsonResponse);
+
+          selectedTags = response.selectedTags;
+          updateSelectedTagsDisplay();
+
+          if (response.setStorage) {
+            Object.entries(response.setStorage).forEach(([key, value]) => {
+              localStorage.setItem(key, value);
+            });
+          }
+        } catch (err) {
+          console.error("Error handling tag click:", err);
+        }
+      }
+
+      document.addEventListener("DOMContentLoaded", async function () {
+        updateSelectedTagsDisplay();
+      });
+    </script>
+
+    {{ end }}
+  </head>
+  <body>
+    <h1>{{ .title }}</h1>
+    <ul class="article-list">
+      {{ range $index, $articleInfo := .articleInfos }}
+      <li class="article-item">
+        <a
+          href="{{ $.pathPrefix }}/article/{{ $articleInfo.EncodedFilename }}?id={{ $articleInfo.Id }}"
+          target="_blank"
+          class="article-link"
+        >
+          <span class="article-number">{{ $index }}.</span>
+          {{ $articleInfo.Title }}
+        </a>
+      </li>
+      {{ end }}
+    </ul>
+
+    {{ if .isAuth }}
+    <div class="tags-container">
+      <div class="selected-tags-container">
+        <div class="selected-tags-title">Selected Tags:</div>
+        <div class="selected-tags-list"></div>
+      </div>
+      <div class="tags-title">Popular Tags:</div>
+      <div class="tag-list">
+        <span
+          class="tag"
+          onclick="handleTagClick('Algorithm', 'Algorithm',  event)"
+          >Algorithm</span
+        >
+        <span class="tag" onclick="handleTagClick('Boolean', 'Boolean',  event)"
+          >Boolean</span
+        >
+        <span
+          class="tag"
+          onclick="handleTagClick('Compiler', 'Compiler',  event)"
+          >Compiler</span
+        >
+        <span
+          class="tag"
+          onclick="handleTagClick('Debugger', 'Debugger',  event)"
+          >Debugger</span
+        >
+        <span class="tag" onclick="handleTagClick('Event', 'Event',  event)"
+          >Event</span
+        >
+        <span
+          class="tag"
+          onclick="handleTagClick('Filesystem', 'Filesystem',  event)"
+          >Filesystem</span
+        >
+        <span class="tag" onclick="handleTagClick('Git', 'Git',  event)"
+          >Git</span
+        >
+        <span class="tag" onclick="handleTagClick('HTTP', 'HTTP',  event)"
+          >HTTP</span
+        >
+        <span class="tag" onclick="handleTagClick('Integer', 'Integer',  event)"
+          >Integer</span
+        >
+        <span class="tag" onclick="handleTagClick('JSON', 'JSON',  event)"
+          >JSON</span
+        >
+        <span class="tag" onclick="handleTagClick('Kernel', 'Kernel',  event)"
+          >Kernel</span
+        >
+        <span class="tag" onclick="handleTagClick('Loop', 'Loop',  event)"
+          >Loop</span
+        >
+        <span class="tag" onclick="handleTagClick('Mutex', 'Mutex',  event)"
+          >Mutex</span
+        >
+        <span class="tag" onclick="handleTagClick('Network', 'Network',  event)"
+          >Network</span
+        >
+        <span
+          class="tag"
+          onclick="handleTagClick('Operator', 'Operator',  event)"
+          >Operator</span
+        >
+        <span class="tag" onclick="handleTagClick('Package', 'Package',  event)"
+          >Package</span
+        >
+        <span
+          class="tag"
+          onclick="handleTagClick('QuickSort', 'QuickSort',  event)"
+          >QuickSort</span
+        >
+        <span
+          class="tag"
+          onclick="handleTagClick('Recursion', 'Recursion',  event)"
+          >Recursion</span
+        >
+        <span
+          class="tag"
+          onclick="handleTagClick('Semaphore', 'Semaphore',  event)"
+          >Semaphore</span
+        >
+        <span class="tag" onclick="handleTagClick('Thread', 'Thread',  event)"
+          >Thread</span
+        >
+        <span class="tag" onclick="handleTagClick('URL', 'URL',  event)"
+          >URL</span
+        >
+        <span
+          class="tag"
+          onclick="handleTagClick('Workflow', 'Workflow',  event)"
+          >Workflow</span
+        >
+        <span
+          class="tag"
+          onclick="handleTagClick('WebAssembly', 'WebAssembly',  event)"
+          >WebAssembly</span
+        >
+        <span class="tag" onclick="handleTagClick('XOR', 'XOR',  event)"
+          >XOR</span
+        >
+        <span class="tag" onclick="handleTagClick('YAML', 'YAML',  event)"
+          >YAML</span
+        >
+        <span class="tag" onclick="handleTagClick('Zip', 'Zip',  event)"
+          >Zip</span
+        >
+        <span class="tag" onclick="handleTagClick('0day', '0day',  event)"
+          >0day</span
+        >
+        <span class="tag" onclick="handleTagClick('1-Wire', '1-Wire',  event)"
+          >1-Wire</span
+        >
+        <span class="tag" onclick="handleTagClick('2FA', '2FA',  event)"
+          >2FA</span
+        >
+        <span class="tag" onclick="handleTagClick('3D', '3D',  event)">3D</span>
+        <span class="tag" onclick="handleTagClick('4K', '4K',  event)">4K</span>
+        <span class="tag" onclick="handleTagClick('5G', '5G',  event)">5G</span>
+        <span class="tag" onclick="handleTagClick('6.IPv6', 'IPv6',  event)"
+          >IPv6</span
+        >
+        <span class="tag" onclick="handleTagClick('7z', '7z',  event)">7z</span>
+        <span class="tag" onclick="handleTagClick('8bit', '8bit',  event)"
+          >8bit</span
+        >
+        <span class="tag" onclick="handleTagClick('9-Patch', '9-Patch',  event)"
+          >9-Patch</span
+        >
+        <span class="tag" onclick="handleTagClick('+.C++', 'C++',  event)"
+          >C++</span
+        >
+        <span class="tag" onclick="handleTagClick('#.F#', 'F#',  event)"
+          >F#</span
+        >
+        <span class="tag" onclick="handleTagClick('.NET', '.NET',  event)"
+          >.NET</span
+        >
+        <span
+          class="tag"
+          onclick="handleTagClick('-.end-to-end', 'end-to-end',  event)"
+          >end-to-end</span
+        >
+        <span
+          class="tag"
+          onclick="handleTagClick('__init__', '__init__',  event)"
+          >__init__</span
+        >
+      </div>
+    </div>
+    {{ end }}
+  </body>
+</html>

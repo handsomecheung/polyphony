@@ -1,0 +1,228 @@
+<!doctype html>
+<html>
+  <head>
+    <title>{{ .title }} - IT Articles</title>
+    <link rel="icon" href="/favicon.ico" />
+    <style>
+      body {
+        font-family:
+          -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+          "Helvetica Neue", Arial, sans-serif;
+        max-width: 800px;
+        margin: 0 auto;
+        padding: 20px;
+        line-height: 1.6;
+        color: #2c3e50;
+      }
+      .article-header {
+        margin-bottom: 30px;
+        position: relative;
+      }
+      .view-count {
+        position: absolute;
+        top: 10px;
+        right: 0;
+        color: #6c757d;
+        font-size: 0.9em;
+        background-color: #f8f9fa;
+        padding: 5px 10px;
+        border-radius: 5px;
+      }
+      .article-header h1 {
+        color: #2c3e50;
+        border-bottom: 2px solid #eee;
+        padding-bottom: 10px;
+      }
+      .back-link {
+        display: inline-block;
+        margin-bottom: 20px;
+        color: #3498db;
+        text-decoration: none;
+      }
+      .back-link:hover {
+        text-decoration: underline;
+      }
+      .article-content {
+        background: #fff;
+        padding: 20px;
+        margin-bottom: 20px;
+        border-radius: 5px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      }
+      /* Hide MB content by default */
+      .article-mbcontent {
+        display: none;
+      }
+      /* Show MB content when it's ready */
+      .article-mbcontent.ready {
+        display: block;
+      }
+      /* Markdown content styling */
+      .article-content h2 {
+        color: #2c3e50;
+        margin-top: 1.5em;
+        margin-bottom: 0.5em;
+      }
+      .article-content p {
+        margin: 1em 0;
+      }
+      .article-content code {
+        background: #f8f9fa;
+        padding: 0.2em 0.4em;
+        border-radius: 3px;
+        font-family:
+          "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+      }
+      .article-content pre {
+        background: #f8f9fa;
+        padding: 1em;
+        border-radius: 5px;
+        overflow-x: auto;
+      }
+      .article-content pre code {
+        background: none;
+        padding: 0;
+      }
+      .article-content table {
+        border-collapse: collapse;
+        width: 100%;
+        margin: 1em 0;
+      }
+      .article-content th,
+      .article-content td {
+        border: 1px solid #dee2e6;
+        padding: 0.75em;
+        text-align: left;
+      }
+      .article-content th {
+        background: #f8f9fa;
+      }
+      .article-content blockquote {
+        border-left: 4px solid #dee2e6;
+        margin: 1em 0;
+        padding-left: 1em;
+        color: #6c757d;
+      }
+      .tryit {
+        margin-top: 30px;
+        margin-bottom: 30px;
+        padding: 20px;
+        background: #f8f9fa;
+        border-radius: 5px;
+      }
+      .tryit h2 {
+        color: #2c3e50;
+        font-size: 1.2em;
+        margin-bottom: 15px;
+      }
+      .terminal-frame {
+        width: 100%;
+        height: 400px;
+        border: none;
+        border-radius: 5px;
+        background: #fff;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        display: none; /* Hide iframe by default */
+      }
+      .tryit-button {
+        display: inline-block;
+        padding: 10px 20px;
+        background-color: #3498db;
+        color: white;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+        font-size: 1em;
+        margin-bottom: 15px;
+      }
+      .tryit-button:hover {
+        background-color: #2980b9;
+      }
+    </style>
+
+    <script src="/wasm/wasm_exec.js"></script>
+    <script src="/static/wasm.js"></script>
+
+    <script>
+      {{ if .mbContent }}
+      async function renderMBContent() {
+        const mbc = document.querySelector(".article-mbcontent");
+        if (!mbc) {
+          return;
+        }
+
+        while (!wasmInstance) {
+          await new Promise((resolve) => setTimeout(resolve, 100));
+        }
+
+        try {
+          const html = window.main.renderMBMarkdown(mbc.textContent);
+          if (html !== null && html !== "") {
+            mbc.innerHTML = html;
+            mbc.classList.add("ready");
+          } else {
+            console.info("Failed to render content");
+          }
+        } catch (error) {
+          console.info("Error rendering content:", error);
+        }
+      }
+
+      document.addEventListener("DOMContentLoaded", () => {
+        renderMBContent();
+      });
+      {{ end }}
+
+      function toggleTerminal() {
+        const iframe = document.querySelector(".terminal-frame");
+        const button = document.querySelector(".tryit-button");
+        if (iframe.style.display === "none" || iframe.style.display === "") {
+          if (!iframe.src) {
+            iframe.src = "{{ .pathTry }}";
+          }
+          iframe.style.display = "block";
+          button.textContent = "Hide Terminal";
+        } else {
+          iframe.style.display = "none";
+          button.textContent = "Show Terminal";
+        }
+      }
+    </script>
+  </head>
+  <body>
+    <div class="article-header">
+      <a href="{{ .pathHome }}" class="back-link">← Back to Home</a>
+      <h1>{{ .title }}</h1>
+      <div class="view-count">
+        <a href="{{ .pathRanks }}" style="color: inherit; text-decoration: none"
+          >Views: {{ .viewCount }}</a
+        >
+      </div>
+    </div>
+
+    <div class="tryit">
+      <h2>You can try the commands on our interactive shell.</h2>
+      <button onclick="toggleTerminal()" class="tryit-button">
+        Show Terminal
+      </button>
+      <iframe class="terminal-frame" title="Interactive Terminal"></iframe>
+    </div>
+
+    <div class="article-content">{{ .mdHTML }}</div>
+
+    {{ if .mbContent }}
+    <div class="article-content article-mbcontent">{{ .mbContent }}</div>
+    {{ end }}
+
+    <div class="tryit">
+      <h2>Try it Now!</h2>
+      <ul class="tryit-list">
+        <li class="tryit-item">
+          <a href="{{ .pathTry }}" target="_blank" class="article-link">
+            Try it on a interactive shell!
+          </a>
+        </li>
+      </ul>
+    </div>
+  </body>
+</html>

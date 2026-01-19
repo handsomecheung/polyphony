@@ -1,0 +1,11 @@
+<filter name='deny-lan-subnets' chain='ipv4'>
+  <rule action='drop' direction='out'>
+    <ip dstipaddr='10.0.0.0' dstipmask='255.0.0.0'/>
+  </rule>
+  <rule action='drop' direction='out'>
+    <ip dstipaddr='172.16.0.0' dstipmask='255.240.0.0'/>
+  </rule>
+  <rule action='drop' direction='out'>
+    <ip dstipaddr='192.168.0.0' dstipmask='255.255.0.0'/>
+  </rule>
+</filter>

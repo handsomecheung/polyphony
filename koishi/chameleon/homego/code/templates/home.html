@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{{ .title }}</title>
+    <link rel="icon" href="/favicon.ico" />
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        min-height: 100vh;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+      }
+
+      .container {
+        background: rgba(255, 255, 255, 0.95);
+        padding: 3rem;
+        border-radius: 20px;
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+        text-align: center;
+        max-width: 500px;
+        width: 90%;
+      }
+
+      h1 {
+        color: #333;
+        margin-bottom: 2rem;
+        font-size: 2.5rem;
+        font-weight: 300;
+        letter-spacing: -1px;
+      }
+
+      .links {
+        display: flex;
+        flex-direction: column;
+        gap: 1.5rem;
+      }
+
+      .link-card {
+        display: block;
+        text-decoration: none;
+        padding: 1.5rem 2rem;
+        background: linear-gradient(45deg, #f093fb 0%, #f5576c 100%);
+        color: white;
+        border-radius: 15px;
+        transition: all 0.3s ease;
+        font-size: 1.2rem;
+        font-weight: 500;
+        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+      }
+
+      .link-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 15px 30px rgba(0, 0, 0, 0.2);
+        text-decoration: none;
+        color: white;
+      }
+
+      .link-card.linux {
+        background: linear-gradient(45deg, #4facfe 0%, #00f2fe 100%);
+      }
+
+      .link-card.ps1 {
+        background: linear-gradient(45deg, #43e97b 0%, #38f9d7 100%);
+      }
+
+      .description {
+        margin-top: 2rem;
+        color: #666;
+        font-size: 1rem;
+        line-height: 1.6;
+      }
+
+      @media (max-width: 480px) {
+        .container {
+          padding: 2rem;
+        }
+
+        h1 {
+          font-size: 2rem;
+        }
+
+        .link-card {
+          padding: 1rem 1.5rem;
+          font-size: 1.1rem;
+        }
+      }
+    </style>
+  </head>
+
+  <body>
+    <div class="container">
+      <h1>{{ .title }}</h1>
+      <div class="links">
+        <a href="/linux" class="link-card linux">🐧 Linux Learning</a>
+        <a href="/ps1" class="link-card ps1">💻 PowerShell Learning</a>
+      </div>
+      <div class="description">
+        Choose your learning path to start exploring practical tutorials and
+        hands-on examples.
+      </div>
+    </div>
+  </body>
+</html>

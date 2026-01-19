@@ -1,0 +1,200 @@
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: deactivate
+  namespace: chameleon
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: deactivate
+  namespace: chameleon
+rules:
+  - apiGroups: ["apps"]
+    resources: ["deployments", "deployments/scale"]
+    verbs: ["get", "patch"]
+    resourceNames: ["gotty", "novnc", "mbtty", "mbvnc", "homego"]
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: deactivate
+  namespace: chameleon
+subjects:
+  - kind: ServiceAccount
+    name: deactivate
+    namespace: chameleon
+roleRef:
+  kind: Role
+  name: deactivate
+  apiGroup: rbac.authorization.k8s.io
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  creationTimestamp: null
+  name: deactivate-gcp-read-calendar
+  namespace: chameleon
+data:
+  # TODO: now only support one line of json
+  deactivate-read-calendar.json: |
+    __{{gcp.files:a:deactivate-read-calendar.json}}__
+
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: deactivate-job
+  namespace: chameleon
+spec:
+  schedule: "*/10 * * * *"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 2
+  failedJobsHistoryLimit: 5
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          serviceAccountName: deactivate
+          restartPolicy: Never
+          affinity:
+            nodeAffinity:
+              preferredDuringSchedulingIgnoredDuringExecution:
+                - weight: 100
+                  preference:
+                    matchExpressions:
+                      - key: kubernetes.io/hostname
+                        operator: In
+                        values:
+                          - nur
+          volumes:
+            - name: authorized-keys
+              hostPath:
+                path: /mnt/coder-workspaces/private-workspace/workspace/encrypted-configs/.ssh/authorized_keys
+                type: File
+            - name: deactivate-gcp-read-calendar
+              configMap:
+                name: deactivate-gcp-read-calendar
+          containers:
+            - name: app
+              image: cloudpublic/chameleon/deactivate:latest
+              imagePullPolicy: Always
+              command: ["python", "-u", "job.py"]
+              env:
+                - name: CODER_URL
+                  value: "https://coder.__{{infra.domains:f:x}}__"
+                - name: CODER_TOKEN
+                  value: "__{{coder.cli-token.hh.deactivate}}__"
+                - name: GCAL_WORK_CALENDAR_ID
+                  value: "__{{chameleon.deactivate.infos:f:GCAL_WORK_CALENDAR_ID}}__"
+                - name: GCAL_WORK_LOCATIONS
+                  value: "__{{chameleon.deactivate.infos:f:GCAL_WORK_LOCATIONS}}__"
+                - name: HOMEGO_URL_DELETE_ALL
+                  value: "https://chameleon.home4p.__{{infra.domains:f:t}}__/admin/session/all"
+                - name: EMAIL_SSH
+                  value: "__{{chameleon.deactivate.infos:f:USER_EMAIL}}__"
+                - name: EMAIL_CODER
+                  value: "__{{chameleon.deactivate.infos:f:USER_EMAIL}}__"
+              volumeMounts:
+                - name: authorized-keys
+                  mountPath: /data/authorized_keys
+                - name: deactivate-gcp-read-calendar
+                  mountPath: /data/gcp-service-account
+                  readOnly: true
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: deactivate-server
+  namespace: chameleon
+  labels:
+    app.kubernetes.io/name: deactivate-server
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: deactivate-server
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: deactivate-server
+    spec:
+      serviceAccountName: deactivate
+      containers:
+        - name: app
+          image: cloudpublic/chameleon/deactivate:latest
+          command: ["python", "-u", "server.py"]
+          env:
+            - name: CODER_URL
+              value: "https://coder.__{{infra.domains:f:x}}__"
+            - name: CODER_TOKEN
+              value: "__{{coder.cli-token.hh.deactivate}}__"
+            - name: GCAL_WORK_CALENDAR_ID
+              value: "__{{chameleon.deactivate.infos:f:GCAL_WORK_CALENDAR_ID}}__"
+            - name: GCAL_WORK_LOCATIONS
+              value: "__{{chameleon.deactivate.infos:f:GCAL_WORK_LOCATIONS}}__"
+            - name: HOMEGO_URL_DELETE_ALL
+              value: "https://chameleon.home4p.__{{infra.domains:f:t}}__/admin/session/all"
+            - name: EMAIL_SSH
+              value: "__{{chameleon.deactivate.infos:f:USER_EMAIL}}__"
+            - name: EMAIL_CODER
+              value: "__{{chameleon.deactivate.infos:f:USER_EMAIL}}__"
+          ports:
+            - name: default
+              containerPort: 8000
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              cpu: 100m
+              memory: 128Mi
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: deactivate-server
+  namespace: chameleon
+  labels:
+    app.kubernetes.io/name: deactivate-server
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: deactivate-server
+  ports:
+    - name: default
+      port: 80
+      protocol: TCP
+      targetPort: default
+
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: deactivate-server
+  namespace: chameleon
+  annotations:
+    cert-manager.io/cluster-issuer: cluster-letsencrypt-dns-cloudflare
+spec:
+  ingressClassName: traefik
+  rules:
+    - host: deactivate.home4p.__{{infra.domains:f:t}}__
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: deactivate-server
+                port:
+                  name: default
+  tls:
+    - hosts:
+        - deactivate.home4p.__{{infra.domains:f:t}}__
+      secretName: deactivate-home4p-domaint

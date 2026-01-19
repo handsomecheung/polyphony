@@ -1,0 +1,5 @@
+Host devbox
+     User box
+     HostName __{{infra.machine.nur:f:ip}}__
+     Port 37001
+     StrictHostKeyChecking no

@@ -1,0 +1,148 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mbtty
+  namespace: chameleon
+  labels:
+    app.kubernetes.io/name: mbtty
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: mbtty
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: mbtty
+    spec:
+      hostname: try
+      containers:
+        - name: app
+          securityContext:
+            runAsUser: 1000
+            runAsGroup: 1000
+          image: cloudpublic/chameleon/mbtty:latest
+          ports:
+            - name: default
+              containerPort: 8080
+          env:
+            - name: HTTP_PROXY
+              value: "http://squid:80"
+            - name: HTTPS_PROXY
+              value: "http://squid:80"
+            - name: http_proxy
+              value: "http://squid:80"
+            - name: https_proxy
+              value: "http://squid:80"
+            - name: GOTTY_PORT
+              value: "8080"
+            - name: GOTTY_WS_ORIGIN
+              value: ".*"
+            - name: MB64_KEY
+              value: "__{{chameleon.mb64-key}}__"
+            - name: GOTTY_COMMAND
+              value: 'powershell -ExecutionPolicy Bypass -Command "[System.Net.WebRequest]::DefaultWebProxy = New-Object System.Net.WebProxy(''http://squid:80''); powershell"'
+          resources:
+            requests:
+              cpu: 50m
+              memory: 256Mi
+              ephemeral-storage: 512Mi
+            limits:
+              cpu: 100m
+              memory: 512Mi
+              ephemeral-storage: 1Gi
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mbtty
+  namespace: chameleon
+  labels:
+    app.kubernetes.io/name: mbtty
+  annotations:
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: mbtty
+  ports:
+    - name: default
+      port: 80
+      protocol: TCP
+      targetPort: default
+
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: mbtty
+  namespace: chameleon
+  annotations:
+    cert-manager.io/cluster-issuer: cluster-letsencrypt-dns-cloudflare
+    traefik.ingress.kubernetes.io/router.middlewares: middleware-playonjan@kubernetescrd,middleware-antimitm@kubernetescrd,sso-domaint@kubernetescrd
+    gethomepage.dev/enabled: "true"
+    gethomepage.dev/group: Chameleon
+    gethomepage.dev/href: https://mbtty.__{{infra.domains:f:t}}__/
+    gethomepage.dev/siteMonitor: https://mbtty.__{{infra.domains:f:t}}__/
+    gethomepage.dev/weight: "16"
+spec:
+  ingressClassName: traefik
+  rules:
+    - host: mbtty.__{{infra.domains:f:t}}__
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: mbtty
+                port:
+                  name: default
+  tls:
+    - hosts:
+        - mbtty.__{{infra.domains:f:t}}__
+      secretName: mbtty-domaint
+
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: mbtty-network-policy
+  namespace: chameleon
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: mbtty
+  policyTypes:
+    - Egress
+  egress:
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: default
+          podSelector:
+            matchLabels:
+              app: devbox-nur
+      ports:
+        - protocol: TCP
+          port: 22
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kube-system
+        - podSelector:
+            matchLabels:
+              k8s-app: kube-dns
+      ports:
+        - protocol: UDP
+          port: 53
+        - protocol: TCP
+          port: 53
+    - to:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: squid
+      ports:
+        - protocol: TCP
+          port: 3128
