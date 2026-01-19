@@ -1,0 +1,21 @@
+{
+    "outbounds": [
+        {
+            "type": "vmess",
+            "tag": "node-Koishi",
+            "server": "x.__{{infra.domains:f:x}}__",
+            "server_port": 443,
+            "uuid": "__{{v2ray.uuids:f:umbilical}}__",
+            "alter_id": 0,
+            "transport": {
+                "type": "ws",
+                "path": "/kaser"
+            },
+            "tls": {
+                "enabled": true,
+                "server_name": "x.__{{infra.domains:f:x}}__"
+            },
+            "detour": "BalancerJP"
+        }
+    ]
+}

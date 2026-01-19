@@ -1,0 +1,12 @@
+{
+    "outbounds": [
+        {
+            "type": "urltest",
+            "tag": "BalancerJP",
+            "url": "https://www.gstatic.com/generate_204",
+            "interval": "1m",
+            "tolerance": 50,
+            "outbounds": []
+        }
+    ]
+}

@@ -1,0 +1,104 @@
+---
+# not use bridge mode at all because of the NetworkManager DNS issue in raspberrypi 64 bit OS
+services:
+  tunnel-ssh:
+    image: __{{umbilical.deploy.cloudpublic_registry_host}}__/umbilical/tunnel:latest
+    environment:
+      TZ: "__{{umbilical.deploy.timezone}}__"
+    volumes:
+      - ./tunnel-ssh/ssh:/root/.ssh
+      - ./tunnel-ssh/entrypoint.sh:/entrypoint.sh
+    command: ["sh", "/entrypoint.sh"]
+    network_mode: host
+    restart: always
+
+  tunnel:
+    image: __{{umbilical.deploy.cloudpublic_registry_host}}__/umbilical/tunnel:latest
+    environment:
+      TZ: "__{{umbilical.deploy.timezone}}__"
+    volumes:
+      - ./tunnel/ssh:/root/.ssh
+      - ./tunnel/entrypoint.sh:/entrypoint.sh
+    command: ["sh", "/entrypoint.sh"]
+    network_mode: host
+    restart: unless-stopped
+
+  ipset-watcher:
+    image: __{{umbilical.deploy.cloudpublic_registry_host}}__/umbilical/ipset-watcher:latest
+    environment:
+      TZ: "__{{umbilical.deploy.timezone}}__"
+    privileged: true
+    network_mode: host
+    volumes:
+      - ./ipset-watcher:/code
+      - /var/log/ipset-watcher:/var/log/ipset-watcher
+    working_dir: /code
+    command: ["bash", "run.sh"]
+    restart: unless-stopped
+
+  ddns:
+    image: __{{umbilical.deploy.cloudpublic_registry_host}}__/umbilical/ddns:latest
+    environment:
+      TZ: "__{{umbilical.deploy.timezone}}__"
+      DOMAIN: "__{{infra.domains:f:u}}__"
+      ALIYUN_ACCESSKEY_ID: "__{{aliyun.dns-update.key:f:id}}__"
+      ALIYUN_ACCESSKEY_SECRET: "__{{aliyun.dns-update.key:f:secret}}__"
+    volumes:
+      - ./ddns:/code
+    network_mode: host
+    working_dir: /code
+    command: ["python3", "-u", "main.py"]
+    restart: unless-stopped
+
+  wakeup:
+    image: __{{umbilical.deploy.cloudpublic_registry_host}}__/umbilical/wakeup:latest
+    privileged: true
+    network_mode: host
+    environment:
+      TZ: "__{{umbilical.deploy.timezone}}__"
+      GOTTY_WS_ORIGIN: ".*"
+      TERM: "xterm-256color"
+      GOTTY_PORT: "37902"
+      MAC_SILVER: "__{{infra.machine.silver:f:mac}}__"
+      UMBILICAL_IPV4_PREFIX: "__{{umbilical.infra.infos:f:subnetv4}}__."
+    restart: unless-stopped
+
+  sing-box:
+    image: __{{umbilical.deploy.cloudpublic_registry_host}}__/umbilical/sing-box:latest
+    environment:
+      TZ: "__{{umbilical.deploy.timezone}}__"
+    privileged: true
+    network_mode: host
+    volumes:
+      - ./sing-box/configs:/etc/sing-box
+      - ./sing-box/rule-sets:/etc/sing-box/rule-sets
+    restart: unless-stopped
+    command: ["run", "-C", "/etc/sing-box"]
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+
+  vouch:
+    image: __{{umbilical.deploy.cloudpublic_registry_host}}__/umbilical/vouch:latest-arm
+    environment:
+      TZ: "__{{umbilical.deploy.timezone}}__"
+    volumes:
+      - ./vouch/config:/config
+    network_mode: host
+    restart: unless-stopped
+
+  nginx:
+    depends_on:
+      - vouch
+    image: __{{umbilical.deploy.cloudpublic_registry_host}}__/umbilical/openresty:latest
+    command: ["nginx", "-g", "daemon off;"]
+    environment:
+      TZ: "__{{umbilical.deploy.timezone}}__"
+    volumes:
+      - ../../../static/letsencrypt:/etc/letsencrypt
+      - ./nginx/configs/index:/usr/share/nginx/index
+      - ./nginx/configs/nginx.conf:/etc/openresty/nginx.conf
+      - ./nginx/configs/conf:/etc/openresty/conf
+      - ./nginx/configs/lua:/usr/local/openresty/nginx/lua
+    network_mode: host
+    restart: unless-stopped

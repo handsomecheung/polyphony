@@ -1,0 +1,31 @@
+---
+vouch:
+  # testing: true  # This will slow down the loop.
+  # logLevel: debug
+
+  domains:
+    - __{{infra.domains:f:u}}__
+
+  whiteList:
+    - __{{infra-emails:f:hh}}__
+    - __{{infra-emails:f:hz}}__
+
+  cookie:
+    # allow the jwt/cookie to be set into http://yourdomain.com (defaults to true, requiring https://yourdomain.com)
+    secure: true
+    # Number of minutes until session cookie expires - VOUCH_COOKIE_MAXAGE
+    # Set cookie maxAge to 0 to delete the cookie every time the browser is closed.
+    # Must not be longer than jwt.maxAge
+    maxAge: 10080 # 60 * 24 * 7
+
+oauth:
+  provider: google
+  # get credentials from...
+  # https://console.developers.google.com/apis/credentials
+  client_id: __{{umbilical.vouch.oauth.key:f:id}}__
+  client_secret: __{{umbilical.vouch.oauth.key:f:secret}}__
+  # Google may require callback_urls (redirect URIs) to be 'https'
+  callback_urls:
+    - https://vouch.__{{infra.domains:f:u}}__/auth
+  # preferredDomain: yourdomain.com  # be careful with this option, it may conflict with chrome on Android
+  # endpoints are set from https://godoc.org/golang.org/x/oauth2/google
