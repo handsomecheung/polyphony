@@ -1,0 +1,191 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: caddy-config
+  namespace: default
+data:
+  # caddy hash-password
+  Caddyfile: |
+    {
+    	# debug
+    	order webdav before file_server
+    	auto_https off
+    	log {
+    		output stderr
+    		# level DEBUG
+    		format console
+    	}
+    }
+
+    :80 {
+    	route /* {
+    		basic_auth {
+    			__{{infra.common-users:f:hh}}__ __{{webdav.hh:f:hash}}__
+    			__{{infra.common-users:f:cc}}__ __{{webdav.cc:f:hash}}__
+    			__{{infra.common-users:f:hz73}}__ __{{webdav.hz73:f:hash}}__
+    			hifi __{{webdav.hifi:f:hash}}__
+    		}
+
+    		request_body {
+    			max_size 20000MB
+    		}
+
+    		webdav {
+    			root /data/{http.auth.user.id}
+    			prefix /
+    		}
+    	}
+    }
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: caddy-webdav
+  namespace: default
+  labels:
+    app.kubernetes.io/name: caddy-webdav
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: caddy-webdav
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: caddy-webdav
+    spec:
+      nodeSelector:
+        kubernetes.io/hostname: nur
+      volumes:
+        - name: config
+          configMap:
+            name: caddy-config
+        - name: user-data-music
+          hostPath:
+            path: /mnt/user-data-music
+            type: DirectoryOrCreate
+        - name: user-data-others
+          hostPath:
+            path: /mnt/user-data-others
+            type: DirectoryOrCreate
+        - name: user-data-slight
+          hostPath:
+            path: /mnt/user-data-slight
+            type: DirectoryOrCreate
+        - name: coder-sharepoint
+          hostPath:
+            path: /mnt/coder-sharepoint
+            type: DirectoryOrCreate
+        - name: decrypted
+          hostPath:
+            path: /mnt/decrypted
+            type: DirectoryOrCreate
+      containers:
+        - name: app
+          image: cloudpublic/default/caddy-webdav:latest
+          ports:
+            - name: default
+              containerPort: 80
+          volumeMounts:
+            - name: config
+              mountPath: /etc/caddy
+
+            - name: user-data-music
+              subPath: upload
+              mountPath: /data/__{{infra.common-users:f:hh}}__/user-data-music/upload
+            - name: user-data-others
+              subPath: upload
+              mountPath: /data/__{{infra.common-users:f:hh}}__/user-data-others/upload
+            - name: user-data-slight
+              subPath: upload
+              mountPath: /data/__{{infra.common-users:f:hh}}__/user-data-slight/upload
+            - name: user-data-slight
+              subPath: share-point
+              mountPath: /data/__{{infra.common-users:f:hh}}__/user-data-slight/share-point
+            - name: user-data-slight
+              subPath: private-data/hero
+              mountPath: /data/__{{infra.common-users:f:hh}}__/user-data-slight/private-data/hero
+            - name: user-data-slight
+              subPath: private-data/hero-pending
+              mountPath: /data/__{{infra.common-users:f:hh}}__/user-data-slight/private-data/hero-pending
+            - name: coder-sharepoint
+              mountPath: /data/__{{infra.common-users:f:hh}}__/coder-sharepoint
+            - name: decrypted
+              mountPath: /data/__{{infra.common-users:f:hh}}__/decrypted
+
+            - name: user-data-slight
+              subPath: share-point
+              mountPath: /data/__{{infra.common-users:f:hz73}}__/share-point
+
+            - name: user-data-music
+              mountPath: /data/hifi
+              subPath: export
+              readOnly: true
+
+            - name: user-data-slight
+              subPath: share-point
+              mountPath: /data/__{{infra.common-users:f:cc}}__/share-point
+
+          resources:
+            requests:
+              cpu: 50m
+              memory: 156Mi
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: caddy-webdav
+  namespace: default
+  labels:
+    app.kubernetes.io/name: caddy-webdav
+  annotations:
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: caddy-webdav
+  ports:
+    - name: default
+      port: 80
+      protocol: TCP
+      targetPort: default
+
+---
+# Sets the maximum request body to 20G
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: webdavsizelimit
+  namespace: default
+spec:
+  buffering:
+    maxRequestBodyBytes: 20000000000
+
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: caddy-webdav
+  namespace: default
+  annotations:
+    cert-manager.io/cluster-issuer: cluster-letsencrypt-dns-cloudflare
+    traefik.ingress.kubernetes.io/router.middlewares: default-webdavsizelimit@kubernetescrd
+spec:
+  ingressClassName: traefik
+  rules:
+    - host: webdav.__{{infra.domains:f:x}}__
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: caddy-webdav
+                port:
+                  name: default
+  tls:
+    - hosts:
+        - webdav.__{{infra.domains:f:x}}__
+      secretName: webdav-domainx
