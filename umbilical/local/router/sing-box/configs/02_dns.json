@@ -1,0 +1,37 @@
+{
+  "dns": {
+    "servers": [
+      {
+        "tag": "dns-remote",
+        "type": "https",
+        "server": "1.1.1.1",
+        "server_port": 443,
+        "detour": "BalancerJP"
+      },
+      {
+        "tag": "dns-direct",
+        "type": "udp",
+        "server": "114.114.114.114",
+        "server_port": 53,
+        "detour": "direct"
+      },
+      {
+        "tag": "dns-resolver",
+        "type": "udp",
+        "server": "223.5.5.5",
+        "server_port": 53,
+        "detour": "direct"
+      }
+    ],
+    "rules": [
+      {
+        "rule_set": "geosite-cn",
+        "server": "dns-direct"
+      }
+    ],
+    "final": "dns-remote",
+    "strategy": "prefer_ipv4",
+    "disable_cache": false,
+    "disable_expire": false
+  }
+}
