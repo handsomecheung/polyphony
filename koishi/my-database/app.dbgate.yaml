@@ -86,7 +86,7 @@ spec:
               mountPath: /tmp/subscout/subscout.db
           env:
             - name: CONNECTIONS
-              value: postgres,pushionsdev,pushionsprod,cijsfawsdev,cijsfawsprod,ciipasssystem,ciipasseucdev,ciipasseucprod,ciipasslibrary,subscout
+              value: postgres,nulltracedev,pushionsdev,pushionsprod,cijsfawsdev,cijsfawsprod,ciipasssystem,ciipasseucdev,ciipasseucprod,ciipasslibrary,subscout
 
             - name: LABEL_postgres
               value: Koishi-PostgreSQL
@@ -101,10 +101,23 @@ spec:
             - name: ENGINE_postgres
               value: postgres@dbgate-plugin-postgres
 
+            - name: LABEL_nulltracedev
+              value: NullTrace-Dev
+            - name: SERVER_nulltracedev
+              value: database.curvekey-nulltrace-dev
+            - name: PORT_nulltracedev
+              value: "5432"
+            - name: USER_nulltracedev
+              value: nulltrace
+            - name: PASSWORD_nulltracedev
+              value: "__{{nulltrace.dev.db.nulltrace}}__"
+            - name: ENGINE_nulltracedev
+              value: postgres@dbgate-plugin-postgres
+
             - name: LABEL_pushionsdev
               value: Pushions-Dev
             - name: SERVER_pushionsdev
-              value: database.chou-pushion-dev
+              value: database.curvekey-pushion-dev
             - name: PORT_pushionsdev
               value: "5432"
             - name: USER_pushionsdev
@@ -117,7 +130,7 @@ spec:
             - name: LABEL_pushionsprod
               value: Pushions-Prod
             - name: SERVER_pushionsprod
-              value: database.chou-pushion-prod
+              value: database.curvekey-pushion-prod
             - name: PORT_pushionsprod
               value: "5432"
             - name: USER_pushionsprod
@@ -305,12 +318,25 @@ spec:
               readOnly: true
           env:
             - name: CONNECTIONS
-              value: pushionsdev,cijsfawsdev,ciipasssystem,ciipasseucdev,ciipasseucprod,ciipasslibrary
+              value: nulltracedev,pushionsdev,cijsfawsdev,ciipasssystem,ciipasseucdev,ciipasseucprod,ciipasslibrary
+
+            - name: LABEL_nulltracedev
+              value: NullTrace-Dev
+            - name: SERVER_nulltracedev
+              value: database.curvekey-nulltrace-dev
+            - name: PORT_nulltracedev
+              value: "5432"
+            - name: USER_nulltracedev
+              value: nulltrace
+            - name: PASSWORD_nulltracedev
+              value: "__{{nulltrace.dev.db.nulltrace}}__"
+            - name: ENGINE_nulltracedev
+              value: postgres@dbgate-plugin-postgres
 
             - name: LABEL_pushionsdev
               value: Pushions-Dev
             - name: SERVER_pushionsdev
-              value: database.chou-pushion-dev
+              value: database.curvekey-pushion-dev
             - name: PORT_pushionsdev
               value: "5432"
             - name: USER_pushionsdev
@@ -491,11 +517,16 @@ spec:
     - to:
         - namespaceSelector:
             matchLabels:
-              kubernetes.io/metadata.name: chou-pushion-dev
+              kubernetes.io/metadata.name: curvekey-pushion-dev
     - to:
         - namespaceSelector:
             matchLabels:
-              kubernetes.io/metadata.name: chou-pushion-prod
+              kubernetes.io/metadata.name: curvekey-pushion-prod
+
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: curvekey-nulltrace-dev
 
     - to:
         - namespaceSelector:
