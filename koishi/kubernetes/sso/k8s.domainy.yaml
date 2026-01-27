@@ -1,0 +1,125 @@
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: domainy
+  namespace: sso
+type: Opaque
+data:
+  clientid: __{{traefik.oss.domainy.keys:f:gcp-clientid:f:b64}}__
+  clientsecret: __{{traefik.oss.domainy.keys:f:gcp-clientsecret:f:b64}}__
+  # something random
+  secret: __{{traefik.oss.domainy.keys:f:secret:f:b64}}__
+
+---
+# https://github.com/thomseddon/traefik-forward-auth
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: domainy
+  namespace: sso
+  labels:
+    app.kubernetes.io/name: domainy
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: domainy
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: domainy
+    spec:
+      containers:
+        - name: app
+          image: thomseddon/traefik-forward-auth:latest
+          imagePullPolicy: Always
+          args: []
+          env:
+            - name: PROVIDERS_GOOGLE_CLIENT_ID
+              valueFrom:
+                secretKeyRef:
+                  name: domainy
+                  key: clientid
+            - name: PROVIDERS_GOOGLE_CLIENT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: domainy
+                  key: clientsecret
+            - name: SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: domainy
+                  key: secret
+            - name: COOKIE_DOMAIN
+              value: __{{infra.domains:f:y}}__
+            - name: AUTH_HOST
+              value: auth.__{{infra.domains:f:y}}__
+            - name: INSECURE_COOKIE
+              value: "false"
+            - name: URL_PATH
+              value: /_oauth
+            - name: WHITELIST
+              value: __{{infra-emails:f:hh}}__,__{{infra-emails:f:hz}}__
+            - name: LOG_LEVEL
+              value: info
+            - name: LIFETIME
+              value: "31536000" # 1 year
+          ports:
+            - name: default
+              containerPort: 4181
+
+---
+kind: Service
+apiVersion: v1
+metadata:
+  name: domainy
+  namespace: sso
+spec:
+  selector:
+    app.kubernetes.io/name: domainy
+  ports:
+    - name: default
+      protocol: TCP
+      port: 80
+      targetPort: default
+
+---
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: domainy
+  namespace: sso
+spec:
+  forwardAuth:
+    address: http://domainy.sso.svc.cluster.local
+    authResponseHeaders:
+      - X-Forwarded-User
+    trustForwardHeader: true
+
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: domainy
+  namespace: sso
+  annotations:
+    cert-manager.io/cluster-issuer: cluster-letsencrypt-dns-cloudflare
+    traefik.ingress.kubernetes.io/router.middlewares: sso-domainy@kubernetescrd
+spec:
+  ingressClassName: traefik
+  rules:
+    - host: auth.__{{infra.domains:f:y}}__
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: domainy
+                port:
+                  name: default
+  tls:
+    - hosts:
+        - auth.__{{infra.domains:f:y}}__
+      secretName: auth-domainy
