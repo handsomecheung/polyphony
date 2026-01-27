@@ -6,7 +6,7 @@ metadata:
   namespace: default
 type: Opaque
 data:
-  password: __{{koishi.machine.devbox-nur:_:b64}}__
+  password: __{{koishi.container.devbox:_:b64}}__
 
 ---
 apiVersion: apps/v1
@@ -172,7 +172,7 @@ spec:
   ipFamilyPolicy: SingleStack
   ports:
     - name: ssh
-      port: __{{koishi.machine.devbox-nur:f:ssh-port}}__
+      port: __{{koishi.container.devbox:f:ssh-port}}__
       protocol: TCP
       targetPort: ssh
 
