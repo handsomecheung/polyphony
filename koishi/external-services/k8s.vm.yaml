@@ -1,0 +1,83 @@
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: external-vm
+
+---
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: redirect-nixos-rdp
+  namespace: external-vm
+spec:
+  selector:
+    matchLabels:
+      app: redirect-nixos-rdp
+  template:
+    metadata:
+      labels:
+        app: redirect-nixos-rdp
+    spec:
+      nodeSelector:
+        kubernetes.io/hostname: nur
+      hostNetwork: true
+      containers:
+        - name: app
+          image: alpine/socat
+          args: ["TCP-LISTEN:37372,fork", "TCP:192.168.122.153:3389"]
+          ports:
+            - containerPort: 37372
+              hostPort: 37372
+
+---
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: redirect-nixos-ssh
+  namespace: external-vm
+spec:
+  selector:
+    matchLabels:
+      app: redirect-nixos-ssh
+  template:
+    metadata:
+      labels:
+        app: redirect-nixos-ssh
+    spec:
+      nodeSelector:
+        kubernetes.io/hostname: nur
+      hostNetwork: true
+      containers:
+        - name: app
+          image: alpine/socat
+          args: ["TCP-LISTEN:37373,fork", "TCP:192.168.122.153:22"]
+          ports:
+            - containerPort: 37373
+              hostPort: 37373
+
+---
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: redirect-win10-rdp
+  namespace: external-vm
+spec:
+  selector:
+    matchLabels:
+      app: redirect-win10-rdp
+  template:
+    metadata:
+      labels:
+        app: redirect-win10-rdp
+    spec:
+      nodeSelector:
+        kubernetes.io/hostname: nur
+      hostNetwork: true
+      containers:
+        - name: app
+          image: alpine/socat
+          args: ["TCP-LISTEN:37377,fork", "TCP:192.168.122.192:3389"]
+          ports:
+            - containerPort: 37377
+              hostPort: 37377
