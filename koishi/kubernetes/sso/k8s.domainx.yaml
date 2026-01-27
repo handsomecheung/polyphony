@@ -1,0 +1,142 @@
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: domainx
+  namespace: sso
+type: Opaque
+data:
+  clientid: __{{traefik.oss.domainx.keys:f:gcp-clientid:f:b64}}__
+  clientsecret: __{{traefik.oss.domainx.keys:f:gcp-clientsecret:f:b64}}__
+  # something random
+  secret: __{{traefik.oss.domainx.keys:f:secret:f:b64}}__
+
+---
+# https://github.com/thomseddon/traefik-forward-auth
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: domainx
+  namespace: sso
+  labels:
+    app.kubernetes.io/name: domainx
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: domainx
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: domainx
+    spec:
+      containers:
+        - name: app
+          image: thomseddon/traefik-forward-auth:latest
+          imagePullPolicy: Always
+          args:
+            [
+              "--rule.vw.action=auth",
+              '--rule.vw.rule="Host(`vaultwarden.__{{infra.domains:f:x}}__`) && Path(`/admin`)"',
+              '--rule.vw.whitelist="__{{infra-emails:f:hh}}__"',
+
+              "--rule.high.action=auth",
+              '--rule.high.rule="Host(`cockpit-nur.__{{infra.domains:f:x}}__`, `shutdown-nur.__{{infra.domains:f:x}}__`, `router-netgear.__{{infra.domains:f:x}}__`, `router-ntt.__{{infra.domains:f:x}}__`, `router-ntt-softbank.__{{infra.domains:f:x}}__`, `traefik.__{{infra.domains:f:x}}__`, `kubernetes.__{{infra.domains:f:x}}__`, `longhorn.__{{infra.domains:f:x}}__`, `dbgate.__{{infra.domains:f:x}}__`, `jackett.__{{infra.domains:f:x}}__`, `shouseki.__{{infra.domains:f:x}}__`, `bliss.__{{infra.domains:f:x}}__`, `jellyfin.__{{infra.domains:f:x}}__`, `pushionsmq-dev.__{{infra.domains:f:x}}__`, `pushionsmq.__{{infra.domains:f:x}}__`, `qbittorrent-vuetorrent.__{{infra.domains:f:x}}__`, `qbittorrent.__{{infra.domains:f:x}}__`, `stable-diffusion-webui.__{{infra.domains:f:x}}__`, `wakeup.__{{infra.domains:f:x}}__`, `wireguard.__{{infra.domains:f:x}}__`, `wireproxy.__{{infra.domains:f:x}}__`, `mbtty.__{{infra.domains:f:x}}__`, `mbvnc.__{{infra.domains:f:x}}__`)"',
+              '--rule.high.whitelist="__{{infra-emails:f:hh}}__"',
+
+              "--rule.dev.action=auth",
+              '--rule.dev.rule="Host(`pikvm-controller.__{{infra.domains:f:x}}__`, `pikvm.__{{infra.domains:f:x}}__`, `guacamole.__{{infra.domains:f:x}}__`, `devbox-nur-codeserver.__{{infra.domains:f:x}}__`, `ollama-webui.__{{infra.domains:f:x}}__`, `n8n.__{{infra.domains:f:x}}__`, `chameleon.__{{infra.domains:f:x}}__`, `grafana.__{{infra.domains:f:x}}__`, `jupyterlab-tensor.__{{infra.domains:f:x}}__`, `jupyterlab-torch.__{{infra.domains:f:x}}__`)"',
+              '--rule.dev.whitelist="__{{infra-emails:f:hh}}__,__{{infra-emails:f:hz}}__"',
+
+              "--rule.hz.action=auth",
+              '--rule.hz.rule="Host(`dbgate-lite.__{{infra.domains:f:x}}__`)"',
+              '--rule.hz.whitelist="__{{infra-emails:f:hz}}__"',
+            ]
+          env:
+            - name: PROVIDERS_GOOGLE_CLIENT_ID
+              valueFrom:
+                secretKeyRef:
+                  name: domainx
+                  key: clientid
+            - name: PROVIDERS_GOOGLE_CLIENT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: domainx
+                  key: clientsecret
+            - name: SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: domainx
+                  key: secret
+            - name: COOKIE_DOMAIN
+              value: __{{infra.domains:f:x}}__
+            - name: AUTH_HOST
+              value: auth.__{{infra.domains:f:x}}__
+            - name: INSECURE_COOKIE
+              value: "false"
+            - name: URL_PATH
+              value: /_oauth
+            - name: WHITELIST
+              value: __{{infra-emails:f:hh}}__,__{{infra-emails:f:hz}}__,__{{infra-emails:f:cq}}__,__{{infra-emails:f:ck}}__
+            - name: LOG_LEVEL
+              value: info
+            - name: LIFETIME
+              value: "31536000" # 1 year
+          ports:
+            - name: default
+              containerPort: 4181
+
+---
+kind: Service
+apiVersion: v1
+metadata:
+  name: domainx
+  namespace: sso
+spec:
+  selector:
+    app.kubernetes.io/name: domainx
+  ports:
+    - name: default
+      protocol: TCP
+      port: 80
+      targetPort: default
+
+---
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: domainx
+  namespace: sso
+spec:
+  forwardAuth:
+    address: http://domainx.sso.svc.cluster.local
+    authResponseHeaders:
+      - X-Forwarded-User
+    trustForwardHeader: true
+
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: domainx
+  namespace: sso
+  annotations:
+    cert-manager.io/cluster-issuer: cluster-letsencrypt-dns-cloudflare
+    traefik.ingress.kubernetes.io/router.middlewares: sso-domainx@kubernetescrd
+spec:
+  ingressClassName: traefik
+  rules:
+    - host: auth.__{{infra.domains:f:x}}__
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: domainx
+                port:
+                  name: default
+  tls:
+    - hosts:
+        - auth.__{{infra.domains:f:x}}__
+      secretName: auth-domainx
