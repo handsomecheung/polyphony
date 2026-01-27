@@ -30,7 +30,7 @@ spec:
             claimName: data
         - name: local
           hostPath:
-            path: /mnt/runtime-data-app/chameleon
+            path: /mnt/coder-sharepoint
             type: Directory
       containers:
         - name: app

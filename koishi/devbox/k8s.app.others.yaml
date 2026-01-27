@@ -6,7 +6,7 @@ metadata:
   namespace: default
 type: Opaque
 data:
-  password: __{{koishi.machine.devbox-nur:_:b64}}__
+  password: __{{koishi.container.devbox:_:b64}}__
 
 ---
 apiVersion: apps/v1

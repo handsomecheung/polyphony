@@ -30,7 +30,7 @@ spec:
             claimName: default-common-encrypted
         - name: local
           hostPath:
-            path: /mnt/runtime-data-app/default-common
+            path: /mnt/coder-sharepoint
             type: Directory
       containers:
         - name: app
