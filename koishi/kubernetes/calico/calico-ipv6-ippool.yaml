@@ -1,0 +1,19 @@
+# fix IPv6: kubectl patch ippool default-ipv6-ippool --type=merge -p '{"spec":{"natOutgoing":true}}'
+# this config was generated but has not been used
+#
+---
+apiVersion: crd.projectcalico.org/v1
+kind: IPPool
+metadata:
+  name: default-ipv6-ippool
+spec:
+  cidr: 2001:cafe:42::/56
+  natOutgoing: true # key point
+  assignmentMode: Automatic
+  ipipMode: Never
+  vxlanMode: Never
+  nodeSelector: all()
+  blockSize: 122
+  allowedUses:
+    - Workload
+    - Tunnel
