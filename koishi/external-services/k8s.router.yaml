@@ -1,0 +1,175 @@
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: external-router
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: router-netgear
+  namespace: external-router
+spec:
+  ports:
+    - name: default
+      port: 80
+
+---
+apiVersion: discovery.k8s.io/v1
+kind: EndpointSlice
+metadata:
+  name: router-netgear
+  namespace: external-router
+  labels:
+    kubernetes.io/service-name: router-netgear
+addressType: IPv4
+ports:
+  - name: default
+    port: 80
+    protocol: TCP
+endpoints:
+  - addresses:
+      - "__{{infra.machine.netgear:f:ip}}__"
+    conditions:
+      ready: true
+
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: router-netgear
+  namespace: external-router
+  annotations:
+    cert-manager.io/cluster-issuer: cluster-letsencrypt-dns-cloudflare
+    traefik.ingress.kubernetes.io/router.middlewares: middleware-playonjan@kubernetescrd,middleware-antimitm@kubernetescrd,sso-domainx@kubernetescrd
+    gethomepage.dev/enabled: "true"
+    gethomepage.dev/group: Network
+    gethomepage.dev/name: Netgear WAX206 Admin
+    gethomepage.dev/icon: https://www.netgear.com/favicon.ico
+    gethomepage.dev/href: https://router-netgear.__{{infra.domains:f:x}}__
+    gethomepage.dev/siteMonitor: https://router-netgear.__{{infra.domains:f:x}}__
+    gethomepage.dev/pod-selector: ""
+    gethomepage.dev/weight: "20"
+spec:
+  ingressClassName: traefik
+  rules:
+    - host: router-netgear.__{{infra.domains:f:x}}__
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: router-netgear
+                port:
+                  name: default
+  tls:
+    - hosts:
+        - router-netgear.__{{infra.domains:f:x}}__
+      secretName: router-netgear-domainx
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: router-ntt
+  namespace: external-router
+spec:
+  ports:
+    - name: ntt
+      port: 80
+    - name: softbank
+      port: 8888
+
+---
+apiVersion: discovery.k8s.io/v1
+kind: EndpointSlice
+metadata:
+  name: router-ntt
+  namespace: external-router
+  labels:
+    kubernetes.io/service-name: router-ntt
+addressType: IPv4
+ports:
+  - name: ntt
+    port: 80
+    protocol: TCP
+  - name: softbank
+    port: 8888
+    protocol: TCP
+endpoints:
+  - addresses:
+      - "__{{infra.machine.ntt:f:ip}}__"
+    conditions:
+      ready: true
+
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: router-ntt
+  namespace: external-router
+  annotations:
+    cert-manager.io/cluster-issuer: cluster-letsencrypt-dns-cloudflare
+    traefik.ingress.kubernetes.io/router.middlewares: middleware-playonjan@kubernetescrd,middleware-antimitm@kubernetescrd,sso-domainx@kubernetescrd
+    gethomepage.dev/enabled: "true"
+    gethomepage.dev/group: Network
+    gethomepage.dev/name: NTT XG-100NE
+    gethomepage.dev/icon: https://group.ntt/favicon.png
+    gethomepage.dev/href: https://router-ntt.__{{infra.domains:f:x}}__
+    gethomepage.dev/siteMonitor: https://router-ntt.__{{infra.domains:f:x}}__
+    gethomepage.dev/pod-selector: ""
+    gethomepage.dev/weight: "22"
+spec:
+  ingressClassName: traefik
+  rules:
+    - host: router-ntt.__{{infra.domains:f:x}}__
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: router-ntt
+                port:
+                  name: ntt
+  tls:
+    - hosts:
+        - router-ntt.__{{infra.domains:f:x}}__
+      secretName: router-ntt-domainx
+
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: router-ntt-softbank
+  namespace: external-router
+  annotations:
+    cert-manager.io/cluster-issuer: cluster-letsencrypt-dns-cloudflare
+    traefik.ingress.kubernetes.io/router.middlewares: middleware-playonjan@kubernetescrd,middleware-antimitm@kubernetescrd,sso-domainx@kubernetescrd
+    gethomepage.dev/enabled: "true"
+    gethomepage.dev/group: Network
+    gethomepage.dev/name: NTT XG-100NE Softbank
+    gethomepage.dev/icon: https://www.softbank.jp/assets/set/common/p/img/favicon.ico
+    gethomepage.dev/href: https://router-ntt-softbank.__{{infra.domains:f:x}}__/t/
+    gethomepage.dev/siteMonitor: https://router-ntt-softbank.__{{infra.domains:f:x}}__/t/
+    gethomepage.dev/pod-selector: ""
+    gethomepage.dev/weight: "24"
+spec:
+  ingressClassName: traefik
+  rules:
+    - host: router-ntt-softbank.__{{infra.domains:f:x}}__
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: router-ntt
+                port:
+                  name: softbank
+  tls:
+    - hosts:
+        - router-ntt-softbank.__{{infra.domains:f:x}}__
+      secretName: router-ntt-softbank-domainx
