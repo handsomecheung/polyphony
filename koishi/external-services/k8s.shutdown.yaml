@@ -1,0 +1,213 @@
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: external-shutdown
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: shutdown-nur
+  namespace: external-shutdown
+spec:
+  ports:
+    - name: default
+      port: 80
+
+---
+apiVersion: discovery.k8s.io/v1
+kind: EndpointSlice
+metadata:
+  name: shutdown-nur
+  namespace: external-shutdown
+  labels:
+    kubernetes.io/service-name: shutdown-nur
+addressType: IPv4
+ports:
+  - name: default
+    port: 37901
+    protocol: TCP
+endpoints:
+  - addresses:
+      - "__{{infra.machine.nur:f:ip}}__"
+    conditions:
+      ready: true
+
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: shutdown-nur
+  namespace: external-shutdown
+  annotations:
+    cert-manager.io/cluster-issuer: cluster-letsencrypt-dns-cloudflare
+    traefik.ingress.kubernetes.io/router.middlewares: middleware-playonjan@kubernetescrd,middleware-antimitm@kubernetescrd,sso-domainx@kubernetescrd
+spec:
+  ingressClassName: traefik
+  rules:
+    - host: shutdown-nur.__{{infra.domains:f:x}}__
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: shutdown-nur
+                port:
+                  name: default
+  tls:
+    - hosts:
+        - shutdown-nur.__{{infra.domains:f:x}}__
+      secretName: shutdown-nur-domainx
+
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: shutdown-nur
+  namespace: external-shutdown
+  annotations:
+    cert-manager.io/cluster-issuer: cluster-letsencrypt-dns-cloudflare
+    traefik.ingress.kubernetes.io/router.middlewares: middleware-playonjan@kubernetescrd,middleware-antimitm@kubernetescrd,sso-domainx@kubernetescrd
+    gethomepage.dev/enabled: "true"
+    gethomepage.dev/group: System
+    gethomepage.dev/name: Shutdown nur
+    gethomepage.dev/href: https://shutdown-nur.__{{infra.domains:f:x}}__
+    gethomepage.dev/siteMonitor: https://shutdown-nur.__{{infra.domains:f:x}}__
+    gethomepage.dev/pod-selector: ""
+    gethomepage.dev/weight: "20"
+spec:
+  ingressClassName: traefik
+  rules:
+    - host: shutdown-nur.__{{infra.domains:f:x}}__
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: shutdown-nur
+                port:
+                  name: default
+  tls:
+    - hosts:
+        - shutdown-nur.__{{infra.domains:f:x}}__
+      secretName: shutdown-nur-domainx
+
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: autoshutdown-nur
+  namespace: external-shutdown
+spec:
+  schedule: "0 0 * * *"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 2
+  failedJobsHistoryLimit: 5
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          nodeSelector:
+            kubernetes.io/hostname: nippon
+          restartPolicy: Never
+          containers:
+            - name: app
+              image: cloudpublic/base/gotty-client:latest
+              imagePullPolicy: Always
+              command:
+                ["/gotty-client", "--v2", "http://shutdown-nur/?arg=true"]
+              tty: true
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: shutdown-miniba
+  namespace: external-shutdown
+spec:
+  ports:
+    - name: default
+      port: 80
+
+---
+apiVersion: discovery.k8s.io/v1
+kind: EndpointSlice
+metadata:
+  name: shutdown-miniba
+  namespace: external-shutdown
+  labels:
+    kubernetes.io/service-name: shutdown-miniba
+addressType: IPv4
+ports:
+  - name: default
+    port: 37901
+    protocol: TCP
+endpoints:
+  - addresses:
+      - "__{{infra.machine.miniba:f:ip}}__"
+    conditions:
+      ready: true
+
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: shutdown-miniba
+  namespace: external-shutdown
+  annotations:
+    cert-manager.io/cluster-issuer: cluster-letsencrypt-dns-cloudflare
+    traefik.ingress.kubernetes.io/router.middlewares: middleware-playonjan@kubernetescrd,middleware-antimitm@kubernetescrd,sso-domainx@kubernetescrd
+spec:
+  ingressClassName: traefik
+  rules:
+    - host: shutdown-miniba.__{{infra.domains:f:x}}__
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: shutdown-miniba
+                port:
+                  name: default
+  tls:
+    - hosts:
+        - shutdown-miniba.__{{infra.domains:f:x}}__
+      secretName: shutdown-miniba-domainx
+
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: shutdown-miniba
+  namespace: external-shutdown
+  annotations:
+    cert-manager.io/cluster-issuer: cluster-letsencrypt-dns-cloudflare
+    traefik.ingress.kubernetes.io/router.middlewares: middleware-playonjan@kubernetescrd,middleware-antimitm@kubernetescrd,sso-domainx@kubernetescrd
+    gethomepage.dev/enabled: "true"
+    gethomepage.dev/group: System
+    gethomepage.dev/name: Shutdown miniba
+    gethomepage.dev/href: https://shutdown-miniba.__{{infra.domains:f:x}}__
+    gethomepage.dev/siteMonitor: https://shutdown-miniba.__{{infra.domains:f:x}}__
+    gethomepage.dev/pod-selector: ""
+    gethomepage.dev/weight: "40"
+spec:
+  ingressClassName: traefik
+  rules:
+    - host: shutdown-miniba.__{{infra.domains:f:x}}__
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: shutdown-miniba
+                port:
+                  name: default
+  tls:
+    - hosts:
+        - shutdown-miniba.__{{infra.domains:f:x}}__
+      secretName: shutdown-miniba-domainx

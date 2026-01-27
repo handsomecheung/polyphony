@@ -1,0 +1,61 @@
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: szdc-dev
+  namespace: external-yx
+spec:
+  ports:
+    - name: default
+      port: 80
+
+---
+apiVersion: discovery.k8s.io/v1
+kind: EndpointSlice
+metadata:
+  name: szdc-dev
+  namespace: external-yx
+  labels:
+    kubernetes.io/service-name: szdc-dev
+addressType: IPv4
+ports:
+  - name: default
+    port: 26300
+    protocol: TCP
+endpoints:
+  - addresses:
+      - "__{{infra.machine.nur:f:ip}}__"
+    conditions:
+      ready: true
+
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: szdc-dev
+  namespace: external-yx
+  annotations:
+    cert-manager.io/cluster-issuer: cluster-letsencrypt-dns-cloudflare
+    traefik.ingress.kubernetes.io/router.middlewares: sso-domainx@kubernetescrd
+    gethomepage.dev/enabled: "true"
+    gethomepage.dev/group: YX
+    gethomepage.dev/name: SZDC Local Dev
+    gethomepage.dev/href: https://yx-szdc-dev.__{{infra.domains:f:x}}__
+    gethomepage.dev/weight: "10"
+spec:
+  ingressClassName: traefik
+  rules:
+    - host: yx-szdc-dev.__{{infra.domains:f:x}}__
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: szdc-dev
+                port:
+                  name: default
+  tls:
+    - hosts:
+        - yx-szdc-dev.__{{infra.domains:f:x}}__
+      secretName: yx-szdc-dev-domainx

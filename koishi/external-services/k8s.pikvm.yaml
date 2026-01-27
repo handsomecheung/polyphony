@@ -1,0 +1,108 @@
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: external-pikvm
+
+---
+apiVersion: traefik.io/v1alpha1
+kind: ServersTransport
+metadata:
+  name: transport
+  namespace: external-pikvm
+spec:
+  insecureSkipVerify: true
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: pikvm
+  namespace: external-pikvm
+  annotations:
+    traefik.ingress.kubernetes.io/service.serverstransport: external-pikvm-transport@kubernetescrd
+spec:
+  ports:
+    - name: default
+      port: 443
+
+---
+apiVersion: discovery.k8s.io/v1
+kind: EndpointSlice
+metadata:
+  name: pikvm
+  namespace: external-pikvm
+  labels:
+    kubernetes.io/service-name: pikvm
+addressType: IPv4
+ports:
+  - name: default
+    port: 443
+    protocol: TCP
+endpoints:
+  - addresses:
+      - "__{{infra.machine.r4b4gPiKVM:f:ip}}__"
+    conditions:
+      ready: true
+
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: pikvm
+  namespace: external-pikvm
+  annotations:
+    cert-manager.io/cluster-issuer: cluster-letsencrypt-dns-cloudflare
+    traefik.ingress.kubernetes.io/service.serversscheme: https
+    traefik.ingress.kubernetes.io/router.middlewares: middleware-playonjan@kubernetescrd,middleware-antimitm@kubernetescrd,sso-domainx@kubernetescrd
+    gethomepage.dev/enabled: "true"
+    gethomepage.dev/group: Development
+    gethomepage.dev/name: PiKVM
+    gethomepage.dev/icon: pikvm
+    gethomepage.dev/href: https://pikvm.__{{infra.domains:f:x}}__/
+    gethomepage.dev/siteMonitor: https://pikvm.__{{infra.domains:f:x}}__/
+    gethomepage.dev/weight: "32"
+spec:
+  ingressClassName: traefik
+  rules:
+    - host: pikvm.__{{infra.domains:f:x}}__
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: pikvm
+                port:
+                  name: default
+  tls:
+    - hosts:
+        - pikvm.__{{infra.domains:f:x}}__
+      secretName: pikvm-domainx
+
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: pikvm-lan
+  namespace: external-pikvm
+  annotations:
+    cert-manager.io/cluster-issuer: cluster-letsencrypt-dns-cloudflare
+    traefik.ingress.kubernetes.io/service.serversscheme: https
+spec:
+  ingressClassName: traefik
+  rules:
+    - host: pikvm.home4p.__{{infra.domains:f:x}}__
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: pikvm
+                port:
+                  name: default
+  tls:
+    - hosts:
+        - pikvm.home4p.__{{infra.domains:f:x}}__
+      secretName: pikvm-home4p-domainx

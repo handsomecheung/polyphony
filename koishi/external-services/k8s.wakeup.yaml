@@ -1,0 +1,108 @@
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: external-wakeup
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: wakeup
+  namespace: external-wakeup
+spec:
+  ports:
+    - name: default
+      port: 80
+
+---
+apiVersion: discovery.k8s.io/v1
+kind: EndpointSlice
+metadata:
+  name: wakeup
+  namespace: external-wakeup
+  labels:
+    kubernetes.io/service-name: wakeup
+addressType: IPv4
+ports:
+  - name: default
+    port: 37902
+    protocol: TCP
+endpoints:
+  - addresses:
+      - "__{{infra.machine.nippon:f:ip}}__"
+    conditions:
+      ready: true
+
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: wakeup
+  namespace: external-wakeup
+  annotations:
+    cert-manager.io/cluster-issuer: cluster-letsencrypt-dns-cloudflare
+    traefik.ingress.kubernetes.io/router.middlewares: sso-domainx@kubernetescrd
+spec:
+  ingressClassName: traefik
+  rules:
+    - host: wakeup.__{{infra.domains:f:x}}__
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: wakeup
+                port:
+                  name: default
+  tls:
+    - hosts:
+        - wakeup.__{{infra.domains:f:x}}__
+      secretName: wakeup-domainx
+
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: autowakeup-nur-weekdays
+  namespace: external-wakeup
+spec:
+  schedule: "50 6 * * MON-FRI"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 2
+  failedJobsHistoryLimit: 5
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          restartPolicy: Never
+          containers:
+            - name: app
+              image: cloudpublic/base/gotty-client:latest
+              imagePullPolicy: Always
+              command: ["/gotty-client", "--v2", "http://wakeup/?arg=nur"]
+              tty: true
+
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: autowakeup-nur-weekends
+  namespace: external-wakeup
+spec:
+  schedule: "50 7 * * SAT,SUN"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 2
+  failedJobsHistoryLimit: 5
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          restartPolicy: Never
+          containers:
+            - name: app
+              image: cloudpublic/base/gotty-client:latest
+              imagePullPolicy: Always
+              command: ["/gotty-client", "--v2", "http://wakeup/?arg=nur"]
+              tty: true

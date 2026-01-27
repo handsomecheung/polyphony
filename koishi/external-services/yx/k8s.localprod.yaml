@@ -1,0 +1,73 @@
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: szdc-prod
+  namespace: external-yx
+spec:
+  ports:
+    - name: https
+      port: 443
+      protocol: TCP
+
+---
+apiVersion: discovery.k8s.io/v1
+kind: EndpointSlice
+metadata:
+  name: szdc-prod
+  namespace: external-yx
+  labels:
+    kubernetes.io/service-name: szdc-prod
+addressType: IPv4
+ports:
+  - name: default
+    port: 28443
+    protocol: TCP
+endpoints:
+  - addresses:
+      - "__{{infra.machine.nur:f:ip}}__"
+    conditions:
+      ready: true
+
+---
+apiVersion: v1
+kind: Secret
+type: kubernetes.io/tls
+metadata:
+  name: szdc-prod
+  namespace: external-yx
+data:
+  # base64 -w 0 ${domaon}.pem
+  tls.crt: __placeholder__
+  # base64 -w 0 ${domain}.key
+  tls.key: __placeholder__
+
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: szdc-prod
+  namespace: external-yx
+  annotations:
+    gethomepage.dev/enabled: "true"
+    gethomepage.dev/group: YX
+    gethomepage.dev/name: SZDC Local Prod
+    gethomepage.dev/href: __placeholder_domain__
+    gethomepage.dev/weight: "5"
+spec:
+  ingressClassName: traefik
+  rules:
+    - host: __placeholder_domain__
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: szdc-prod
+                port:
+                  name: https
+  tls:
+    - hosts:
+        - __placeholder_domain__
+      secretName: szdc-prod

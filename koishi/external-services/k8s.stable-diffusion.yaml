@@ -1,0 +1,63 @@
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: external-stable-diffusion
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: stable-diffusion-webui
+  namespace: external-stable-diffusion
+spec:
+  ports:
+    - name: default
+      port: 80
+
+---
+apiVersion: v1
+kind: Endpoints
+metadata:
+  name: stable-diffusion-webui
+  namespace: external-stable-diffusion
+subsets:
+  - addresses:
+      - ip: "__{{infra.machine.miniba:f:ip}}__"
+    ports:
+      - name: default
+        port: 7860
+
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: stable-diffusion-webui
+  namespace: external-stable-diffusion
+  annotations:
+    cert-manager.io/cluster-issuer: cluster-letsencrypt-dns-cloudflare
+    traefik.ingress.kubernetes.io/router.middlewares: middleware-playonjan@kubernetescrd,middleware-antimitm@kubernetescrd,sso-domainx@kubernetescrd
+    gethomepage.dev/enabled: "true"
+    gethomepage.dev/group: AI
+    gethomepage.dev/name: stable-diffusion-webui
+    gethomepage.dev/icon: https://stable-diffusion-webui.__{{infra.domains:f:x}}__/assets/logo-0a070fcf.svg
+    gethomepage.dev/href: https://stable-diffusion-webui.__{{infra.domains:f:x}}__
+    gethomepage.dev/siteMonitor: https://stable-diffusion-webui.__{{infra.domains:f:x}}__
+    gethomepage.dev/weight: "20"
+spec:
+  ingressClassName: traefik
+  rules:
+    - host: stable-diffusion-webui.__{{infra.domains:f:x}}__
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: stable-diffusion-webui
+                port:
+                  name: default
+  tls:
+    - hosts:
+        - stable-diffusion-webui.__{{infra.domains:f:x}}__
+      secretName: stable-diffusion-webui-domainx
