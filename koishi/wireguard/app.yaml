@@ -18,6 +18,10 @@ spec:
       labels:
         app.kubernetes.io/name: wireguard
     spec:
+      securityContext:
+        sysctls:
+          - name: net.ipv4.ip_forward
+            value: "1"
       volumes:
         - name: default-common
           persistentVolumeClaim:
@@ -31,6 +35,12 @@ spec:
               value: home.__{{infra.domains:f:x}}__
             - name: WG_PORT
               value: "37004"
+            - name: WG_ALLOWED_IPS
+              value: "0.0.0.0/0, ::/0"
+            - name: WG_DEVICE
+              value: "eth0"
+            - name: WG_MTU
+              value: "1280"
             - name: PASSWORD_HASH
               value: "__{{wireguard.webui:f:password_hash}}__"
             - name: PORT
