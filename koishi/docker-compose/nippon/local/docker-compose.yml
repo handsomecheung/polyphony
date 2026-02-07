@@ -4,6 +4,7 @@ services:
     image: containrrr/watchtower:latest
     environment:
       TZ: "__{{koishi.deploy.timezone}}__"
+      DOCKER_API_VERSION: "1.53"
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - /home/box/.docker/config.json:/config.json
