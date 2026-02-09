@@ -14,7 +14,7 @@ coder:
     - name: TZ
       value: "__{{koishi.deploy.timezone}}__"
     - name: CODER_PG_CONNECTION_URL
-      value: "postgresql://coder:__{{database.postgres.accounts:f:coder}}__@db-postgres.my-database:5432/coder?sslmode=disable"
+      value: "postgresql://coder:__{{database.postgres.accounts:f:coder}}__@db-postgres-prod.my-database:5432/coder?sslmode=disable"
     - name: CODER_ACCESS_URL
       value: "https://coder.__{{infra.domains:f:x}}__"
     - name: CODER_OAUTH2_GITHUB_CLIENT_ID
