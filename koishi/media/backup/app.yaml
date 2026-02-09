@@ -92,7 +92,7 @@ spec:
                   python3 -u /backup-scripts/backup.py
               env:
                 - name: POSTGRES_HOST
-                  value: db-postgres.my-database
+                  value: db-postgres-prod.my-database
                 - name: POSTGRES_PORT
                   value: "5432"
                 - name: POSTGRES_USER

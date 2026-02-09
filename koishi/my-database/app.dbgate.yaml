@@ -86,45 +86,32 @@ spec:
               mountPath: /tmp/subscout/subscout.db
           env:
             - name: CONNECTIONS
-              value: postgres,nulltracedev,pushionsdev,pushionsprod,cijsfawsdev,cijsfawsprod,ciipasssystem,ciipasseucdev,ciipasseucprod,ciipasslibrary,subscout
+              value: postgresdev,postgresprod,pushionsprod,cijsfawsdev,cijsfawsprod,ciipasssystem,ciipasseucdev,ciipasseucprod,ciipasslibrary,subscout
 
-            - name: LABEL_postgres
-              value: Koishi-PostgreSQL
-            - name: SERVER_postgres
-              value: db-postgres.my-database
-            - name: PORT_postgres
+            - name: LABEL_postgresdev
+              value: Koishi PostgreSQL Dev
+            - name: SERVER_postgresdev
+              value: db-postgres-dev.my-database
+            - name: PORT_postgresdev
               value: "5432"
-            - name: USER_postgres
+            - name: USER_postgresdev
               value: postgres
-            - name: PASSWORD_postgres
+            - name: PASSWORD_postgresdev
+              value: "__{{database.postgres-dev.accounts:f:postgres}}__"
+            - name: ENGINE_postgresdev
+              value: postgres@dbgate-plugin-postgres
+
+            - name: LABEL_postgresprod
+              value: Koishi PostgreSQL Prod
+            - name: SERVER_postgresprod
+              value: db-postgres-prod.my-database
+            - name: PORT_postgresprod
+              value: "5432"
+            - name: USER_postgresprod
+              value: postgres
+            - name: PASSWORD_postgresprod
               value: "__{{database.postgres.accounts:f:postgres}}__"
-            - name: ENGINE_postgres
-              value: postgres@dbgate-plugin-postgres
-
-            - name: LABEL_nulltracedev
-              value: NullTrace-Dev
-            - name: SERVER_nulltracedev
-              value: database.curvekey-nulltrace-dev
-            - name: PORT_nulltracedev
-              value: "5432"
-            - name: USER_nulltracedev
-              value: nulltrace
-            - name: PASSWORD_nulltracedev
-              value: "__{{nulltrace.dev.db.nulltrace}}__"
-            - name: ENGINE_nulltracedev
-              value: postgres@dbgate-plugin-postgres
-
-            - name: LABEL_pushionsdev
-              value: Pushions-Dev
-            - name: SERVER_pushionsdev
-              value: database.curvekey-pushion-dev
-            - name: PORT_pushionsdev
-              value: "5432"
-            - name: USER_pushionsdev
-              value: pushions
-            - name: PASSWORD_pushionsdev
-              value: "__{{pushion.dev.db.pushions}}__"
-            - name: ENGINE_pushionsdev
+            - name: ENGINE_postgresprod
               value: postgres@dbgate-plugin-postgres
 
             - name: LABEL_pushionsprod
@@ -318,32 +305,19 @@ spec:
               readOnly: true
           env:
             - name: CONNECTIONS
-              value: nulltracedev,pushionsdev,cijsfawsdev,ciipasssystem,ciipasseucdev,ciipasseucprod,ciipasslibrary
+              value: postgresdev,cijsfawsdev,ciipasssystem,ciipasseucdev,ciipasseucprod,ciipasslibrary
 
-            - name: LABEL_nulltracedev
-              value: NullTrace-Dev
-            - name: SERVER_nulltracedev
-              value: database.curvekey-nulltrace-dev
-            - name: PORT_nulltracedev
+            - name: LABEL_postgresdev
+              value: Koishi PostgreSQL Dev
+            - name: SERVER_postgresdev
+              value: db-postgres-dev.my-database
+            - name: PORT_postgresdev
               value: "5432"
-            - name: USER_nulltracedev
-              value: nulltrace
-            - name: PASSWORD_nulltracedev
-              value: "__{{nulltrace.dev.db.nulltrace}}__"
-            - name: ENGINE_nulltracedev
-              value: postgres@dbgate-plugin-postgres
-
-            - name: LABEL_pushionsdev
-              value: Pushions-Dev
-            - name: SERVER_pushionsdev
-              value: database.curvekey-pushion-dev
-            - name: PORT_pushionsdev
-              value: "5432"
-            - name: USER_pushionsdev
-              value: pushions
-            - name: PASSWORD_pushionsdev
-              value: "__{{pushion.dev.db.pushions}}__"
-            - name: ENGINE_pushionsdev
+            - name: USER_postgresdev
+              value: postgres
+            - name: PASSWORD_postgresdev
+              value: "__{{database.postgres-dev.accounts:f:postgres}}__"
+            - name: ENGINE_postgresdev
               value: postgres@dbgate-plugin-postgres
 
             - name: LABEL_cijsfawsdev
@@ -517,16 +491,7 @@ spec:
     - to:
         - namespaceSelector:
             matchLabels:
-              kubernetes.io/metadata.name: curvekey-pushion-dev
-    - to:
-        - namespaceSelector:
-            matchLabels:
-              kubernetes.io/metadata.name: curvekey-pushion-prod
-
-    - to:
-        - namespaceSelector:
-            matchLabels:
-              kubernetes.io/metadata.name: curvekey-nulltrace-dev
+              kubernetes.io/metadata.name: ck-pushion-prod
 
     - to:
         - namespaceSelector:

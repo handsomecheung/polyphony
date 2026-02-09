@@ -1,46 +1,29 @@
 ---
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: postgres-init-scripts
-  namespace: my-database
-data:
-  create-users.sql: |
-    CREATE DATABASE coder;
-    CREATE USER coder WITH PASSWORD '__{{database.postgres.accounts:f:coder}}__';
-    GRANT ALL PRIVILEGES ON DATABASE coder TO coder;
-    CREATE DATABASE guacamole;
-    CREATE USER guacamole WITH PASSWORD '__{{database.postgres.accounts:f:guacamole}}__';
-    GRANT ALL PRIVILEGES ON DATABASE guacamole TO guacamole;
----
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: db-postgres
+  name: db-postgres-prod
   namespace: my-database
   labels:
-    app: db-postgres
+    app.kubernetes.io/name: db-postgres-prod
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: db-postgres
+      app.kubernetes.io/name: db-postgres-prod
   strategy:
     type: Recreate
   template:
     metadata:
       labels:
-        app: db-postgres
+        app.kubernetes.io/name: db-postgres-prod
     spec:
       nodeSelector:
-        kubernetes.io/hostname: nippon
+        kubernetes.io/hostname: miniba
       volumes:
-        - name: init-scripts
-          configMap:
-            name: postgres-init-scripts
         - name: data
           hostPath:
-            path: /mnt/runtime-data-app/postgres
+            path: /mnt/runtime-data-app/postgres.prod
             type: DirectoryOrCreate
       containers:
         - name: app
@@ -53,8 +36,6 @@ spec:
             - name: POSTGRES_DB
               value: default
           volumeMounts:
-            - name: init-scripts
-              mountPath: /docker-entrypoint-initdb.d
             - name: data
               mountPath: /var/lib/postgresql/data
           ports:
@@ -78,14 +59,14 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: db-postgres
+  name: db-postgres-prod
   namespace: my-database
   labels:
-    app: db-postgres
+    app.kubernetes.io/name: db-postgres-prod
 spec:
   type: ClusterIP
   selector:
-    app: db-postgres
+    app.kubernetes.io/name: db-postgres-prod
   ports:
     - name: default
       port: 5432
