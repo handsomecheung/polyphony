@@ -27,7 +27,7 @@ spec:
             type: DirectoryOrCreate
       containers:
         - name: app
-          image: postgres:14.2
+          image: postgres:18.1
           env:
             - name: POSTGRES_USER
               value: postgres
@@ -37,7 +37,7 @@ spec:
               value: default
           volumeMounts:
             - name: data
-              mountPath: /var/lib/postgresql/data
+              mountPath: /var/lib/postgresql
           ports:
             - name: default
               containerPort: 5432
