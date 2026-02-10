@@ -77,8 +77,8 @@ check_files_for_keywords() {
             fi
         done
 
-        # Skip if file doesn't exist (deleted files)
-        if [ ! -f "$FILE" ]; then
+        # Skip if file doesn't exist (deleted files) or is a symlink
+        if [ -L "$FILE" ] || [ ! -f "$FILE" ]; then
             continue
         fi
 
