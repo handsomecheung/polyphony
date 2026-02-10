@@ -4,7 +4,7 @@ USER root
 
 RUN apt-get update && \
         apt-get install -y apache2-utils rsync openssh-server plocate libpam-google-authenticator \
-        autoconf patch build-essential cmake libssl-dev libyaml-dev libreadline6-dev zlib1g-dev libgmp-dev libncurses5-dev libffi-dev libgdbm6 libgdbm-dev libdb-dev uuid-dev libbz2-dev libsqlite3-dev liblzma-dev && \
+        autoconf patch build-essential cmake libssl-dev libyaml-dev libreadline6-dev zlib1g-dev libgmp-dev libncurses5-dev libffi-dev libgdbm6 libgdbm-dev libdb-dev uuid-dev libbz2-dev libsqlite3-dev liblzma-dev protobuf-compiler && \
         rm -rf /var/lib/apt/lists/*
 
 # install docker by APT because it is need to run docker with sudo

@@ -5,6 +5,7 @@ name=$1
 namespace=$2
 deployments=$3
 
+current_dir=$(pwd)
 script_name="$(basename "${BASH_SOURCE[0]}")"
 script_dir="$(dirname "${BASH_SOURCE[0]}")"
 
@@ -45,7 +46,7 @@ mkdir "${build_config_dir}"
 
 echo "build in direcotry ${build_code_dir}"
 # rsync is more powerful and flexible than cp and it can handle hidden files without any issues.
-rsync -a --exclude='node_modules' . "${build_code_dir}"
+rsync -aL --exclude='node_modules' . "${build_code_dir}"
 cd "${build_code_dir}"
 
 echo "build_code_dir is ${build_code_dir}"
@@ -134,6 +135,7 @@ echo "delete job ..."
 ${cmd_kubectl} -n ${build_namespace} delete job "${job_name}"
 
 echo "delete work direcotry ${build_work_dir} ..."
+cd "${current_dir}"
 rm -rf "${build_work_dir}"
 
 if [ ${exit_code} -ne 0 ]; then
