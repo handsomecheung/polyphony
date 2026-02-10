@@ -1,0 +1,23 @@
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: macbind
+  namespace: default
+spec:
+  template:
+    spec:
+      containers:
+        - name: app
+          image: cloudprivate/default/macbind:latest
+          command: ["python", "-u", "bind.py"]
+          env:
+            - name: NTT_ROUTER
+              value: "http://__{{infra.machine.ntt:f:ip}}__"
+            - name: NTT_ROUTER_USERNAME
+              value: "user"
+            - name: NTT_ROUTER_PASSWORD
+              value: "__{{router-ntt.NTT-XG-100NE}}__"
+
+      restartPolicy: Never
+  backoffLimit: 0
