@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import os
+import re
 import socket
 import time
 from urllib.parse import urljoin
@@ -18,7 +19,13 @@ def _force_ipv4():
 urllib_conn.allowed_gai_family = _force_ipv4
 
 
-IPv4API = "https://ifconfig.me/ip"
+IPv4APIs = [
+    "https://ifconfig.me/ip",
+    "https://api.ipify.org",
+    "https://ipinfo.io/ip",
+    "https://icanhazip.com",
+    "https://ident.me",
+]
 
 
 def get_os_env_force(name):
@@ -45,9 +52,25 @@ def print_log(msg):
     print(f'[{time.strftime("%Y-%m-%d %H:%M:%S")}] {msg}')
 
 
+def get_valid_ipv4(ip):
+    ip = ip.strip()
+    if re.match(r"^((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$", ip):
+        return ip
+    else:
+        return None
+
 def get_current_ipv4():
-    r = requests.get(IPv4API)
-    return r.text.strip()
+    for api in IPv4APIs:
+        try:
+            r = requests.get(api, timeout=(2, 2))
+            ip = r.text
+            print_log(f"got IPv4 from {api}: {ip}")
+            valid_ip = get_valid_ipv4(ip)
+            if valid_ip:
+                return valid_ip
+        except Exception as e:
+            print_log(f"Failed to get IPv4 from {api}: {e}")
+    return None
 
 
 def get_current_ipv6(name="nippon"):
