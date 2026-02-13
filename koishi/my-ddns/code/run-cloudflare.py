@@ -96,13 +96,16 @@ def main():
     client = CloudFlare.CloudFlare()
     zones = client.zones.get()
 
-    for root_domain, sub_domain_infos in DOMAINS_IPV4.items():
-        common.print_log(f"set ip, root domain: {root_domain}, ipv4: {ipv4}")
-        zone = [zone for zone in zones if zone["name"] == root_domain][0]
-        for sub_domain_info in sub_domain_infos:
-            sub_domain, proxied = sub_domain_info
-            domain = sub_domain + root_domain
-            set_ip(client, zone, domain, "A", ipv4, proxied)
+    if ipv4:
+        for root_domain, sub_domain_infos in DOMAINS_IPV4.items():
+            common.print_log(f"set ip, root domain: {root_domain}, ipv4: {ipv4}")
+            zone = [zone for zone in zones if zone["name"] == root_domain][0]
+            for sub_domain_info in sub_domain_infos:
+                sub_domain, proxied = sub_domain_info
+                domain = sub_domain + root_domain
+                set_ip(client, zone, domain, "A", ipv4, proxied)
+    else:
+        common.print_log("IPv4 is invalid or could not be obtained. Skip IPv4 updates.")
 
     for root_domain, sub_domain_map in DOMAINS_IPV6.items():
         zone = [zone for zone in zones if zone["name"] == root_domain][0]

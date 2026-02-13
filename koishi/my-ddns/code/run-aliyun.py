@@ -20,6 +20,10 @@ def main():
     client = AcsClient(ALIYUN_ACCESSKEY_ID, ALIYUN_ACCESSKEY_SECRET, "cn-hangzhou")
 
     current_ip = common.get_current_ipv4()
+    if not current_ip:
+        common.print_log("IPv4 is invalid or could not be obtained. Skip Aliyun updates.")
+        return
+
     ips = get_dns_ips(client)
     common.print_log(f"current info: {ips}")
 
