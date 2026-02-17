@@ -1,0 +1,280 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: homepage
+  namespace: default
+  labels:
+    app.kubernetes.io/name: homepage
+data:
+  kubernetes.yaml: |
+    mode: cluster
+  settings.yaml: "" # This field is dynamically updated by deploy.sh from local files
+  services.yaml: "" # This field is dynamically updated by deploy.sh from local files
+  custom.css: ""
+  custom.js: ""
+  bookmarks.yaml: ""
+  widgets.yaml: |
+    - resources:
+        cputemp: true
+        # or imperial # only used by cpu temp
+        units: celsius
+        # optional, minimum cpu temp
+        tempmin: 0
+        # optional, maximum cpu temp
+        tempmax: 95
+        # optional, in ms
+        refresh: 10000
+        disk: /
+        # optional, bytes (default) or bbytes. Only applies to disk
+        diskUnits: bytes
+    - search:
+        # google, duckduckgo, bing, baidu, brave or custom
+        provider: google
+        # Optional, will set focus to the search bar on page load
+        focus: true
+        # Optional, will show search suggestions. Defaults to false
+        showSearchSuggestions: true
+        # One of _self, _blank, _parent or _top
+        target: _blank
+    - kubernetes:
+        cluster:
+          # Shows cluster-wide statistics
+          show: true
+          # Shows the aggregate CPU stats
+          cpu: true
+          # Shows the aggregate memory stats
+          memory: true
+          # Shows a custom label
+          showLabel: true
+          label: "cluster"
+        nodes:
+          # Shows node-specific statistics
+          show: true
+          # Shows the CPU for each node
+          cpu: true
+          # Shows the memory for each node
+          memory: true
+          # Shows the label, which is always the node name
+          showLabel: true
+  docker.yaml: ""
+
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: homepage
+  namespace: default
+  labels:
+    app.kubernetes.io/name: homepage
+secrets:
+  - name: homepage
+
+---
+apiVersion: v1
+kind: Secret
+type: kubernetes.io/service-account-token
+metadata:
+  name: homepage
+  namespace: default
+  labels:
+    app.kubernetes.io/name: homepage
+  annotations:
+    kubernetes.io/service-account.name: homepage
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: homepage
+  labels:
+    app.kubernetes.io/name: homepage
+rules:
+  - apiGroups:
+      - ""
+    resources:
+      - namespaces
+      - pods
+      - nodes
+      - services
+    verbs:
+      - get
+      - list
+  - apiGroups:
+      - extensions
+      - networking.k8s.io
+    resources:
+      - ingresses
+    verbs:
+      - get
+      - list
+  - apiGroups:
+      - traefik.containo.us
+    resources:
+      - ingressroutes
+    verbs:
+      - get
+      - list
+  - apiGroups:
+      - metrics.k8s.io
+    resources:
+      - nodes
+      - pods
+    verbs:
+      - get
+      - list
+  - apiGroups:
+      - apiextensions.k8s.io
+    resources:
+      - customresourcedefinitions/status
+    verbs:
+      - get
+      - list
+  - apiGroups:
+      - traefik.io
+    resources:
+      - ingressroutes
+    verbs:
+      - get
+      - list
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: homepage
+  labels:
+    app.kubernetes.io/name: homepage
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: homepage
+subjects:
+  - kind: ServiceAccount
+    name: homepage
+    namespace: default
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: homepage
+  namespace: default
+  labels:
+    app: homepage
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: homepage
+  template:
+    metadata:
+      labels:
+        app: homepage
+    spec:
+      serviceAccountName: homepage
+      automountServiceAccountToken: true
+      dnsPolicy: ClusterFirst
+      enableServiceLinks: true
+      volumes:
+        - name: rawconfig
+          configMap:
+            name: homepage
+        - name: config
+          emptyDir: {}
+        - name: logs
+          emptyDir: {}
+        - name: default-common
+          persistentVolumeClaim:
+            claimName: default-common-encrypted
+      initContainers:
+        - name: init
+          image: cloudpublic/base/bash:latest
+          imagePullPolicy: Always
+          volumeMounts:
+            - name: rawconfig
+              mountPath: /tmp/rawconfig
+            - name: config
+              mountPath: /app/config
+          args:
+            - bash
+            - -c
+            - "cp -r /tmp/rawconfig/* /app/config/ && cp -r /tmp/rawconfig/.* /app/config/"
+      containers:
+        - name: app
+          image: ghcr.io/gethomepage/homepage:latest
+          imagePullPolicy: Always
+          env:
+            - name: HOMEPAGE_ALLOWED_HOSTS
+              value: __{{infra.domains:f:x}}__
+          volumeMounts:
+            - name: config
+              mountPath: /app/config
+            - name: logs
+              mountPath: /app/config/logs
+            - name: default-common
+              subPath: homepage/icon/favicon.ico
+              mountPath: /app/public/homepage.ico
+            - name: default-common
+              subPath: homepage/icon/favicon.ico
+              mountPath: /app/public/favicon.ico
+            - name: default-common
+              subPath: homepage/icon/favicon.ico
+              mountPath: /app/public/favicon.icon
+            - name: default-common
+              subPath: homepage/icon/favicon-32x32.png
+              mountPath: /app/public/favicon-32x32.png
+          ports:
+            - name: default
+              protocol: TCP
+              containerPort: 3000
+          resources:
+            requests:
+              cpu: 50m
+              memory: 156Mi
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: homepage
+  namespace: default
+  labels:
+    app: homepage
+  annotations:
+spec:
+  type: ClusterIP
+  ports:
+    - name: default
+      port: 80
+      protocol: TCP
+      targetPort: default
+  selector:
+    app: homepage
+
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: homepage
+  namespace: default
+  annotations:
+    cert-manager.io/cluster-issuer: cluster-letsencrypt-dns-cloudflare
+    traefik.ingress.kubernetes.io/router.middlewares: middleware-antimitm@kubernetescrd,sso-domainx@kubernetescrd
+spec:
+  ingressClassName: traefik
+  rules:
+    - host: __{{infra.domains:f:x}}__
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: homepage
+                port:
+                  name: default
+  tls:
+    - hosts:
+        - __{{infra.domains:f:x}}__
+      secretName: homepage-domainx
