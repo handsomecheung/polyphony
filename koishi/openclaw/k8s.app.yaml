@@ -1,0 +1,123 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: openclaw
+  namespace: default
+  labels:
+    app.kubernetes.io/name: openclaw
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: openclaw
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: openclaw
+    spec:
+      nodeSelector:
+        kubernetes.io/hostname: nur
+      securityContext:
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+      volumes:
+        - name: data
+          hostPath:
+            path: /mnt/runtime-data-app/openclaw
+            type: DirectoryOrCreate
+        - name: coder-workspaces
+          hostPath:
+            path: /mnt/coder-workspaces
+            type: DirectoryOrCreate
+      initContainers:
+        - name: init
+          image: busybox:latest
+          command: ["sh", "-c", "chown -R 1000:1000 /home/node/.openclaw"]
+          securityContext:
+            runAsUser: 0
+          volumeMounts:
+            - name: data
+              mountPath: /home/node/.openclaw
+      containers:
+        - name: app
+          image: cloudpublic/default/openclaw:latest
+          ports:
+            - name: default
+              protocol: TCP
+              containerPort: 18789
+          volumeMounts:
+            - name: data
+              mountPath: /home/node/.openclaw
+            - name: coder-workspaces
+              mountPath: /mnt/coder-workspaces
+          env:
+            - name: NODE_OPTIONS
+              value: "--max-old-space-size=1536"
+          resources:
+            requests:
+              cpu: 200m
+              memory: 512Mi
+          livenessProbe:
+            tcpSocket:
+              port: default
+            initialDelaySeconds: 30
+            periodSeconds: 20
+          readinessProbe:
+            tcpSocket:
+              port: default
+            initialDelaySeconds: 15
+            periodSeconds: 10
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: openclaw
+  namespace: default
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: openclaw
+  ports:
+    - name: default
+      port: 80
+      targetPort: default
+      protocol: TCP
+
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: openclaw
+  namespace: default
+  annotations:
+    cert-manager.io/cluster-issuer: cluster-letsencrypt-dns-cloudflare
+    traefik.ingress.kubernetes.io/router.middlewares: middleware-playonjan@kubernetescrd,middleware-antimitm@kubernetescrd,sso-domainx@kubernetescrd
+    gethomepage.dev/enabled: "true"
+    gethomepage.dev/group: AI
+    gethomepage.dev/name: OpenClaw
+    gethomepage.dev/icon: https://openclaw.ai/apple-touch-icon.png
+    gethomepage.dev/href: https://openclaw.__{{infra.domains:f:x}}__
+    gethomepage.dev/siteMonitor: https://openclaw.__{{infra.domains:f:x}}__
+    gethomepage.dev/weight: "3"
+spec:
+  ingressClassName: traefik
+  rules:
+    - host: openclaw.__{{infra.domains:f:x}}__
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: openclaw
+                port:
+                  name: default
+  tls:
+    - hosts:
+        - openclaw.__{{infra.domains:f:x}}__
+      secretName: openclaw
