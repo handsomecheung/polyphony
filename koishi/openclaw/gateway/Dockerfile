@@ -25,24 +25,7 @@ RUN pnpm ui:build
 
 FROM node:22-bookworm
 
-RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y \
-    ffmpeg \
-    gh \
-    curl \
-    wget \
-    build-essential \
-    python3 \
-    python3-dev \
-    poppler-utils \
-    imagemagick \
-    jq ripgrep \
-    && rm -rf /var/lib/apt/lists/*
-
-# Install uv (Fast Python package manager)
-COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /usr/bin/
-
 RUN npm install -g clawhub && \
-    npm install -g @google/gemini-cli && \
     npm install -g mcporter
 
 WORKDIR /app

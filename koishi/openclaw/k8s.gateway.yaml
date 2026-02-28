@@ -85,10 +85,6 @@ spec:
           hostPath:
             path: /mnt/runtime-data-app/openclaw
             type: DirectoryOrCreate
-        - name: coder-workspaces
-          hostPath:
-            path: /mnt/coder-workspaces
-            type: DirectoryOrCreate
         - name: caddy-config
           configMap:
             name: openclaw-caddy-config
@@ -103,33 +99,33 @@ spec:
               mountPath: /home/node/.openclaw
       containers:
         - name: openclaw
-          image: cloudpublic/default/openclaw:latest
+          image: cloudpublic/default/openclaw/gateway:latest
+          env:
+            - name: OPENCLAW_PUBLIC_DOMAIN
+              value: "openclaw.__{{infra.domains:f:x}}__"
+            - name: OPENCLAW_GATEWAY_TOKEN
+              value: "__{{openclaw-infos:f:secret}}__"
+            - name: NODE_OPTIONS
+              value: "--max-old-space-size=1536"
           ports:
-            - name: default
+            - name: gateway
               protocol: TCP
               containerPort: 18789
           volumeMounts:
             - name: data
               mountPath: /home/node/.openclaw
-            - name: coder-workspaces
-              mountPath: /mnt/coder-workspaces
-          env:
-            - name: NODE_OPTIONS
-              value: "--max-old-space-size=1536"
-            - name: OPENCLAW_PUBLIC_DOMAIN
-              value: "openclaw.__{{infra.domains:f:x}}__"
           resources:
             requests:
               cpu: 200m
               memory: 512Mi
           livenessProbe:
             tcpSocket:
-              port: default
+              port: gateway
             initialDelaySeconds: 30
             periodSeconds: 20
           readinessProbe:
             tcpSocket:
-              port: default
+              port: gateway
             initialDelaySeconds: 15
             periodSeconds: 10
         - name: caddy
@@ -161,7 +157,7 @@ spec:
   ports:
     - name: oc-gateway
       port: 80
-      targetPort: default
+      targetPort: gateway
       protocol: TCP
     - name: caddy-http
       port: 8080
@@ -208,3 +204,29 @@ spec:
     - hosts:
         - openclaw.__{{infra.domains:f:x}}__
       secretName: openclaw-domainx
+
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: openclaw-home4p
+  namespace: default
+  annotations:
+    cert-manager.io/cluster-issuer: cluster-letsencrypt-dns-cloudflare
+spec:
+  ingressClassName: traefik
+  rules:
+    - host: openclaw.home4p.__{{infra.domains:f:x}}__
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: openclaw
+                port:
+                  name: oc-gateway
+  tls:
+    - hosts:
+        - openclaw.home4p.__{{infra.domains:f:x}}__
+      secretName: openclaw-home4p.domainx

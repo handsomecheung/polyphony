@@ -1,0 +1,70 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: openclaw-node-nur
+  namespace: default
+  labels:
+    app.kubernetes.io/name: openclaw-node-nur
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: openclaw-node-nur
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: openclaw-node-nur
+    spec:
+      nodeSelector:
+        kubernetes.io/hostname: nur
+      volumes:
+        - name: coder-workspaces
+          hostPath:
+            path: /mnt/coder-workspaces
+            type: DirectoryOrCreate
+        - name: data
+          hostPath:
+            path: /mnt/runtime-data-app/openclaw-node-nur
+            type: DirectoryOrCreate
+      securityContext:
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+      initContainers:
+        - name: init
+          image: busybox:latest
+          command: ["sh", "-c", "chown -R 1000:1000 /home/node/.openclaw"]
+          securityContext:
+            runAsUser: 0
+          volumeMounts:
+            - name: data
+              mountPath: /home/node/.openclaw
+      containers:
+        - name: app
+          image: cloudpublic/default/openclaw/node:latest
+          command:
+            [
+              "openclaw",
+              "node",
+              "run",
+              "--host",
+              "openclaw.home4p.__{{infra.domains:f:x}}__",
+              "--port",
+              "443",
+              "--tls",
+              "--display-name",
+              "nur",
+            ]
+          env:
+            - name: OPENCLAW_GATEWAY_TOKEN
+              value: "__{{openclaw-infos:f:secret}}__"
+          volumeMounts:
+            - name: data
+              mountPath: /home/node/.openclaw
+            - name: coder-workspaces
+              mountPath: /mnt/coder-workspaces
+          resources:
+            requests:
+              cpu: 200m
+              memory: 512Mi
