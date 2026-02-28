@@ -1,4 +1,60 @@
 ---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: openclaw-caddy-config
+  namespace: default
+data:
+  Caddyfile: |
+    :8080 {
+        # Redirect /caddy-workspace to /caddy-workspace/
+        @no_slash {
+            path /caddy-workspace
+        }
+        redir @no_slash /caddy-workspace/
+
+        handle_path /caddy-workspace/* {
+            root * /srv/workspace
+            route {
+                vars stripped_path {path}
+                @markdown {
+                    file {
+                        try_files {path}
+                    }
+                    path *.md
+                }
+                rewrite @markdown /_layout.html
+                templates
+                file_server browse
+            }
+        }
+    }
+  _layout.html: |
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <meta charset="utf-8">
+        <title>OpenClaw Notes</title>
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/github-markdown-css/5.2.0/github-markdown.min.css">
+        <style>
+            .markdown-body {
+                box-sizing: border-box;
+                min-width: 200px;
+                max-width: 980px;
+                margin: 0 auto;
+                padding: 45px;
+            }
+            @media (max-width: 767px) {
+                .markdown-body { padding: 15px; }
+            }
+        </style>
+    </head>
+    <body class="markdown-body">
+        {{ include (placeholder "http.vars.stripped_path") | markdown }}
+    </body>
+    </html>
+
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -33,6 +89,9 @@ spec:
           hostPath:
             path: /mnt/coder-workspaces
             type: DirectoryOrCreate
+        - name: caddy-config
+          configMap:
+            name: openclaw-caddy-config
       initContainers:
         - name: init
           image: busybox:latest
@@ -43,7 +102,7 @@ spec:
             - name: data
               mountPath: /home/node/.openclaw
       containers:
-        - name: app
+        - name: openclaw
           image: cloudpublic/default/openclaw:latest
           ports:
             - name: default
@@ -57,6 +116,8 @@ spec:
           env:
             - name: NODE_OPTIONS
               value: "--max-old-space-size=1536"
+            - name: OPENCLAW_PUBLIC_DOMAIN
+              value: "openclaw.__{{infra.domains:f:x}}__"
           resources:
             requests:
               cpu: 200m
@@ -71,6 +132,21 @@ spec:
               port: default
             initialDelaySeconds: 15
             periodSeconds: 10
+        - name: caddy
+          image: caddy:latest
+          ports:
+            - name: caddy-http
+              containerPort: 8080
+          volumeMounts:
+            - name: data
+              subPath: workspace
+              mountPath: /srv/workspace
+            - name: caddy-config
+              subPath: Caddyfile
+              mountPath: /etc/caddy/Caddyfile
+            - name: caddy-config
+              subPath: _layout.html
+              mountPath: /srv/workspace/_layout.html
 
 ---
 apiVersion: v1
@@ -83,9 +159,13 @@ spec:
   selector:
     app.kubernetes.io/name: openclaw
   ports:
-    - name: default
+    - name: oc-gateway
       port: 80
       targetPort: default
+      protocol: TCP
+    - name: caddy-http
+      port: 8080
+      targetPort: caddy-http
       protocol: TCP
 
 ---
@@ -110,14 +190,21 @@ spec:
     - host: openclaw.__{{infra.domains:f:x}}__
       http:
         paths:
+          - path: /caddy-workspace
+            pathType: Prefix
+            backend:
+              service:
+                name: openclaw
+                port:
+                  name: caddy-http
           - path: /
             pathType: Prefix
             backend:
               service:
                 name: openclaw
                 port:
-                  name: default
+                  name: oc-gateway
   tls:
     - hosts:
         - openclaw.__{{infra.domains:f:x}}__
-      secretName: openclaw
+      secretName: openclaw-domainx
