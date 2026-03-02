@@ -1,0 +1,107 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: roon
+  namespace: default
+  labels:
+    app.kubernetes.io/name: roon
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: roon
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: roon
+    spec:
+      hostNetwork: true
+      dnsPolicy: ClusterFirstWithHostNet
+      terminationGracePeriodSeconds: 60
+      nodeSelector:
+        kubernetes.io/hostname: nur
+      volumes:
+        - name: roon
+          hostPath:
+            path: /mnt/runtime-data-app/roon
+            type: DirectoryOrCreate
+        - name: music-local
+          hostPath:
+            path: /mnt/user-data-music
+            type: Directory
+      containers:
+        - name: roon
+          image: steefdebruijn/docker-roonserver:latest
+          volumeMounts:
+            - name: roon
+              mountPath: /data
+              subPath: data
+            - name: roon
+              mountPath: /app
+              subPath: app
+            - name: roon
+              mountPath: /backup
+              subPath: backups
+            - name: music-local
+              subPath: music/warehouse
+              mountPath: /music/local
+              readOnly: true
+          resources:
+            requests:
+              memory: "2Gi"
+              cpu: "1000m"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: roon
+  namespace: default
+  labels:
+    app.kubernetes.io/name: roon
+spec:
+  selector:
+    app.kubernetes.io/name: roon
+  ports:
+    - name: raat
+      port: 9100
+      protocol: TCP
+    - name: web
+      port: 9330
+      protocol: TCP
+
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: roon
+  namespace: default
+  annotations:
+    cert-manager.io/cluster-issuer: cluster-letsencrypt-dns-cloudflare
+    traefik.ingress.kubernetes.io/router.middlewares: middleware-playonjan@kubernetescrd,middleware-antimitm@kubernetescrd,sso-domainx@kubernetescrd
+    gethomepage.dev/enabled: "true"
+    gethomepage.dev/group: Media
+    gethomepage.dev/name: roon
+    gethomepage.dev/href: https://roon.__{{infra.domains:f:x}}__
+    gethomepage.dev/icon: https://roon.app/apple-touch-icon.png
+    gethomepage.dev/siteMonitor: https://roon.__{{infra.domains:f:x}}__
+    gethomepage.dev/weight: "3"
+spec:
+  ingressClassName: traefik
+  rules:
+    - host: roon.__{{infra.domains:f:x}}__
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: roon
+                port:
+                  name: web
+  tls:
+    - hosts:
+        - roon.__{{infra.domains:f:x}}__
+      secretName: roon-domainx
