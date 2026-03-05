@@ -88,6 +88,10 @@ spec:
         - name: caddy-config
           configMap:
             name: openclaw-caddy-config
+        - name: coder-workspaces
+          hostPath:
+            path: /mnt/coder-workspaces
+            type: DirectoryOrCreate
       initContainers:
         - name: init
           image: busybox:latest
@@ -99,7 +103,7 @@ spec:
               mountPath: /home/node/.openclaw
       containers:
         - name: openclaw
-          image: cloudpublic/default/openclaw/gateway:latest
+          image: cloudpublic/default/openclaw:latest
           env:
             - name: OPENCLAW_PUBLIC_DOMAIN
               value: "openclaw.__{{infra.domains:f:x}}__"
@@ -114,9 +118,11 @@ spec:
           volumeMounts:
             - name: data
               mountPath: /home/node/.openclaw
+            - name: coder-workspaces
+              mountPath: /mnt/coder-workspaces
           resources:
             requests:
-              cpu: 200m
+              cpu: 1000m
               memory: 512Mi
           livenessProbe:
             tcpSocket:
