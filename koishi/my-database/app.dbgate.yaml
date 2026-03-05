@@ -74,7 +74,7 @@ spec:
             claimName: my-database-nfs-subscout
       containers:
         - name: app
-          image: dbgate/dbgate:latest
+          image: cloudpublic/database/dbgate:latest
           imagePullPolicy: Always
           volumeMounts:
             - name: dns-config
