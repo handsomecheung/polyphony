@@ -25,7 +25,13 @@ COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /usr/bin/
 
 RUN npm install -g openclaw clawhub mcporter @google/gemini-cli
 
-WORKDIR /home/node
 ENV NODE_ENV=production
+ENV PORT=18789
 
 USER node
+
+EXPOSE 18789
+
+WORKDIR /home/node
+
+CMD ["openclaw", "gateway", "--bind", "lan", "--port", "18789"]
