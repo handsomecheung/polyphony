@@ -1,0 +1,31 @@
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: tempo
+  namespace: finance
+spec:
+  schedule: "0 6 * * *"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 5
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          containers:
+            - name: app
+              image: cloudpublic/finance/tempo:latest
+              imagePullPolicy: Always
+              env:
+                - name: DB_HOST
+                  value: "db-postgres-prod.my-database"
+                - name: DB_PORT
+                  value: "5432"
+                - name: DB_NAME
+                  value: "finance"
+                - name: DB_USER
+                  value: "finance"
+                - name: DB_PASSWORD
+                  value: "__{{database.postgres.accounts:f:finance}}__"
+          restartPolicy: Never
