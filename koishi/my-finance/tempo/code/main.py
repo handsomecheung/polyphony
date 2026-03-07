@@ -73,9 +73,8 @@ def fetch_and_store(symbol_key, ticker_symbol):
     latest_db_time = cur.fetchone()[0]
     
     if latest_db_time is None:
-        print(f"No existing data for {symbol_key}. Fetching 2 years of history.")
-        start_date = (datetime.now() - timedelta(days=365*2)).strftime('%Y-%m-%d')
-        df = yf.download(ticker_symbol, start=start_date, interval='1d')
+        print(f"No existing data for {symbol_key}. Fetching maximum available history.")
+        df = yf.download(ticker_symbol, period="max", interval='1d')
     else:
         yesterday = date.today() - timedelta(days=1)
         if latest_db_time.date() < yesterday:
