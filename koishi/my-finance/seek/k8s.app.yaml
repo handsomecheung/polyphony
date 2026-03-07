@@ -1,0 +1,115 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: seek
+  namespace: finance
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: seek
+  template:
+    metadata:
+      labels:
+        app: seek
+    spec:
+      containers:
+        - name: app
+          image: cloudpublic/finance/seek:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8000
+          env:
+            - name: DB_HOST
+              value: "db-postgres-prod.my-database"
+            - name: DB_PORT
+              value: "5432"
+            - name: DB_NAME
+              value: "finance"
+            - name: DB_USER
+              value: "finance"
+            - name: DB_PASS
+              value: "__{{database.postgres.accounts:f:finance}}__"
+          livenessProbe:
+            httpGet:
+              path: /ok
+              port: 8000
+            initialDelaySeconds: 5
+            periodSeconds: 10
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: seek
+  namespace: finance
+spec:
+  selector:
+    app: seek
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 8000
+  type: ClusterIP
+
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: seek-internal
+  namespace: finance
+  annotations:
+    cert-manager.io/cluster-issuer: cluster-letsencrypt-dns-cloudflare
+spec:
+  ingressClassName: traefik
+  rules:
+    - host: finance-seek.home4p.__{{infra.domains:f:x}}__
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: seek
+                port:
+                  number: 80
+  tls:
+    - hosts:
+        - finance-seek.home4p.__{{infra.domains:f:x}}__
+      secretName: finance-seek-home4p-domainx
+
+---
+# 2. External IngressRoute (API Key validation via Query Matcher)
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: seek-external
+  namespace: finance
+spec:
+  entryPoints:
+    - websecure
+  routes:
+    - match: Host(`finance-seek.__{{infra.domains:f:x}}__`) && Query(`key`, `__{{koishi.finance.seek:f:api-key}}__`)
+      kind: Rule
+      services:
+        - name: seek
+          port: 80
+  tls:
+    domains:
+      - main: finance-seek.__{{infra.domains:f:x}}__
+    secretName: finance-seek-domainx
+
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: finance-seek-domainx
+  namespace: finance
+spec:
+  secretName: finance-seek-domainx
+  dnsNames:
+    - finance-seek.__{{infra.domains:f:x}}__
+  issuerRef:
+    name: cluster-letsencrypt-dns-cloudflare
+    kind: ClusterIssuer
