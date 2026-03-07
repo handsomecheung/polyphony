@@ -18,29 +18,21 @@ spec:
       labels:
         app.kubernetes.io/name: db-redis
     spec:
-      nodeSelector:
-        kubernetes.io/hostname: nippon
-      volumes:
-        - name: data
-          hostPath:
-            path: /mnt/runtime-data-app/redis
-            type: DirectoryOrCreate
       containers:
         - name: app
-          image: redis:7-alpine
+          image: redis/redis-stack-server:latest
+          command: ["redis-stack-server"]
+          args: ["--save", "", "--appendonly", "no"]
           ports:
             - name: default
               containerPort: 6379
-          volumeMounts:
-            - name: data
-              mountPath: /data
           resources:
             requests:
               cpu: 100m
-              memory: 128Mi
+              memory: 256Mi
             limits:
               cpu: 500m
-              memory: 512Mi
+              memory: 1Gi
 
 ---
 apiVersion: v1
