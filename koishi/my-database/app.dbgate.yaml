@@ -38,6 +38,44 @@ spec:
 
 ---
 apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: my-database-nfs-openclaw
+  labels:
+    storage.k8s.io/name: nfs
+    storage.k8s.io/part-of: kubernetes-complete-reference
+    storage.k8s.io/created-by: chou
+spec:
+  accessModes:
+    - ReadOnlyMany
+    - ReadWriteOnce
+    - ReadWriteMany
+  capacity:
+    storage: 1Gi
+  storageClassName: my-database-nfs-openclaw
+  persistentVolumeReclaimPolicy: Retain
+  volumeMode: Filesystem
+  nfs:
+    server: __{{infra.machine.nur:f:ip}}__
+    path: /mnt/nfs/exports/disk/runtime-data-app/openclaw
+    readOnly: yes
+
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: my-database-nfs-openclaw
+  namespace: my-database
+spec:
+  storageClassName: my-database-nfs-openclaw
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 1Gi
+
+---
+apiVersion: v1
 kind: ConfigMap
 metadata:
   name: dbgate-dns-config
@@ -72,6 +110,9 @@ spec:
         - name: subscout
           persistentVolumeClaim:
             claimName: my-database-nfs-subscout
+        - name: openclaw
+          persistentVolumeClaim:
+            claimName: my-database-nfs-openclaw
       containers:
         - name: app
           image: cloudpublic/database/dbgate:latest
@@ -84,9 +125,12 @@ spec:
             - name: subscout
               subPath: subscout.db
               mountPath: /tmp/subscout/subscout.db
+            - name: openclaw
+              subPath: memory/main.sqlite
+              mountPath: /tmp/openclaw/main.sqlite
           env:
             - name: CONNECTIONS
-              value: postgresdev,postgresprod,pushionsprod,cijsfawsdev,cijsfawsprod,ciipasssystem,ciipasseucdev,ciipasseucprod,ciipasslibrary,subscout
+              value: postgresdev,postgresprod,pushionsprod,cijsfawsdev,cijsfawsprod,ciipasssystem,ciipasseucdev,ciipasseucprod,ciipasslibrary,subscout,openclaw
 
             - name: LABEL_postgresdev
               value: Koishi PostgreSQL Dev
@@ -117,7 +161,7 @@ spec:
             - name: LABEL_pushionsprod
               value: Pushions-Prod
             - name: SERVER_pushionsprod
-              value: database.curvekey-pushion-prod
+              value: database.ck-pushion-prod
             - name: PORT_pushionsprod
               value: "5432"
             - name: USER_pushionsprod
@@ -210,6 +254,13 @@ spec:
             - name: FILE_subscout
               value: /tmp/subscout/subscout.db
             - name: ENGINE_subscout
+              value: sqlite@dbgate-plugin-sqlite
+
+            - name: LABEL_openclaw
+              value: OpenClaw
+            - name: FILE_openclaw
+              value: /tmp/openclaw/main.sqlite
+            - name: ENGINE_openclaw
               value: sqlite@dbgate-plugin-sqlite
 
           ports:
