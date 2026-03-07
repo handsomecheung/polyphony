@@ -1,0 +1,114 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: litellm-config
+  namespace: default
+data:
+  config.yaml: |
+    model_list:
+      - model_name: gemini-1.5-pro
+        litellm_params:
+          model: gemini/gemini-1.5-pro
+          api_key: "__{{llm.api-keys:f:gemini}}__"
+
+    litellm_settings:
+      cache: True
+      cache_type: redis_semantic
+      cache_params:
+        host: db-redis.my-database
+        port: 6379
+        semantic_cache_embedding_model: openai/text-embedding-3-small
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: litellm
+  namespace: default
+  labels:
+    app: litellm
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: litellm
+  template:
+    metadata:
+      labels:
+        app: litellm
+    spec:
+      volumes:
+        - name: config
+          configMap:
+            name: litellm-config
+      containers:
+        - name: app
+          image: ghcr.io/berriai/litellm:main-latest
+          args: ["--config", "/app/config.yaml", "--port", "4000"]
+          ports:
+            - name: http
+              containerPort: 4000
+          volumeMounts:
+            - name: config
+              mountPath: /app/config.yaml
+              subPath: config.yaml
+          env:
+            - name: LITELLM_MASTER_KEY
+              value: "__{{koishi.litellm:f:master-key}}__"
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: litellm
+  namespace: default
+  labels:
+    app: litellm
+spec:
+  type: ClusterIP
+  ports:
+    - name: http
+      port: 4000
+      protocol: TCP
+      targetPort: http
+  selector:
+    app: litellm
+
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: litellm
+  namespace: default
+  annotations:
+    cert-manager.io/cluster-issuer: cluster-letsencrypt-dns-cloudflare
+    traefik.ingress.kubernetes.io/router.middlewares: middleware-playonjan@kubernetescrd,middleware-antimitm@kubernetescrd,sso-domainx@kubernetescrd
+    gethomepage.dev/enabled: "true"
+    gethomepage.dev/group: AI
+    gethomepage.dev/name: LiteLLM
+    gethomepage.dev/href: https://litellm.__{{infra.domains:f:x}}__
+    gethomepage.dev/icon: https://framerusercontent.com/images/GtfMdzyrMj6FQY6lGLqI6bh2LYM.png
+    gethomepage.dev/siteMonitor: https://litellm.__{{infra.domains:f:x}}__
+    gethomepage.dev/weight: "30"
+spec:
+  ingressClassName: traefik
+  rules:
+    - host: litellm.__{{infra.domains:f:x}}__
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: litellm
+                port:
+                  name: http
+  tls:
+    - hosts:
+        - litellm.__{{infra.domains:f:x}}__
+      secretName: litellm-domainx
