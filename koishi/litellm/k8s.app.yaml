@@ -7,18 +7,30 @@ metadata:
 data:
   config.yaml: |
     model_list:
-      - model_name: gemini-1.5-pro
+      - model_name: balanced-model
         litellm_params:
-          model: gemini/gemini-1.5-pro
+          model: ollama/kimi-k2.5:cloud
+          api_base: "http://ollama"
+          rpm: 10
+      - model_name: balanced-model
+        litellm_params:
+          model: gemini/gemini-2.5-flash
           api_key: "__{{llm.api-keys:f:gemini}}__"
+          rpm: 15
+      - model_name: balanced-model
+        litellm_params:
+          model: anthropic/claude-haiku-4-5
+          rpm: 5
 
     litellm_settings:
+      num_retries: 2
+      timeout: 30
       cache: True
       cache_type: redis_semantic
       cache_params:
         host: db-redis.my-database
         port: 6379
-        semantic_cache_embedding_model: openai/text-embedding-3-small
+        semantic_cache_embedding_model: gemini/text-embedding-004
 
 ---
 apiVersion: apps/v1
@@ -47,7 +59,7 @@ spec:
           image: ghcr.io/berriai/litellm:main-latest
           args: ["--config", "/app/config.yaml", "--port", "4000"]
           ports:
-            - name: http
+            - name: default
               containerPort: 4000
           volumeMounts:
             - name: config
@@ -55,7 +67,14 @@ spec:
               subPath: config.yaml
           env:
             - name: LITELLM_MASTER_KEY
-              value: "__{{koishi.litellm:f:master-key}}__"
+              value: "__{{koishi.litellm.master-key}}__"
+            - name: DATABASE_URL
+              value: "postgresql://litellm:__{{database.postgres.accounts:f:litellm}}__@db-postgres-prod.my-database:5432/litellm"
+            - name: GEMINI_API_KEY
+              # for embedding model
+              value: "__{{llm.api-keys:f:gemini}}__"
+            - name: ANTHROPIC_API_KEY
+              value: "__{{llm.api-keys:f:claude}}__"
           resources:
             requests:
               cpu: 100m
@@ -72,10 +91,10 @@ metadata:
 spec:
   type: ClusterIP
   ports:
-    - name: http
-      port: 4000
+    - name: default
+      port: 80
       protocol: TCP
-      targetPort: http
+      targetPort: default
   selector:
     app: litellm
 
@@ -91,7 +110,7 @@ metadata:
     gethomepage.dev/enabled: "true"
     gethomepage.dev/group: AI
     gethomepage.dev/name: LiteLLM
-    gethomepage.dev/href: https://litellm.__{{infra.domains:f:x}}__
+    gethomepage.dev/href: https://litellm.__{{infra.domains:f:x}}__/ui
     gethomepage.dev/icon: https://framerusercontent.com/images/GtfMdzyrMj6FQY6lGLqI6bh2LYM.png
     gethomepage.dev/siteMonitor: https://litellm.__{{infra.domains:f:x}}__
     gethomepage.dev/weight: "30"
@@ -107,7 +126,7 @@ spec:
               service:
                 name: litellm
                 port:
-                  name: http
+                  name: default
   tls:
     - hosts:
         - litellm.__{{infra.domains:f:x}}__
