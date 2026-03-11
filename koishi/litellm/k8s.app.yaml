@@ -7,6 +7,10 @@ metadata:
 data:
   config.yaml: |
     model_list:
+      - model_name: ollama-local
+        litellm_params:
+          model: ollama/qwen2.5-coder:7b
+          api_base: "http://ollama"
       - model_name: balanced-model
         litellm_params:
           model: ollama/kimi-k2.5:cloud
@@ -15,8 +19,11 @@ data:
       - model_name: balanced-model
         litellm_params:
           model: gemini/gemini-2.5-flash
-          api_key: "__{{llm.api-keys:f:gemini}}__"
           rpm: 15
+      - model_name: balanced-model
+        litellm_params:
+          model: anthropic/claude-3-haiku-20240307
+          rpm: 5
       - model_name: balanced-model
         litellm_params:
           model: anthropic/claude-haiku-4-5
@@ -26,11 +33,11 @@ data:
       num_retries: 2
       timeout: 30
       cache: True
-      cache_type: redis_semantic
       cache_params:
-        host: db-redis.my-database
-        port: 6379
-        semantic_cache_embedding_model: gemini/text-embedding-004
+        type: redis-semantic
+        similarity_threshold: 0.8
+        redis_url: "redis://db-redis.my-database:6379/0"
+        redis_semantic_cache_embedding_model: ollama/bge-m3:latest
 
 ---
 apiVersion: apps/v1
@@ -56,8 +63,15 @@ spec:
             name: litellm-config
       containers:
         - name: app
-          image: ghcr.io/berriai/litellm:main-latest
-          args: ["--config", "/app/config.yaml", "--port", "4000"]
+          image: ghcr.io/berriai/litellm:main-stable
+          args:
+            [
+              "--config",
+              "/app/config.yaml",
+              "--port",
+              "4000",
+              "--detailed_debug",
+            ]
           ports:
             - name: default
               containerPort: 4000
@@ -66,12 +80,17 @@ spec:
               mountPath: /app/config.yaml
               subPath: config.yaml
           env:
+            - name: LITELLM_LOG
+              value: DEBUG
+            - name: OLLAMA_API_BASE
+              value: "http://ollama"
             - name: LITELLM_MASTER_KEY
-              value: "__{{koishi.litellm.master-key}}__"
+              value: "__{{koishi.litellm}}__"
+            - name: LITELLM_SALT_KEY
+              value: "__{{koishi.litellm:f:salt-key}}__"
             - name: DATABASE_URL
               value: "postgresql://litellm:__{{database.postgres.accounts:f:litellm}}__@db-postgres-prod.my-database:5432/litellm"
             - name: GEMINI_API_KEY
-              # for embedding model
               value: "__{{llm.api-keys:f:gemini}}__"
             - name: ANTHROPIC_API_KEY
               value: "__{{llm.api-keys:f:claude}}__"
@@ -79,6 +98,9 @@ spec:
             requests:
               cpu: 100m
               memory: 256Mi
+            limits:
+              cpu: 500m
+              memory: 1Gi
 
 ---
 apiVersion: v1
