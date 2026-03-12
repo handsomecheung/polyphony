@@ -1,5 +1,19 @@
 ---
 apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: openclaw
+  namespace: default
+spec:
+  storageClassName: longhorn-crypto-global
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 10Gi
+
+---
+apiVersion: v1
 kind: ConfigMap
 metadata:
   name: openclaw-caddy-config
@@ -74,24 +88,23 @@ spec:
       labels:
         app.kubernetes.io/name: openclaw
     spec:
-      nodeSelector:
-        kubernetes.io/hostname: nur
       securityContext:
         runAsUser: 1000
         runAsGroup: 1000
         fsGroup: 1000
       volumes:
         - name: data
-          hostPath:
-            path: /mnt/runtime-data-app/openclaw
-            type: DirectoryOrCreate
+          persistentVolumeClaim:
+            claimName: openclaw
         - name: caddy-config
           configMap:
             name: openclaw-caddy-config
         - name: coder-workspaces
-          hostPath:
-            path: /mnt/coder-workspaces
-            type: DirectoryOrCreate
+          persistentVolumeClaim:
+            claimName: nfs-disk-coder-workspaces
+        - name: coder-sharepoint
+          persistentVolumeClaim:
+            claimName: nfs-disk-coder-sharepoint
       initContainers:
         - name: init
           image: busybox:latest
@@ -111,15 +124,20 @@ spec:
               value: "__{{openclaw-infos:f:secret}}__"
             - name: NODE_OPTIONS
               value: "--max-old-space-size=1536"
+            - name: LITELLM_API_KEY
+              value: "__{{koishi.litellm}}__"
           ports:
             - name: gateway
               protocol: TCP
               containerPort: 18789
           volumeMounts:
             - name: data
+              subPath: openclaw
               mountPath: /home/node/.openclaw
             - name: coder-workspaces
               mountPath: /mnt/coder-workspaces
+            - name: coder-sharepoint
+              mountPath: /mnt/coder-sharepoint
           resources:
             requests:
               cpu: 1000m
