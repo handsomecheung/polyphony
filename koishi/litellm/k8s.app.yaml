@@ -15,19 +15,20 @@ data:
         litellm_params:
           model: ollama/kimi-k2.5:cloud
           api_base: "http://ollama"
-          rpm: 10
+          rpm: 70
       - model_name: balanced-model
         litellm_params:
           model: gemini/gemini-2.5-flash
-          rpm: 15
+          rpm: 20
       - model_name: balanced-model
         litellm_params:
           model: anthropic/claude-3-haiku-20240307
-          rpm: 5
-      - model_name: balanced-model
-        litellm_params:
-          model: anthropic/claude-haiku-4-5
-          rpm: 5
+          rpm: 10
+
+    router_settings:
+      routing_strategy: cost-based-routing
+      allowed_fails: 3                      # Cool down the endpoint if it fails 3 consecutive times
+      cooldown_time: 300                    # Cool down duration in seconds (5 minutes)
 
     litellm_settings:
       num_retries: 2
@@ -64,13 +65,12 @@ spec:
       containers:
         - name: app
           image: ghcr.io/berriai/litellm:main-stable
-          args:
-            [
+          args: [
               "--config",
               "/app/config.yaml",
               "--port",
               "4000",
-              "--detailed_debug",
+              # "--detailed_debug",
             ]
           ports:
             - name: default
@@ -80,8 +80,8 @@ spec:
               mountPath: /app/config.yaml
               subPath: config.yaml
           env:
-            - name: LITELLM_LOG
-              value: DEBUG
+            # - name: LITELLM_LOG
+            #   value: DEBUG
             - name: OLLAMA_API_BASE
               value: "http://ollama"
             - name: LITELLM_MASTER_KEY
