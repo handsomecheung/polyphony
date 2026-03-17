@@ -2,109 +2,115 @@
 apiVersion: v1
 kind: Secret
 metadata:
-  name: gphotosync-sshkeys-system
+  name: foldersync-sshkeys-system
   namespace: default
 type: Opaque
 data:
-  ssh_host_ecdsa_key: __{{gphotosync.sshkeys.system.files:a:ssh_host_ecdsa_key:a:b64}}__
-  ssh_host_ecdsa_key.pub: __{{gphotosync.sshkeys.system.files:a:ssh_host_ecdsa_key.pub:a:b64}}__
-  ssh_host_ed25519_key: __{{gphotosync.sshkeys.system.files:a:ssh_host_ed25519_key:a:b64}}__
-  ssh_host_ed25519_key.pub: __{{gphotosync.sshkeys.system.files:a:ssh_host_ed25519_key.pub:a:b64}}__
-  ssh_host_rsa_key: __{{gphotosync.sshkeys.system.files:a:ssh_host_rsa_key:a:b64}}__
-  ssh_host_rsa_key.pub: __{{gphotosync.sshkeys.system.files:a:ssh_host_rsa_key.pub:a:b64}}__
+  ssh_host_ecdsa_key: __{{koishi.foldersync.sshkeys.system.files:a:ssh_host_ecdsa_key:a:b64}}__
+  ssh_host_ecdsa_key.pub: __{{koishi.foldersync.sshkeys.system.files:a:ssh_host_ecdsa_key.pub:a:b64}}__
+  ssh_host_ed25519_key: __{{koishi.foldersync.sshkeys.system.files:a:ssh_host_ed25519_key:a:b64}}__
+  ssh_host_ed25519_key.pub: __{{koishi.foldersync.sshkeys.system.files:a:ssh_host_ed25519_key.pub:a:b64}}__
+  ssh_host_rsa_key: __{{koishi.foldersync.sshkeys.system.files:a:ssh_host_rsa_key:a:b64}}__
+  ssh_host_rsa_key.pub: __{{koishi.foldersync.sshkeys.system.files:a:ssh_host_rsa_key.pub:a:b64}}__
 
 ---
 apiVersion: v1
 kind: Secret
 metadata:
-  name: gphotosync-sshkeys-user-hh
+  name: foldersync-sshkeys-user-hh
   namespace: default
 type: Opaque
 data:
-  authorized_keys: __{{gphotosync.sshkeys.hh.files:a:id_rsa.pub:a:b64}}__
-  id_rsa: __{{gphotosync.sshkeys.hh.files:a:id_rsa:a:b64}}__
-  id_rsa.pub: __{{gphotosync.sshkeys.hh.files:a:id_rsa.pub:a:b64}}__
+  authorized_keys: __{{koishi.foldersync.sshkeys.hh.files:a:id_rsa.pub:a:b64}}__
+  id_rsa: __{{koishi.foldersync.sshkeys.hh.files:a:id_rsa:a:b64}}__
+  id_rsa.pub: __{{koishi.foldersync.sshkeys.hh.files:a:id_rsa.pub:a:b64}}__
 
 ---
 apiVersion: v1
 kind: Secret
 metadata:
-  name: gphotosync-sshkeys-user-cc
+  name: foldersync-sshkeys-user-cc
   namespace: default
 type: Opaque
 data:
-  authorized_keys: __{{gphotosync.sshkeys.cc.files:a:id_rsa.pub:a:b64}}__
-  id_rsa: __{{gphotosync.sshkeys.cc.files:a:id_rsa:a:b64}}__
-  id_rsa.pub: __{{gphotosync.sshkeys.cc.files:a:id_rsa.pub:a:b64}}__
+  authorized_keys: __{{koishi.foldersync.sshkeys.cc.files:a:id_rsa.pub:a:b64}}__
+  id_rsa: __{{koishi.foldersync.sshkeys.cc.files:a:id_rsa:a:b64}}__
+  id_rsa.pub: __{{koishi.foldersync.sshkeys.cc.files:a:id_rsa.pub:a:b64}}__
 
 ---
 apiVersion: v1
 kind: Secret
 metadata:
-  name: gphotosync-sshkeys-user-001
+  name: foldersync-sshkeys-user-001
   namespace: default
 type: Opaque
 data:
-  authorized_keys: __{{gphotosync.sshkeys.001.files:a:id_rsa.pub:a:b64}}__
-  id_rsa: __{{gphotosync.sshkeys.001.files:a:id_rsa:a:b64}}__
-  id_rsa.pub: __{{gphotosync.sshkeys.001.files:a:id_rsa.pub:a:b64}}__
+  authorized_keys: __{{koishi.foldersync.sshkeys.001.files:a:id_rsa.pub:a:b64}}__
+  id_rsa: __{{koishi.foldersync.sshkeys.001.files:a:id_rsa:a:b64}}__
+  id_rsa.pub: __{{koishi.foldersync.sshkeys.001.files:a:id_rsa.pub:a:b64}}__
 
 ---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: gphotosync
+  name: foldersync
   namespace: default
   labels:
-    app: gphotosync
+    app: foldersync
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: gphotosync
+      app: foldersync
   template:
     metadata:
       labels:
-        app: gphotosync
+        app: foldersync
     spec:
       nodeSelector:
         kubernetes.io/hostname: nur
       volumes:
-        - name: data
+        - name: foldersync-sshkeys-user-hh
+          secret:
+            secretName: foldersync-sshkeys-user-hh
+            defaultMode: 0600
+        - name: foldersync-sshkeys-user-cc
+          secret:
+            secretName: foldersync-sshkeys-user-cc
+            defaultMode: 0600
+        - name: foldersync-sshkeys-user-001
+          secret:
+            secretName: foldersync-sshkeys-user-001
+            defaultMode: 0600
+        - name: foldersync-sshkeys-system
+          secret:
+            secretName: foldersync-sshkeys-system
+            defaultMode: 0600
+        - name: gphoto
           hostPath:
-            path: /mnt/user-data-slight/private-data/gphotosync
+            path: /mnt/user-data-slight/private-data/foldersync/gphoto
             type: Directory
-        - name: gphotosync-sshkeys-user-hh
-          secret:
-            secretName: gphotosync-sshkeys-user-hh
-            defaultMode: 0600
-        - name: gphotosync-sshkeys-user-cc
-          secret:
-            secretName: gphotosync-sshkeys-user-cc
-            defaultMode: 0600
-        - name: gphotosync-sshkeys-user-001
-          secret:
-            secretName: gphotosync-sshkeys-user-001
-            defaultMode: 0600
-        - name: gphotosync-sshkeys-system
-          secret:
-            secretName: gphotosync-sshkeys-system
-            defaultMode: 0600
+        - name: obsidian
+          hostPath:
+            path: /mnt/coder-workspaces/private-workspace/repos/local/notebook/obsidian
+            type: Directory
       containers:
         - name: app
-          image: cloudpublic/default/gphotosync:latest
+          image: cloudpublic/default/foldersync:latest
           imagePullPolicy: Always
           volumeMounts:
-            - name: data
-              mountPath: /mnt/user-data-slight/gphotosync
-            - name: gphotosync-sshkeys-user-hh
-              mountPath: /tmp/gphotosync-sshkeys-user-hh
-            - name: gphotosync-sshkeys-user-cc
-              mountPath: /tmp/gphotosync-sshkeys-user-cc
-            - name: gphotosync-sshkeys-user-001
-              mountPath: /tmp/gphotosync-sshkeys-user-001
-            - name: gphotosync-sshkeys-system
-              mountPath: /tmp/gphotosync-sshkeys-system
+            - name: foldersync-sshkeys-user-hh
+              mountPath: /tmp/foldersync-sshkeys-user-hh
+            - name: foldersync-sshkeys-user-cc
+              mountPath: /tmp/foldersync-sshkeys-user-cc
+            - name: foldersync-sshkeys-user-001
+              mountPath: /tmp/foldersync-sshkeys-user-001
+            - name: foldersync-sshkeys-system
+              mountPath: /tmp/foldersync-sshkeys-system
+            - name: gphoto
+              mountPath: /mnt/user-data-slight/gphotosync # change me later /data/gphoto
+            - name: obsidian
+              mountPath: /data/obsidian
           ports:
             - containerPort: 22
           resources:
@@ -116,14 +122,13 @@ spec:
               memory: 256Mi
 
 ---
-# kubecutl expose deployment gphotosync --port 3739 --target-port 22 --name gphotosync --type=LoadBalancer
 apiVersion: v1
 kind: Service
 metadata:
-  name: gphotosync
+  name: foldersync
   namespace: default
   labels:
-    app: gphotosync
+    app: foldersync
   finalizers:
     - service.kubernetes.io/load-balancer-cleanup
 spec:
@@ -139,4 +144,4 @@ spec:
       protocol: TCP
       targetPort: 22
   selector:
-    app: gphotosync
+    app: foldersync

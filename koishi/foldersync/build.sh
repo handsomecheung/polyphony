@@ -2,4 +2,4 @@
 set -e
 
 cd "$(dirname "${BASH_SOURCE[0]}")"
-my-k8s-build-image "cloudpublic/default/gphotosync:latest" default gphotosync
+my-k8s-build-image "cloudpublic/default/foldersync:latest" default foldersync
