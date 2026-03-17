@@ -9,6 +9,10 @@ openai = "*"
 langchain-text-splitters = "*"
 pydantic = "*"
 numpy = "*"
+fastapi = "*"
+uvicorn = "*"
+requests = "*"
+apscheduler = "*"
 
 [dev-packages]
 

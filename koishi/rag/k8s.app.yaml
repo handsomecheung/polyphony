@@ -1,0 +1,84 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: rag
+  namespace: default
+  labels:
+    app.kubernetes.io/name: rag
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: rag
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: rag
+    spec:
+      nodeSelector:
+        kubernetes.io/hostname: nur
+      volumes:
+        - name: obsidian
+          hostPath:
+            path: /mnt/coder-workspaces/private-workspace/repos/local/notebook/obsidian
+            type: Directory
+      containers:
+        - name: app
+          image: cloudpublic/default/rag:latest
+          imagePullPolicy: Always
+          env:
+            - name: REDIS_HOST
+              value: "db-redis.my-database"
+            - name: REDIS_PORT
+              value: "6379"
+            - name: REDIS_DB
+              value: "0"
+            - name: OLLAMA_API_BASE
+              value: "http://ollama/v1"
+            - name: NOTES_PATH
+              value: "/data/obsidian"
+          ports:
+            - name: default
+              containerPort: 8000
+          volumeMounts:
+            - name: obsidian
+              mountPath: /data/obsidian
+              readOnly: false
+          livenessProbe:
+            httpGet:
+              path: /ok
+              port: default
+            initialDelaySeconds: 10
+            periodSeconds: 30
+          readinessProbe:
+            httpGet:
+              path: /ok
+              port: default
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          resources:
+            requests:
+              cpu: 50m
+              memory: 128Mi
+            limits:
+              cpu: 200m
+              memory: 512Mi
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: rag
+  namespace: default
+  labels:
+    app.kubernetes.io/name: rag
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: rag
+  ports:
+    - name: default
+      port: 80
+      protocol: TCP
+      targetPort: default
