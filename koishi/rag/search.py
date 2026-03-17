@@ -1,46 +1,43 @@
 import sys
+import json
 import numpy as np
 from redis.commands.search.query import Query
-from common import redis_client, chat_client, INDEX_NAME, LLM_MODEL, call_embedding
+from common import redis_client, INDEX_NAME, call_embedding
 
-def search_notes(query_text, top_k=3):
+def search_notes(query_text, top_k=5):
+    """
+    Retrieves relevant notes from Redis and returns them as a list of dicts.
+    """
     response = call_embedding(query_text)
     query_vector = np.array(response.data[0].embedding, dtype=np.float32).tobytes()
     
+    # Redis KNN using COSINE distance returns distance (0-1).
+    # Similarity = 1 - distance
     q = (
-        Query(f"(*)=>[KNN {top_k} @vector $vec as score]")
-        .sort_by("score")
-        .return_fields("content", "path", "score")
+        Query(f"(*)=>[KNN {top_k} @vector $vec as dist]")
+        .sort_by("dist")
+        .return_fields("content", "path", "dist")
         .dialect(2)
     )
     
     results = redis_client.ft(INDEX_NAME).search(q, query_params={"vec": query_vector})
-    return results.docs
-
-def rag_query(query_text):
-    relevant_docs = search_notes(query_text)
-    if not relevant_docs:
-        return "No relevant notes found."
-        
-    context = "\n---\n".join([doc.content for doc in relevant_docs])
     
-    prompt = f"""Use the following pieces of context to answer the user's question. 
-If you don't know the answer based on the context, just say you don't know.
-
-Context:
-{context}
-
-Question: {query_text}
-Answer:"""
-
-    response = chat_client.chat.completions.create(
-        model=LLM_MODEL,
-        messages=[{"role": "user", "content": prompt}]
-    )
-    return response.choices[0].message.content
+    docs = []
+    for doc in results.docs:
+        # Convert distance to similarity score
+        similarity = 1 - float(doc.dist)
+        docs.append({
+            "content": doc.content,
+            "score": round(similarity, 4),
+            "source": doc.path
+        })
+    
+    return docs
 
 if __name__ == "__main__":
     if len(sys.argv) > 1:
-        print(rag_query(" ".join(sys.argv[1:])))
+        query = " ".join(sys.argv[1:])
+        results = search_notes(query)
+        print(json.dumps(results, ensure_ascii=False, indent=2))
     else:
-        print("Usage: pipenv run python search.py \"your question\"")
+        print("Usage: pipenv run python search.py \"your query\"")
