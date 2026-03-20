@@ -222,7 +222,7 @@ metadata:
     gethomepage.dev/icon: plex
     gethomepage.dev/href: https://plex.__{{infra.domains:f:x}}__
     gethomepage.dev/siteMonitor: https://plex.__{{infra.domains:f:x}}__
-    gethomepage.dev/weight: "0"
+    gethomepage.dev/weight: "4"
 spec:
   ingressClassName: traefik
   rules:

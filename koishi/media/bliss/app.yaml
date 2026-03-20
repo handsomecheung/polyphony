@@ -112,7 +112,7 @@ metadata:
     gethomepage.dev/enabled: "true"
     gethomepage.dev/group: Media
     gethomepage.dev/name: Bliss
-    gethomepage.dev/icon: https://bliss.__{{infra.domains:f:x}}__/favicon.ico
+    gethomepage.dev/icon: https://www.blisshq.com/android-icon-192x192.png
     gethomepage.dev/href: https://bliss.__{{infra.domains:f:x}}__
     gethomepage.dev/weight: "30"
 spec:

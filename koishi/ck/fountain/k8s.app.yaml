@@ -66,6 +66,7 @@ metadata:
     cert-manager.io/cluster-issuer: cluster-letsencrypt-dns-cloudflare
     gethomepage.dev/enabled: "true"
     gethomepage.dev/group: Fountain
+    gethomepage.dev/name: Scanner Prod
     gethomepage.dev/href: https://fountain.__{{infra.domains:f:c}}__/scanner
     gethomepage.dev/siteMonitor: https://fountain.__{{infra.domains:f:c}}__/scanner
     gethomepage.dev/weight: "10"

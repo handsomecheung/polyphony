@@ -2,18 +2,31 @@
 
 pkgs.mkShell {
   buildInputs = [
-    pkgs.zenith
-    pkgs.gh
-    pkgs.lazygit
-    pkgs.enca
-    pkgs.unzip
     pkgs.glibcLocales
+
+    pkgs.zip
+    pkgs.unzip
     pkgs.tzdata
+    pkgs.xclip
+
+    pkgs.enca
+    pkgs.bc
+    pkgs.yq
+    pkgs.colorized-logs # ansi2txt
+
+    pkgs.ffmpeg
+    pkgs.imagemagick
+    # pkgs.util-linux
+
+    pkgs.gh
+    pkgs.zenith
+    pkgs.git-lfs
+    pkgs.lazygit
 
     pkgs.kubectl
     pkgs.kubectx
     pkgs.kubernetes-helm
-    pkgs.skopeo
+    # pkgs.skopeo
 
     # pkgs.docker
     # pkgs.docker-compose
@@ -65,18 +78,6 @@ pkgs.mkShell {
 
     # for cp.jsf
     # pkgs.awscli2
-
-    pkgs.imagemagick
-
-    pkgs.git-lfs
-
-    pkgs.xclip
-
-    pkgs.ffmpeg
-    # pkgs.util-linux
-
-    pkgs.zip
-    pkgs.bc
   ];
   LOCALE_ARCHIVE = "${pkgs.glibcLocales}/lib/locale/locale-archive";
 }

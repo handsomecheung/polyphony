@@ -1,5 +1,8 @@
 FROM rust:1.91.1 AS rust-builder
 
+RUN rustup target add wasm32-unknown-unknown && \
+    cargo install wasm-bindgen-cli
+
 RUN git clone https://github.com/handsomecheung/fountain.git /tmp/code/fountain && \
     bash /tmp/code/fountain/script/rust/compile.wasm.sh && \
     mkdir -p /tmp/artifact && \

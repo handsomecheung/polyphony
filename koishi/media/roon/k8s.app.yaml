@@ -84,9 +84,9 @@ metadata:
     gethomepage.dev/enabled: "true"
     gethomepage.dev/group: Media
     gethomepage.dev/name: roon
-    gethomepage.dev/href: https://roon.__{{infra.domains:f:x}}__
+    gethomepage.dev/href: https://roon.__{{infra.domains:f:x}}__/display/
     gethomepage.dev/icon: https://roon.app/apple-touch-icon.png
-    gethomepage.dev/siteMonitor: https://roon.__{{infra.domains:f:x}}__
+    gethomepage.dev/siteMonitor: https://roon.__{{infra.domains:f:x}}__/display/
     gethomepage.dev/weight: "3"
 spec:
   ingressClassName: traefik
