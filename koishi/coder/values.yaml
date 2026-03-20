@@ -37,7 +37,7 @@ coder:
     enable: true
     annotations:
       cert-manager.io/cluster-issuer: cluster-letsencrypt-dns-cloudflare
-      traefik.ingress.kubernetes.io/router.middlewares: middleware-antimitm@kubernetescrd,my-coder-sabliercoder@kubernetescrd
+      traefik.ingress.kubernetes.io/router.middlewares: middleware-antimitm@kubernetescrd,default-sabliercoder@kubernetescrd
       gethomepage.dev/enabled: "true"
       gethomepage.dev/group: Development
       gethomepage.dev/name: coder

@@ -3,7 +3,7 @@ apiVersion: traefik.io/v1alpha1
 kind: Middleware
 metadata:
   name: sabliercoder
-  namespace: my-coder
+  namespace: default
 spec:
   plugin:
     sablier:
