@@ -5,22 +5,18 @@ metadata:
   name: qbittorrent
   namespace: default
   labels:
-    app: qbittorrent
     app.kubernetes.io/name: qbittorrent
-    app.kubernetes.io/instance: qbittorrent
+    sablier.enable: "true"
+    sablier.group: "download"
 spec:
-  replicas: 1
+  replicas: 0
   selector:
     matchLabels:
-      app: qbittorrent
       app.kubernetes.io/name: qbittorrent
-      app.kubernetes.io/instance: qbittorrent
   template:
     metadata:
       labels:
-        app: qbittorrent
         app.kubernetes.io/name: qbittorrent
-        app.kubernetes.io/instance: qbittorrent
     spec:
       volumes:
         - name: default-common-encrypted
@@ -68,16 +64,16 @@ metadata:
   name: qbittorrent
   namespace: default
   labels:
-    app: qbittorrent
+    app.kubernetes.io/name: qbittorrent
 spec:
   type: ClusterIP
+  selector:
+    app.kubernetes.io/name: qbittorrent
   ports:
     - name: default
       port: 80
       protocol: TCP
       targetPort: 8080
-  selector:
-    app: qbittorrent
 
 ---
 apiVersion: networking.k8s.io/v1
@@ -87,13 +83,12 @@ metadata:
   namespace: default
   annotations:
     cert-manager.io/cluster-issuer: cluster-letsencrypt-dns-cloudflare
-    traefik.ingress.kubernetes.io/router.middlewares: middleware-playonjan@kubernetescrd,middleware-antimitm@kubernetescrd,sso-domainx@kubernetescrd
+    traefik.ingress.kubernetes.io/router.middlewares: middleware-playonjan@kubernetescrd,middleware-antimitm@kubernetescrd,sso-domainx@kubernetescrd,default-sablierdownload@kubernetescrd
     gethomepage.dev/enabled: "true"
     gethomepage.dev/group: Media
     gethomepage.dev/name: qBittorrent
     gethomepage.dev/icon: qbittorrent
     gethomepage.dev/href: https://qbittorrent.__{{infra.domains:f:x}}__/
-    gethomepage.dev/siteMonitor: https://qbittorrent.__{{infra.domains:f:x}}__/
     gethomepage.dev/weight: "50"
 spec:
   ingressClassName: traefik

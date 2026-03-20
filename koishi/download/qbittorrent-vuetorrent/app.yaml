@@ -5,22 +5,18 @@ metadata:
   name: qbittorrent-vuetorrent
   namespace: default
   labels:
-    app: qbittorrent-vuetorrent
     app.kubernetes.io/name: qbittorrent-vuetorrent
-    app.kubernetes.io/instance: qbittorrent-vuetorrent
+    sablier.enable: "true"
+    sablier.group: "download"
 spec:
-  replicas: 1
+  replicas: 0
   selector:
     matchLabels:
-      app: qbittorrent-vuetorrent
       app.kubernetes.io/name: qbittorrent-vuetorrent
-      app.kubernetes.io/instance: qbittorrent-vuetorrent
   template:
     metadata:
       labels:
-        app: qbittorrent-vuetorrent
         app.kubernetes.io/name: qbittorrent-vuetorrent
-        app.kubernetes.io/instance: qbittorrent-vuetorrent
     spec:
       containers:
         - name: app
@@ -43,16 +39,16 @@ metadata:
   name: qbittorrent-vuetorrent
   namespace: default
   labels:
-    app: qbittorrent-vuetorrent
+    app.kubernetes.io/name: qbittorrent-vuetorrent
 spec:
   type: ClusterIP
+  selector:
+    app.kubernetes.io/name: qbittorrent-vuetorrent
   ports:
     - name: default
       port: 80
       protocol: TCP
       targetPort: 80
-  selector:
-    app: qbittorrent-vuetorrent
 
 ---
 apiVersion: networking.k8s.io/v1
@@ -62,7 +58,7 @@ metadata:
   namespace: default
   annotations:
     cert-manager.io/cluster-issuer: cluster-letsencrypt-dns-cloudflare
-    traefik.ingress.kubernetes.io/router.middlewares: middleware-playonjan@kubernetescrd,middleware-antimitm@kubernetescrd,sso-domainx@kubernetescrd
+    traefik.ingress.kubernetes.io/router.middlewares: middleware-playonjan@kubernetescrd,middleware-antimitm@kubernetescrd,sso-domainx@kubernetescrd,default-sablierdownload@kubernetescrd
     nginx.ingress.kubernetes.io/http2-push-preload: "true"
     gethomepage.dev/enabled: "true"
     gethomepage.dev/group: Media
@@ -70,7 +66,6 @@ metadata:
     gethomepage.dev/description: WebUI for qBittorrent made with Vue.js!
     gethomepage.dev/icon: https://vuetorrent.github.io/demo/icon.svg
     gethomepage.dev/href: https://qbittorrent-vuetorrent.__{{infra.domains:f:x}}__/
-    gethomepage.dev/siteMonitor: https://qbittorrent-vuetorrent.__{{infra.domains:f:x}}__/
     gethomepage.dev/weight: "60"
 spec:
   ingressClassName: traefik

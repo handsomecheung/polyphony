@@ -7,22 +7,18 @@ metadata:
   name: jackett
   namespace: default
   labels:
-    app: jackett
     app.kubernetes.io/name: jackett
-    app.kubernetes.io/instance: jackett
+    sablier.enable: "true"
+    sablier.group: "download"
 spec:
-  replicas: 1
+  replicas: 0
   selector:
     matchLabels:
-      app: jackett
       app.kubernetes.io/name: jackett
-      app.kubernetes.io/instance: jackett
   template:
     metadata:
       labels:
-        app: jackett
         app.kubernetes.io/name: jackett
-        app.kubernetes.io/instance: jackett
     spec:
       volumes:
         - name: default-common-encrypted
@@ -63,13 +59,13 @@ metadata:
     app: jackett
 spec:
   type: ClusterIP
+  selector:
+    app.kubernetes.io/name: jackett
   ports:
     - name: default
       port: 80
       protocol: TCP
       targetPort: 9117
-  selector:
-    app: jackett
 
 ---
 apiVersion: networking.k8s.io/v1
@@ -79,13 +75,12 @@ metadata:
   namespace: default
   annotations:
     cert-manager.io/cluster-issuer: cluster-letsencrypt-dns-cloudflare
-    traefik.ingress.kubernetes.io/router.middlewares: middleware-playonjan@kubernetescrd,middleware-antimitm@kubernetescrd
+    traefik.ingress.kubernetes.io/router.middlewares: middleware-playonjan@kubernetescrd,middleware-antimitm@kubernetescrd,default-sablierdownload@kubernetescrd
     gethomepage.dev/enabled: "true"
     gethomepage.dev/group: Media
     gethomepage.dev/name: jackett
     gethomepage.dev/icon: jackett
     gethomepage.dev/href: https://jackett.__{{infra.domains:f:x}}__/
-    gethomepage.dev/siteMonitor: https://jackett.__{{infra.domains:f:x}}__/
     gethomepage.dev/weight: "70"
 spec:
   ingressClassName: traefik

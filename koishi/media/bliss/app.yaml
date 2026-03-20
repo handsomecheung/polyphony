@@ -1,4 +1,20 @@
 ---
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: sablierbliss
+  namespace: default
+spec:
+  plugin:
+    sablier:
+      sablierUrl: "http://sablier.sablier"
+      group: "bliss"
+      sessionDuration: "1h"
+      dynamic:
+        theme: "ghost"
+        showDetails: true
+
+---
 # https://hub.docker.com/r/romancin/bliss
 apiVersion: apps/v1
 kind: Deployment
@@ -7,8 +23,10 @@ metadata:
   namespace: default
   labels:
     app.kubernetes.io/name: bliss
+    sablier.enable: "true"
+    sablier.group: "bliss"
 spec:
-  replicas: 1
+  replicas: 0
   selector:
     matchLabels:
       app.kubernetes.io/name: bliss
@@ -90,13 +108,12 @@ metadata:
   namespace: default
   annotations:
     cert-manager.io/cluster-issuer: cluster-letsencrypt-dns-cloudflare
-    traefik.ingress.kubernetes.io/router.middlewares: middleware-playonjan@kubernetescrd,middleware-antimitm@kubernetescrd,sso-domainx@kubernetescrd
+    traefik.ingress.kubernetes.io/router.middlewares: middleware-playonjan@kubernetescrd,middleware-antimitm@kubernetescrd,sso-domainx@kubernetescrd,default-sablierbliss@kubernetescrd
     gethomepage.dev/enabled: "true"
     gethomepage.dev/group: Media
     gethomepage.dev/name: Bliss
     gethomepage.dev/icon: https://bliss.__{{infra.domains:f:x}}__/favicon.ico
     gethomepage.dev/href: https://bliss.__{{infra.domains:f:x}}__
-    gethomepage.dev/siteMonitor: https://bliss.__{{infra.domains:f:x}}__
     gethomepage.dev/weight: "30"
 spec:
   ingressClassName: traefik

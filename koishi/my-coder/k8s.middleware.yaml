@@ -1,0 +1,15 @@
+---
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: sabliercoder
+  namespace: my-coder
+spec:
+  plugin:
+    sablier:
+      sablierUrl: "http://sablier.sablier"
+      group: "coder"
+      sessionDuration: "1h"
+      dynamic:
+        theme: "ghost"
+        showDetails: true

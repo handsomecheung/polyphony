@@ -86,6 +86,22 @@ data:
     __{{db.ci-jsf.newsub.aws.dev:f:ip}}__ __{{db.ci-jsf.newsub.aws.dev:f:host}}__
 
 ---
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: sabliertooldbgate
+  namespace: my-database
+spec:
+  plugin:
+    sablier:
+      sablierUrl: "http://sablier.sablier"
+      group: "tool-dbgate"
+      sessionDuration: "1h"
+      dynamic:
+        theme: "ghost"
+        showDetails: true
+
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -93,8 +109,10 @@ metadata:
   namespace: my-database
   labels:
     app.kubernetes.io/name: tool-dbgate
+    sablier.enable: "true"
+    sablier.group: "tool-dbgate"
 spec:
-  replicas: 1
+  replicas: 0
   selector:
     matchLabels:
       app.kubernetes.io/name: tool-dbgate
@@ -297,13 +315,12 @@ metadata:
   namespace: my-database
   annotations:
     cert-manager.io/cluster-issuer: cluster-letsencrypt-dns-cloudflare
-    traefik.ingress.kubernetes.io/router.middlewares: middleware-playonjan@kubernetescrd,middleware-antimitm@kubernetescrd,sso-domainx@kubernetescrd
+    traefik.ingress.kubernetes.io/router.middlewares: middleware-playonjan@kubernetescrd,middleware-antimitm@kubernetescrd,sso-domainx@kubernetescrd,my-database-sabliertooldbgate@kubernetescrd
     gethomepage.dev/enabled: "true"
     gethomepage.dev/group: Development
     gethomepage.dev/name: dbgate
     gethomepage.dev/icon: https://avatars.githubusercontent.com/u/78292618
     gethomepage.dev/href: https://dbgate.__{{infra.domains:f:x}}__/
-    gethomepage.dev/siteMonitor: https://dbgate.__{{infra.domains:f:x}}__/
     gethomepage.dev/weight: "40"
 spec:
   ingressClassName: traefik
@@ -324,6 +341,22 @@ spec:
       secretName: dbgate-domainx
 
 ---
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: sabliertooldbgatelite
+  namespace: my-database
+spec:
+  plugin:
+    sablier:
+      sablierUrl: "http://sablier.sablier"
+      group: "tool-dbgate-lite"
+      sessionDuration: "1h"
+      dynamic:
+        theme: "ghost"
+        showDetails: true
+
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -331,8 +364,10 @@ metadata:
   namespace: my-database
   labels:
     app.kubernetes.io/name: tool-dbgate-lite
+    sablier.enable: "true"
+    sablier.group: "tool-dbgate-lite"
 spec:
-  replicas: 1
+  replicas: 0
   selector:
     matchLabels:
       app.kubernetes.io/name: tool-dbgate-lite
@@ -470,13 +505,12 @@ metadata:
   namespace: my-database
   annotations:
     cert-manager.io/cluster-issuer: cluster-letsencrypt-dns-cloudflare
-    traefik.ingress.kubernetes.io/router.middlewares: middleware-playonjan@kubernetescrd,middleware-antimitm@kubernetescrd,sso-domainx@kubernetescrd
+    traefik.ingress.kubernetes.io/router.middlewares: middleware-playonjan@kubernetescrd,middleware-antimitm@kubernetescrd,sso-domainx@kubernetescrd,my-database-sabliertooldbgatelite@kubernetescrd
     gethomepage.dev/enabled: "true"
     gethomepage.dev/group: Development
     gethomepage.dev/name: dbgate lite
     gethomepage.dev/icon: https://avatars.githubusercontent.com/u/78292618
     gethomepage.dev/href: https://dbgate-lite.__{{infra.domains:f:x}}__/
-    gethomepage.dev/siteMonitor: https://dbgate-lite.__{{infra.domains:f:x}}__/
     gethomepage.dev/weight: "41"
 spec:
   ingressClassName: traefik

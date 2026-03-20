@@ -1,20 +1,38 @@
 ---
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: sablierguacamole
+  namespace: default
+spec:
+  plugin:
+    sablier:
+      sablierUrl: "http://sablier.sablier"
+      group: "guacamole"
+      sessionDuration: "1h"
+      dynamic:
+        theme: "ghost"
+        showDetails: true
+
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: guacamole-guacd
   namespace: default
   labels:
-    app: guacamole-guacd
+    app.kubernetes.io/name: guacamole-guacd
+    sablier.enable: "true"
+    sablier.group: "guacamole"
 spec:
-  replicas: 1
+  replicas: 0
   selector:
     matchLabels:
-      app: guacamole-guacd
+      app.kubernetes.io/name: guacamole-guacd
   template:
     metadata:
       labels:
-        app: guacamole-guacd
+        app.kubernetes.io/name: guacamole-guacd
     spec:
       containers:
         - name: app
@@ -34,7 +52,7 @@ metadata:
   name: guacamole-guacd
   namespace: default
   labels:
-    app: guacamole-guacd
+    app.kubernetes.io/name: guacamole-guacd
 spec:
   type: ClusterIP
   ports:
@@ -43,7 +61,7 @@ spec:
       protocol: TCP
       targetPort: 4822
   selector:
-    app: guacamole-guacd
+    app.kubernetes.io/name: guacamole-guacd
 
 ---
 apiVersion: apps/v1
@@ -52,16 +70,14 @@ metadata:
   name: guacamole
   namespace: default
   labels:
-    app: guacamole
     app.kubernetes.io/name: guacamole
-    app.kubernetes.io/instance: guacamole
+    sablier.enable: "true"
+    sablier.group: "guacamole"
 spec:
-  replicas: 1
+  replicas: 0
   selector:
     matchLabels:
-      app: guacamole
       app.kubernetes.io/name: guacamole
-      app.kubernetes.io/instance: guacamole
   template:
     metadata:
       labels:
@@ -114,11 +130,11 @@ metadata:
   name: guacamole
   namespace: default
   labels:
-    app: guacamole
+    app.kubernetes.io/name: guacamole
 spec:
   type: ClusterIP
   selector:
-    app: guacamole
+    app.kubernetes.io/name: guacamole
   ports:
     - name: default
       port: 80
@@ -133,13 +149,12 @@ metadata:
   namespace: default
   annotations:
     cert-manager.io/cluster-issuer: cluster-letsencrypt-dns-cloudflare
-    traefik.ingress.kubernetes.io/router.middlewares: middleware-playonjan@kubernetescrd,middleware-antimitm@kubernetescrd,sso-domainx@kubernetescrd
+    traefik.ingress.kubernetes.io/router.middlewares: middleware-playonjan@kubernetescrd,middleware-antimitm@kubernetescrd,sso-domainx@kubernetescrd,default-sablierguacamole@kubernetescrd
     gethomepage.dev/enabled: "true"
     gethomepage.dev/group: Development
     gethomepage.dev/name: guacamole
     gethomepage.dev/icon: guacamole
     gethomepage.dev/href: https://guacamole.__{{infra.domains:f:x}}__/guacamole/
-    gethomepage.dev/siteMonitor: https://guacamole.__{{infra.domains:f:x}}__/guacamole/
     gethomepage.dev/weight: "30"
 spec:
   ingressClassName: traefik

@@ -6,8 +6,10 @@ metadata:
   namespace: default
   labels:
     app.kubernetes.io/name: flaresolverr
+    sablier.enable: "true"
+    sablier.group: "download"
 spec:
-  replicas: 1
+  replicas: 0
   selector:
     matchLabels:
       app.kubernetes.io/name: flaresolverr
@@ -45,6 +47,7 @@ spec:
       port: 80
       protocol: TCP
       targetPort: default
+
 ---
 apiVersion: networking.k8s.io/v1
 kind: Ingress
@@ -53,13 +56,12 @@ metadata:
   namespace: default
   annotations:
     cert-manager.io/cluster-issuer: cluster-letsencrypt-dns-cloudflare
-    traefik.ingress.kubernetes.io/router.middlewares: middleware-playonjan@kubernetescrd,middleware-antimitm@kubernetescrd,sso-domainx@kubernetescrd
+    traefik.ingress.kubernetes.io/router.middlewares: middleware-playonjan@kubernetescrd,middleware-antimitm@kubernetescrd,sso-domainx@kubernetescrd,default-sablierdownload@kubernetescrd
     gethomepage.dev/enabled: "true"
     gethomepage.dev/group: Media
     gethomepage.dev/name: FlareSolverr
     gethomepage.dev/icon: https://avatars.githubusercontent.com/u/75936191
     gethomepage.dev/href: https://flaresolverr.__{{infra.domains:f:x}}__/
-    gethomepage.dev/siteMonitor: https://flaresolverr.__{{infra.domains:f:x}}__/
     gethomepage.dev/weight: "80"
 spec:
   ingressClassName: traefik

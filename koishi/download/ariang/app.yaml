@@ -6,8 +6,10 @@ metadata:
   namespace: default
   labels:
     app.kubernetes.io/name: ariang
+    sablier.enable: "true"
+    sablier.group: "download"
 spec:
-  replicas: 1
+  replicas: 0
   selector:
     matchLabels:
       app.kubernetes.io/name: ariang
@@ -54,13 +56,12 @@ metadata:
   namespace: default
   annotations:
     cert-manager.io/cluster-issuer: cluster-letsencrypt-dns-cloudflare
-    traefik.ingress.kubernetes.io/router.middlewares: middleware-playonjan@kubernetescrd,middleware-antimitm@kubernetescrd,sso-domainx@kubernetescrd
+    traefik.ingress.kubernetes.io/router.middlewares: middleware-playonjan@kubernetescrd,middleware-antimitm@kubernetescrd,sso-domainx@kubernetescrd,default-sablierdownload@kubernetescrd
     gethomepage.dev/enabled: "true"
     gethomepage.dev/group: Media
     gethomepage.dev/name: Ariang
     gethomepage.dev/icon: https://ariang.__{{infra.domains:f:x}}__/favicon.png
     gethomepage.dev/href: https://ariang.__{{infra.domains:f:x}}__
-    gethomepage.dev/siteMonitor: https://ariang.__{{infra.domains:f:x}}__
     gethomepage.dev/weight: "40"
 spec:
   ingressClassName: traefik

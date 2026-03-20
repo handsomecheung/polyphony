@@ -7,6 +7,7 @@ metadata:
   labels:
     app.kubernetes.io/name: ollama
 spec:
+  replicas: 1
   selector:
     matchLabels:
       app.kubernetes.io/name: ollama
@@ -50,6 +51,22 @@ spec:
       protocol: TCP
 
 ---
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: sablierollamawebui
+  namespace: default
+spec:
+  plugin:
+    sablier:
+      sablierUrl: "http://sablier.sablier"
+      group: "ollama-webui"
+      sessionDuration: "1h"
+      dynamic:
+        theme: "ghost"
+        showDetails: true
+
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -57,7 +74,10 @@ metadata:
   namespace: default
   labels:
     app.kubernetes.io/name: ollama-webui
+    sablier.enable: "true"
+    sablier.group: "ollama-webui"
 spec:
+  replicas: 0
   selector:
     matchLabels:
       app.kubernetes.io/name: ollama-webui
@@ -112,14 +132,13 @@ metadata:
   namespace: default
   annotations:
     cert-manager.io/cluster-issuer: cluster-letsencrypt-dns-cloudflare
-    traefik.ingress.kubernetes.io/router.middlewares: middleware-playonjan@kubernetescrd,middleware-antimitm@kubernetescrd,sso-domainx@kubernetescrd
+    traefik.ingress.kubernetes.io/router.middlewares: middleware-playonjan@kubernetescrd,middleware-antimitm@kubernetescrd,sso-domainx@kubernetescrd,default-sablierollamawebui@kubernetescrd
     gethomepage.dev/enabled: "true"
     gethomepage.dev/group: AI
     gethomepage.dev/name: Ollama-WebUI
     gethomepage.dev/icon: https://ollama.com/public/icon-64x64.png
     gethomepage.dev/href: https://ollama-webui.__{{infra.domains:f:x}}__
-    gethomepage.dev/siteMonitor: https://ollama-webui.__{{infra.domains:f:x}}__
-    gethomepage.dev/weight: "10"
+    gethomepage.dev/weight: "50"
 spec:
   ingressClassName: traefik
   rules:

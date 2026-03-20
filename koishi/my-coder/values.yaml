@@ -10,6 +10,10 @@ coder:
   # Please keep in mind that you should not set `CODER_HTTP_ADDRESS`,
   # `CODER_TLS_ENABLE`, `CODER_TLS_CERT_FILE` or `CODER_TLS_KEY_FILE` as
   # they are already set by the Helm chart and will cause conflicts.
+  replicaCount: 0
+  labels:
+    sablier.enable: "true"
+    sablier.group: "coder"
   env:
     - name: TZ
       value: "__{{koishi.deploy.timezone}}__"
@@ -33,13 +37,12 @@ coder:
     enable: true
     annotations:
       cert-manager.io/cluster-issuer: cluster-letsencrypt-dns-cloudflare
-      traefik.ingress.kubernetes.io/router.middlewares: middleware-antimitm@kubernetescrd
+      traefik.ingress.kubernetes.io/router.middlewares: middleware-antimitm@kubernetescrd,my-coder-sabliercoder@kubernetescrd
       gethomepage.dev/enabled: "true"
       gethomepage.dev/group: Development
       gethomepage.dev/name: coder
       gethomepage.dev/icon: coder
       gethomepage.dev/href: https://coder.__{{infra.domains:f:x}}__/
-      gethomepage.dev/siteMonitor: https://coder.__{{infra.domains:f:x}}__/
       gethomepage.dev/weight: "10"
     host: coder.__{{infra.domains:f:x}}__
     tls:

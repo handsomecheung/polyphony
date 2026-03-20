@@ -1,4 +1,20 @@
 ---
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: sabliern8n
+  namespace: default
+spec:
+  plugin:
+    sablier:
+      sablierUrl: "http://sablier.sablier"
+      group: "n8n"
+      sessionDuration: "1h"
+      dynamic:
+        theme: "ghost"
+        showDetails: true
+
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -6,7 +22,10 @@ metadata:
   namespace: default
   labels:
     app.kubernetes.io/name: n8n
+    sablier.enable: "true"
+    sablier.group: "n8n"
 spec:
+  replicas: 0
   selector:
     matchLabels:
       app.kubernetes.io/name: n8n
@@ -60,14 +79,13 @@ metadata:
   namespace: default
   annotations:
     cert-manager.io/cluster-issuer: cluster-letsencrypt-dns-cloudflare
-    traefik.ingress.kubernetes.io/router.middlewares: middleware-playonjan@kubernetescrd,middleware-antimitm@kubernetescrd,sso-domainx@kubernetescrd
+    traefik.ingress.kubernetes.io/router.middlewares: middleware-playonjan@kubernetescrd,middleware-antimitm@kubernetescrd,sso-domainx@kubernetescrd,default-sabliern8n@kubernetescrd
     gethomepage.dev/enabled: "true"
     gethomepage.dev/group: AI
     gethomepage.dev/name: n8n
     gethomepage.dev/icon: https://n8n.io/favicon.ico
     gethomepage.dev/href: https://n8n.__{{infra.domains:f:x}}__
-    gethomepage.dev/siteMonitor: https://n8n.__{{infra.domains:f:x}}__
-    gethomepage.dev/weight: "5"
+    gethomepage.dev/weight: "40"
 spec:
   ingressClassName: traefik
   rules:
