@@ -5,17 +5,23 @@ import re
 import json
 import requests
 
-import config
-
-
-HOST = os.environ.get("NTT_ROUTER")
-USERNAME = os.environ.get("NTT_ROUTER_USERNAME")
-PASSWORD = os.environ.get("NTT_ROUTER_PASSWORD")
-
 
 PATH_PAGE_INDEX = "/index.cgi/adm/network/dhcp_assign"
 PATH_PAGE_ADD = "/index.cgi/adm/network/dhcp_assign_add"
 
+
+def get_required_env(name):
+    value = os.environ.get(name)
+    if not value:
+        raise Exception(f"Environment variable {name} is not set or empty")
+
+    return value
+
+
+HOST = get_required_env("NTT_ROUTER")
+USERNAME = get_required_env("NTT_ROUTER_USERNAME")
+PASSWORD = get_required_env("NTT_ROUTER_PASSWORD")
+MAC_MAPPING_PATH = get_required_env("MAC_MAPPING_PATH")
 
 class Client:
     def __init__(self, host, username, password):
@@ -108,10 +114,13 @@ def check_config_local_mac(macs):
 
 
 def get_config_entries():
-    check_config_local_mac(config.MAC_LIST.keys())
+    with open(MAC_MAPPING_PATH, "r") as f:
+        mac_list = json.load(f)
+
+    check_config_local_mac(mac_list.keys())
 
     entries = []
-    for mac, info in config.MAC_LIST.items():
+    for mac, info in mac_list.items():
         ip = info.get("ip")
         if ip is not None:
             entries.append({"MAC": mac, "IP": ip})

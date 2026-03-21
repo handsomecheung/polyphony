@@ -7,10 +7,18 @@ metadata:
 spec:
   template:
     spec:
+      volumes:
+        - name: macip-mapping
+          hostPath:
+            path: /mnt/coder-workspaces/private-workspace/repos/local/notebook/obsidian/Default/Devices/macip-mapping.json
+            type: File
       containers:
         - name: app
-          image: cloudprivate/default/macbind:latest
+          image: cloudpublic/default/macbind:latest
           command: ["python", "-u", "bind.py"]
+          volumeMounts:
+            - name: macip-mapping
+              mountPath: /config/macip-mapping.json
           env:
             - name: NTT_ROUTER
               value: "http://__{{infra.machine.ntt:f:ip}}__"
@@ -18,6 +26,7 @@ spec:
               value: "user"
             - name: NTT_ROUTER_PASSWORD
               value: "__{{router-ntt.NTT-XG-100NE}}__"
-
+            - name: MAC_MAPPING_PATH
+              value: "/config/macip-mapping.json"
       restartPolicy: Never
   backoffLimit: 0

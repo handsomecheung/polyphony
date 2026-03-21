@@ -1,1 +1,0 @@
-/mnt/coder-workspaces/private-workspace/workspace/configs/polyphony/koishi/macbind/config.py
