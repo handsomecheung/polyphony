@@ -55,6 +55,12 @@ def get_pod_status(pod):
 def get_deployment_info(namespace, deployment_name):
     cmd = f"kubectl -n {namespace} get deployment {deployment_name} -o json"
     deployment_data = json.loads(run_command(cmd))
+
+    # Check replicas
+    replicas = deployment_data.get("spec", {}).get("replicas", 1)
+    if replicas == 0:
+        return {"replicas": 0}
+
     match_labels = deployment_data.get("spec", {}).get("selector", {}).get("matchLabels")
     if not match_labels:
         raise Exception(f"No selector labels found for deployment {deployment_name}")
@@ -69,6 +75,7 @@ def get_deployment_info(namespace, deployment_name):
     latest_pod = sorted(pod_data["items"], key=lambda p: p["metadata"]["creationTimestamp"], reverse=True)[0]
 
     return {
+        "replicas": replicas,
         "status": get_pod_status(latest_pod),
         "creation_time": datetime.strptime(
             latest_pod["metadata"]["creationTimestamp"], "%Y-%m-%dT%H:%M:%SZ"
@@ -111,6 +118,10 @@ def check_deployment(namespace, deployment_name):
     print(f"\n--- Checking {namespace}/{deployment_name} ---")
 
     pod_info = get_deployment_info(namespace, deployment_name)
+    if pod_info.get("replicas") == 0:
+        print(f"Deployment {deployment_name} has 0 replicas. Skipping.")
+        return
+
     status = pod_info["status"]
     creation_time = pod_info["creation_time"]
     age = datetime.now(timezone.utc) - creation_time
