@@ -1,19 +1,5 @@
 ---
 apiVersion: v1
-kind: PersistentVolumeClaim
-metadata:
-  name: openclaw
-  namespace: default
-spec:
-  storageClassName: longhorn-crypto-global
-  accessModes:
-    - ReadWriteOnce
-  resources:
-    requests:
-      storage: 10Gi
-
----
-apiVersion: v1
 kind: ConfigMap
 metadata:
   name: openclaw-caddy-config
@@ -28,17 +14,18 @@ data:
         redir @no_slash /caddy-workspace/
 
         handle_path /caddy-workspace/* {
-            root * /srv/workspace
+            root * /srv
             route {
                 vars stripped_path {path}
                 @markdown {
-                    file {
-                        try_files {path}
-                    }
+                    file /workspace{path}
                     path *.md
                 }
                 rewrite @markdown /_layout.html
                 templates
+                
+                @not_layout not path /_layout.html
+                rewrite @not_layout /workspace{path}
                 file_server browse
             }
         }
@@ -48,6 +35,7 @@ data:
     <html>
     <head>
         <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
         <title>OpenClaw Notes</title>
         <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/github-markdown-css/5.2.0/github-markdown.min.css">
         <style>
@@ -64,7 +52,7 @@ data:
         </style>
     </head>
     <body class="markdown-body">
-        {{ include (placeholder "http.vars.stripped_path") | markdown }}
+        {{ include (printf "workspace%s" (placeholder "http.vars.stripped_path")) | markdown }}
     </body>
     </html>
 
@@ -88,51 +76,58 @@ spec:
       labels:
         app.kubernetes.io/name: openclaw
     spec:
+      nodeSelector:
+        kubernetes.io/hostname: nur
       securityContext:
         runAsUser: 1000
         runAsGroup: 1000
         fsGroup: 1000
       volumes:
-        - name: data
-          persistentVolumeClaim:
-            claimName: openclaw
         - name: caddy-config
           configMap:
             name: openclaw-caddy-config
         - name: coder-workspaces
-          persistentVolumeClaim:
-            claimName: nfs-disk-coder-workspaces
+          hostPath:
+            path: /mnt/coder-workspaces
+            type: Directory
         - name: coder-sharepoint
-          persistentVolumeClaim:
-            claimName: nfs-disk-coder-sharepoint
+          hostPath:
+            path: /mnt/coder-sharepoint
+            type: DirectoryOrCreate
       initContainers:
         - name: init
           image: busybox:latest
-          command: ["sh", "-c", "chown -R 1000:1000 /home/node/.openclaw"]
+          command: ["sh", "-c", "chown -R 1000:1000 /data/openclaw"]
           securityContext:
             runAsUser: 0
           volumeMounts:
-            - name: data
-              mountPath: /home/node/.openclaw
+            - name: coder-workspaces
+              subPath: private-workspace/repos/local/openclaw-data/openclaw-default
+              mountPath: /data/openclaw
       containers:
-        - name: openclaw
+        - name: app
           image: cloudpublic/default/openclaw:latest
+          command: ["openclaw", "gateway", "--bind", "lan", "--port", "18789"]
           env:
             - name: OPENCLAW_PUBLIC_DOMAIN
               value: "openclaw.__{{infra.domains:f:x}}__"
             - name: OPENCLAW_GATEWAY_TOKEN
-              value: "__{{openclaw-infos:f:secret}}__"
+              value: "__{{openclaw.infos:f:secret}}__"
             - name: NODE_OPTIONS
               value: "--max-old-space-size=1536"
             - name: LITELLM_API_KEY
               value: "__{{koishi.litellm}}__"
+            - name: LINE_CHANNEL_SECRET
+              value: "__{{linebridge:f:channel-secret}}__"
+            - name: LINE_CHANNEL_ACCESS_TOKEN
+              value: "__{{linebridge:f:channel-access-token}}__"
           ports:
             - name: gateway
               protocol: TCP
               containerPort: 18789
           volumeMounts:
-            - name: data
-              subPath: openclaw
+            - name: coder-workspaces
+              subPath: private-workspace/repos/local/openclaw-data/openclaw-default
               mountPath: /home/node/.openclaw
             - name: coder-workspaces
               mountPath: /mnt/coder-workspaces
@@ -158,15 +153,15 @@ spec:
             - name: caddy-http
               containerPort: 8080
           volumeMounts:
-            - name: data
-              subPath: workspace
-              mountPath: /srv/workspace
             - name: caddy-config
               subPath: Caddyfile
               mountPath: /etc/caddy/Caddyfile
+            - name: coder-workspaces
+              subPath: private-workspace/repos/local/openclaw-data/openclaw-default/workspace
+              mountPath: /srv/workspace
             - name: caddy-config
               subPath: _layout.html
-              mountPath: /srv/workspace/_layout.html
+              mountPath: /srv/_layout.html
 
 ---
 apiVersion: v1
@@ -230,6 +225,34 @@ spec:
       secretName: openclaw-domainx
 
 ---
+# called by Line Server
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: openclaw-line-webhook
+  namespace: default
+  annotations:
+    cert-manager.io/cluster-issuer: cluster-letsencrypt-dns-cloudflare
+spec:
+  ingressClassName: traefik
+  rules:
+    - host: openclaw.__{{infra.domains:f:x}}__
+      http:
+        paths:
+          - path: /line/webhook
+            pathType: Prefix
+            backend:
+              service:
+                name: openclaw
+                port:
+                  name: oc-gateway
+  tls:
+    - hosts:
+        - openclaw.__{{infra.domains:f:x}}__
+      secretName: openclaw-domainx
+
+---
+# called by linebridge
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
