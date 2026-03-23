@@ -1,4 +1,5 @@
 import glob
+import os
 import numpy as np
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from redis.commands.search.field import VectorField, TextField, TagField

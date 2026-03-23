@@ -2,19 +2,19 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: rag
+  name: prag
   namespace: default
   labels:
-    app.kubernetes.io/name: rag
+    app.kubernetes.io/name: prag
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app.kubernetes.io/name: rag
+      app.kubernetes.io/name: prag
   template:
     metadata:
       labels:
-        app.kubernetes.io/name: rag
+        app.kubernetes.io/name: prag
     spec:
       nodeSelector:
         kubernetes.io/hostname: nur
@@ -25,7 +25,7 @@ spec:
             type: Directory
       containers:
         - name: app
-          image: cloudpublic/default/rag:latest
+          image: cloudpublic/default/prag:latest
           imagePullPolicy: Always
           env:
             - name: REDIS_HOST
@@ -37,13 +37,13 @@ spec:
             - name: OLLAMA_API_BASE
               value: "http://ollama/v1"
             - name: NOTES_PATH
-              value: "/data/obsidian"
+              value: "/data/notes/Default"
           ports:
             - name: default
               containerPort: 8000
           volumeMounts:
             - name: obsidian
-              mountPath: /data/obsidian
+              mountPath: /data/notes
               readOnly: false
           livenessProbe:
             httpGet:
@@ -69,14 +69,14 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: rag
+  name: prag
   namespace: default
   labels:
-    app.kubernetes.io/name: rag
+    app.kubernetes.io/name: prag
 spec:
   type: ClusterIP
   selector:
-    app.kubernetes.io/name: rag
+    app.kubernetes.io/name: prag
   ports:
     - name: default
       port: 80
