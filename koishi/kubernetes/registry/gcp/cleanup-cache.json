@@ -1,0 +1,11 @@
+[
+    {
+        "name": "Delete-images-older-than-3-days",
+        "action": { "type": "Delete" },
+        "condition": {
+            "packageNamePrefixes": ["cache/kaniko"],
+            "olderThan": "72h",
+            "tagState": "ANY"
+        }
+    }
+]
