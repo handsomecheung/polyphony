@@ -1,4 +1,19 @@
 ---
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: sabliercaddywebdav
+  namespace: default
+spec:
+  plugin:
+    sablier:
+      sablierUrl: "http://sablier.sablier"
+      group: "caddy-webdav"
+      sessionDuration: "2h"
+      blocking:
+        timeout: 1m
+
+---
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -19,6 +34,10 @@ data:
     }
 
     :80 {
+    	handle /ok {
+    		respond "OK" 200
+    	}
+
     	route /* {
     		basic_auth {
     			__{{infra.common-users:f:hh}}__ __{{webdav.hh:f:hash}}__
@@ -46,8 +65,10 @@ metadata:
   namespace: default
   labels:
     app.kubernetes.io/name: caddy-webdav
+    sablier.enable: "true"
+    sablier.group: "caddy-webdav"
 spec:
-  replicas: 1
+  replicas: 0
   selector:
     matchLabels:
       app.kubernetes.io/name: caddy-webdav
@@ -132,6 +153,18 @@ spec:
             requests:
               cpu: 50m
               memory: 156Mi
+          livenessProbe:
+            httpGet:
+              path: /ok
+              port: 80
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /ok
+              port: 80
+            initialDelaySeconds: 5
+            periodSeconds: 10
 
 ---
 apiVersion: v1
@@ -171,7 +204,7 @@ metadata:
   namespace: default
   annotations:
     cert-manager.io/cluster-issuer: cluster-letsencrypt-dns-cloudflare
-    traefik.ingress.kubernetes.io/router.middlewares: default-webdavsizelimit@kubernetescrd
+    traefik.ingress.kubernetes.io/router.middlewares: default-webdavsizelimit@kubernetescrd,default-sabliercaddywebdav@kubernetescrd
 spec:
   ingressClassName: traefik
   rules:

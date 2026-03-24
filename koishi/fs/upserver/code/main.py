@@ -14,6 +14,11 @@ UPLOAD_DIR = "/files"
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 
 
+@app.route("/ok", methods=["GET"])
+def ok():
+    return "OK"
+
+
 @app.route("/static/<path:filename>")
 def server_static(filename):
     return send_file(os.path.join("static", filename))

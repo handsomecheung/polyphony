@@ -54,6 +54,18 @@ spec:
             - name: default
               protocol: TCP
               containerPort: 5678
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: 5678
+            initialDelaySeconds: 60
+            periodSeconds: 15
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: 5678
+            initialDelaySeconds: 60
+            periodSeconds: 15
 
 ---
 apiVersion: v1
