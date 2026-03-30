@@ -97,18 +97,20 @@ spec:
       initContainers:
         - name: init
           image: busybox:latest
-          command: ["sh", "-c", "chown -R 1000:1000 /data/openclaw"]
+          command: ["sh", "-c", "chown -R 1000:1000 /data/default"]
           securityContext:
             runAsUser: 0
           volumeMounts:
             - name: coder-workspaces
-              subPath: private-workspace/repos/local/openclaw-data/openclaw-default
-              mountPath: /data/openclaw
+              subPath: private-workspace/repos/local/openclaw-data/default
+              mountPath: /data/default
       containers:
         - name: app
           image: cloudpublic/default/openclaw:latest
           command: ["openclaw", "gateway", "--bind", "lan", "--port", "18789"]
           env:
+            - name: PATH
+              value: "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/home/node/.openclaw/bin"
             - name: OPENCLAW_PUBLIC_DOMAIN
               value: "openclaw.__{{infra.domains:f:x}}__"
             - name: OPENCLAW_GATEWAY_TOKEN
@@ -121,14 +123,25 @@ spec:
               value: "__{{linebridge:f:channel-secret}}__"
             - name: LINE_CHANNEL_ACCESS_TOKEN
               value: "__{{linebridge:f:channel-access-token}}__"
+            - name: GOG_ACCOUNT
+              value: "__{{openclaw.infos:f:gog.email}}__"
+            - name: GOG_KEYRING_PASSWORD
+              value: "__{{openclaw.infos:f:gog.keyring_password}}__"
+            - name: VW_URL
+              value: https://vaultwarden.__{{infra.domains:f:x}}__
+            - name: GEMINI_API_KEY
+              value: "__{{llm.api-keys:f:gemini}}__"
           ports:
             - name: gateway
               protocol: TCP
               containerPort: 18789
           volumeMounts:
             - name: coder-workspaces
-              subPath: private-workspace/repos/local/openclaw-data/openclaw-default
+              subPath: private-workspace/repos/local/openclaw-data/default/data
               mountPath: /home/node/.openclaw
+            - name: coder-workspaces
+              subPath: private-workspace/repos/local/openclaw-data/default/config
+              mountPath: /home/node/.config
             - name: coder-workspaces
               mountPath: /mnt/coder-workspaces
             - name: coder-sharepoint
@@ -157,7 +170,7 @@ spec:
               subPath: Caddyfile
               mountPath: /etc/caddy/Caddyfile
             - name: coder-workspaces
-              subPath: private-workspace/repos/local/openclaw-data/openclaw-default/workspace
+              subPath: private-workspace/repos/local/openclaw-data/default/data/workspace
               mountPath: /srv/workspace
             - name: caddy-config
               subPath: _layout.html

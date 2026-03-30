@@ -22,6 +22,7 @@ cloudpublic_registry_password=$(my-secret getpassword --key=github.docker-image.
 
 # for push cache layer and cloudprivate
 docker login "${host_cloudpublic}" --username "${cloudpublic_registry_id}" --password "${cloudpublic_registry_password}"
+gcloud auth print-access-token | docker login -u oauth2accesstoken --password-stdin "${host_cloudprivate}"
 
 image_prefix_cloudpublic="${host_cloudpublic}/${cloudpublic_registry_id}"
 image_prefix_cloudprivate="${host_cloudprivate}/${cloudprivate_registry_id}/docker"
@@ -30,7 +31,6 @@ if [[ "${name}" == "cloudpublic/"* ]]; then
 	image="${name/cloudpublic/${image_prefix_cloudpublic}}"
 elif [[ "${name}" == "cloudprivate/"* ]]; then
 	image="${name/cloudprivate/${image_prefix_cloudprivate}}"
-	gcloud auth print-access-token | docker login -u oauth2accesstoken --password-stdin "${host_cloudprivate}"
 else
 	echo "warning type must start with cloudpublic/ or cloudprivate/"
 fi

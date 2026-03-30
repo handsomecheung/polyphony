@@ -1,17 +1,7 @@
 FROM node:22-bookworm
 
-RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y \
-    ffmpeg \
-    gh \
-    curl \
-    wget \
-    build-essential \
-    python3 \
-    python3-dev \
-    poppler-utils \
-    imagemagick \
-    jq ripgrep \
-    tmux && \
+RUN apt-get update && \
+    DEBIAN_FRONTEND=noninteractive apt-get install -y ffmpeg gh curl wget build-essential python3 python3-dev poppler-utils imagemagick jq ripgrep tmux && \
     rm -rf /var/lib/apt/lists/*
 
 RUN apt update && \

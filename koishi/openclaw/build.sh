@@ -2,5 +2,4 @@
 set -e
 
 cd "$(dirname "${BASH_SOURCE[0]}")"
-# my-k8s-build-image "cloudpublic/default/openclaw:latest" default openclaw
-my-k8s-build-image "cloudpublic/default/openclaw:latest"
+my-k8s-build-image "cloudpublic/default/openclaw:latest" default openclaw

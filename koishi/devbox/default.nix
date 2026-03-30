@@ -75,6 +75,7 @@ pkgs.mkShell {
 
     pkgs.ruff
     pkgs.nodePackages.prettier
+    pkgs.pandoc
 
     # for cp.jsf
     # pkgs.awscli2
