@@ -108,7 +108,7 @@ spec:
             - name: foldersync-sshkeys-system
               mountPath: /tmp/foldersync-sshkeys-system
             - name: gphoto
-              mountPath: /mnt/user-data-slight/gphotosync # change me later /data/gphoto
+              mountPath: /data/gphoto
             - name: obsidian
               mountPath: /data/obsidian
           ports:
