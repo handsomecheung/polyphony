@@ -1,0 +1,134 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: linebridge
+  namespace: default
+  labels:
+    app.kubernetes.io/name: linebridge
+data:
+  config.yaml: |
+    line:
+      user:
+        hh: "__{{linebridge:f:line-user-id-hh}}__"
+        cc: "__{{linebridge:f:line-user-id-cc}}__"
+      group:
+        kzk: "__{{linebridge:f:line-group-id-kzk}}__"
+    openclaw_device_id: "koishi-linebridge"
+    openclaw:
+      - default:
+          url: "wss://openclaw.home4p.__{{infra.domains:f:x}}__"
+          token: "__{{openclaw.infos:f:secret}}__"
+      - kzk:
+          url: "wss://openclaw-kzk.home4p.__{{infra.domains:f:x}}__"
+          token: "__{{openclaw-kzk.infos:f:secret}}__"
+    route:
+      user:
+        hh: default
+        cc: kzk
+      group:
+        kzk: kzk
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: linebridge
+  namespace: default
+  labels:
+    app: linebridge
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: linebridge
+  template:
+    metadata:
+      labels:
+        app: linebridge
+    spec:
+      nodeSelector:
+        kubernetes.io/hostname: nur
+      volumes:
+        - name: data
+          hostPath:
+            path: /mnt/coder-sharepoint/linebridge
+            type: DirectoryOrCreate
+        - name: config
+          configMap:
+            name: linebridge
+      containers:
+        - name: app
+          image: cloudpublic/default/linebridge:latest
+          imagePullPolicy: Always
+          command: ["/root/app/main", "--config", "/root/config/config.yaml"]
+          env:
+            - name: LINE_CHANNEL_SECRET
+              value: "__{{linebridge:f:channel-secret}}__"
+            - name: LINE_CHANNEL_ACCESS_TOKEN
+              value: "__{{linebridge:f:channel-access-token}}__"
+          volumeMounts:
+            - name: data
+              mountPath: /tmp/linebridge
+            - name: config
+              mountPath: /root/config
+          ports:
+            - name: default
+              protocol: TCP
+              containerPort: 8080
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: linebridge
+  namespace: default
+  labels:
+    app: linebridge
+  annotations:
+spec:
+  type: ClusterIP
+  ports:
+    - name: default
+      port: 80
+      protocol: TCP
+      targetPort: default
+  selector:
+    app: linebridge
+
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: linebridge
+  namespace: default
+  annotations:
+    cert-manager.io/cluster-issuer: cluster-letsencrypt-dns-cloudflare
+spec:
+  ingressClassName: traefik
+  rules:
+    - host: linebridge.__{{infra.domains:f:x}}__
+      http:
+        paths:
+          - path: /ok
+            pathType: Prefix
+            backend:
+              service:
+                name: linebridge
+                port:
+                  name: default
+          - path: /callback
+            pathType: Prefix
+            backend:
+              service:
+                name: linebridge
+                port:
+                  name: default
+  tls:
+    - hosts:
+        - linebridge.__{{infra.domains:f:x}}__
+      secretName: linebridge-domainx
