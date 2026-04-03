@@ -6,4 +6,4 @@ bash build.sh
 
 source .env
 
-./linebridge --config .config.yaml
+./main --config .config.yaml

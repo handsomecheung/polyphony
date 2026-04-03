@@ -26,10 +26,9 @@ import (
 // --- Configuration Structs ---
 
 type Config struct {
-	Line             LineConfig                      `yaml:"line"`
-	OpenClawDeviceID string                          `yaml:"openclaw_device_id"`
-	OpenClaw         []map[string]OpenClawConfigItem `yaml:"openclaw"`
-	Route            RouteConfig                     `yaml:"route"`
+	Line     LineConfig                      `yaml:"line"`
+	OpenClaw []map[string]OpenClawConfigItem `yaml:"openclaw"`
+	Route    RouteConfig                     `yaml:"route"`
 }
 
 type LineConfig struct {
@@ -42,9 +41,14 @@ type OpenClawConfigItem struct {
 	Token string `yaml:"token"`
 }
 
+type RouteItem struct {
+	OpenClaw string `yaml:"openclaw"`
+	DeviceID string `yaml:"device_id"`
+}
+
 type RouteConfig struct {
-	User  map[string]string `yaml:"user"`
-	Group map[string]string `yaml:"group"`
+	User  map[string]RouteItem `yaml:"user"`
+	Group map[string]RouteItem `yaml:"group"`
 }
 
 // --- OpenClaw Client ---
@@ -59,23 +63,25 @@ type OpenClawFrame struct {
 }
 
 type OpenClawClient struct {
-	name      string
-	url       string
-	token     string
-	derivedID string
-	pubKey    ed25519.PublicKey
-	privKey   ed25519.PrivateKey
-	savePath  string
-	conn      *websocket.Conn
-	mu        sync.Mutex
-	sendChan  chan interface{}
+	name            string
+	url             string
+	token           string
+	deviceID        string
+	derivedID       string
+	pubKey          ed25519.PublicKey
+	privKey         ed25519.PrivateKey
+	savePath        string
+	conn            *websocket.Conn
+	mu              sync.Mutex
+	sendChan        chan interface{}
+	senderShortName string
 
 	// Fields for Line callback
-	lineBot   *linebot.Client
-	shortToID map[string]string
+	lineBot *linebot.Client
+	lineID  string
 }
 
-func NewOpenClawClient(name, url, token, deviceID, savePath string, bot *linebot.Client, shortToID map[string]string) *OpenClawClient {
+func NewOpenClawClient(name, url, token, deviceID, savePath, shortName string, bot *linebot.Client, lineID string) *OpenClawClient {
 	seed := sha256.Sum256([]byte("seed:" + deviceID))
 	priv := ed25519.NewKeyFromSeed(seed[:])
 	pub := priv.Public().(ed25519.PublicKey)
@@ -83,16 +89,18 @@ func NewOpenClawClient(name, url, token, deviceID, savePath string, bot *linebot
 	derivedID := hex.EncodeToString(hID[:])
 
 	return &OpenClawClient{
-		name:      name,
-		url:       url,
-		token:     token,
-		derivedID: derivedID,
-		pubKey:    pub,
-		privKey:   priv,
-		savePath:  savePath,
-		sendChan:  make(chan interface{}, 100),
-		lineBot:   bot,
-		shortToID: shortToID,
+		name:            name,
+		url:             url,
+		token:           token,
+		deviceID:        deviceID,
+		derivedID:       derivedID,
+		pubKey:          pub,
+		privKey:         priv,
+		savePath:        savePath,
+		sendChan:        make(chan interface{}, 100),
+		senderShortName: shortName,
+		lineBot:         bot,
+		lineID:          lineID,
 	}
 }
 
@@ -147,6 +155,25 @@ func (c *OpenClawClient) handleIncoming(msg []byte) {
 		return
 	}
 
+	// Filter for relevance: connection-level messages or matching sessionKey
+	var sessionData struct {
+		SessionKey string `json:"sessionKey"`
+	}
+	json.Unmarshal(frame.Payload, &sessionData)
+
+	targetSession := "line-" + c.senderShortName
+	isRelevant := frame.Event == "connect.challenge" || frame.ID == "init" ||
+		(sessionData.SessionKey != "" && strings.Contains(sessionData.SessionKey, targetSession))
+
+	if !isRelevant {
+		return
+	}
+
+	// Log non-final or other frame types concisely
+	if frame.Event != "chat" {
+		log.Printf("[%s] << Received from OpenClaw (other): type=%s event=%s", c.name, frame.Type, frame.Event)
+	}
+
 	if frame.Event == "connect.challenge" {
 		var challenge struct {
 			Nonce string `json:"nonce"`
@@ -195,30 +222,33 @@ func (c *OpenClawClient) handleIncoming(msg []byte) {
 				} `json:"content"`
 			} `json:"message"`
 		}
-		if err := json.Unmarshal(frame.Payload, &payload); err == nil && payload.State == "final" {
-			log.Printf("[%s] Received final message for session %s.", c.name, payload.SessionKey)
-			c.saveFrameToFile(msg)
+		if err := json.Unmarshal(frame.Payload, &payload); err == nil {
+			if payload.State == "final" {
+				log.Printf("[%s] << Received final message from OpenClaw: %s", c.name, string(msg))
+				c.saveFrameToFile(msg)
 
-			// Route back to Line
-			if strings.Contains(payload.SessionKey, "line-") {
-				parts := strings.Split(payload.SessionKey, "line-")
-				shortName := parts[len(parts)-1]
-				if lineID, ok := c.shortToID[shortName]; ok {
-					var responseText string
-					for _, content := range payload.Message.Content {
-						if content.Type == "text" {
-							responseText += content.Text
-						}
-					}
-					if responseText != "" {
-						cleanedText := c.cleanMarkdown(responseText)
-						if _, err := c.lineBot.PushMessage(lineID, linebot.NewTextMessage(cleanedText)).Do(); err != nil {
-							log.Printf("[%s] Error pushing to Line (%s): %v", c.name, shortName, err)
-						} else {
-							log.Printf("[%s] Successfully pushed response to Line: %s", c.name, shortName)
-						}
+				// Route back to Line
+				var responseText string
+				for _, content := range payload.Message.Content {
+					if content.Type == "text" {
+						responseText += content.Text
 					}
 				}
+				if responseText != "" {
+					cleanedText := c.cleanMarkdown(responseText)
+					if _, err := c.lineBot.PushMessage(c.lineID, linebot.NewTextMessage(cleanedText)).Do(); err != nil {
+						log.Printf("[%s] Error pushing to Line (%s): %v", c.name, c.senderShortName, err)
+					} else {
+						log.Printf("[%s] Successfully pushed response to Line: %s", c.name, c.senderShortName)
+					}
+				}
+			} else {
+				// This is a non-final chat message
+				var tempPayload struct {
+					State string `json:"state"`
+				}
+				json.Unmarshal(frame.Payload, &tempPayload)
+				log.Printf("[%s] << Received non-final chat message: state=%s", c.name, tempPayload.State)
 			}
 		}
 	}
@@ -263,6 +293,8 @@ func (c *OpenClawClient) sendLoop() {
 	for msg := range c.sendChan {
 		c.mu.Lock()
 		if c.conn != nil {
+			msgBytes, _ := json.Marshal(msg)
+			log.Printf("[%s] >> Sending to OpenClaw: %s", c.name, string(msgBytes))
 			c.conn.WriteJSON(msg)
 		}
 		c.mu.Unlock()
@@ -293,26 +325,52 @@ func main() {
 
 	bot, _ := linebot.New(lineSecret, lineToken)
 
-	// Prepare shortName to LineID mapping for reverse routing
-	shortToID := make(map[string]string)
-	for short, id := range cfg.Line.User {
-		shortToID[short] = id
-	}
-	for short, id := range cfg.Line.Group {
-		shortToID[short] = id
-	}
-
-	// Initialize OpenClaw Clients
-	clients := make(map[string]*OpenClawClient)
+	// Flatten OpenClaw configs for easy lookup
+	ocConfigs := make(map[string]OpenClawConfigItem)
 	for _, m := range cfg.OpenClaw {
 		for name, item := range m {
-			client := NewOpenClawClient(name, item.URL, item.Token, cfg.OpenClawDeviceID, savePath, bot, shortToID)
-			client.Start()
-			clients[name] = client
+			ocConfigs[name] = item
 		}
 	}
 
-	// Reverse lookup maps for forward routing
+	// Initialize OpenClaw Clients per route
+	clients := make(map[string]*OpenClawClient)
+
+	// User routes
+	for short, route := range cfg.Route.User {
+		lineID := cfg.Line.User[short]
+		if lineID == "" {
+			log.Printf("WARNING: No line ID for user %s, skipping route", short)
+			continue
+		}
+		ocConf, ok := ocConfigs[route.OpenClaw]
+		if !ok {
+			log.Printf("WARNING: Unknown OpenClaw instance %s for user %s, skipping", route.OpenClaw, short)
+			continue
+		}
+		client := NewOpenClawClient(short, ocConf.URL, ocConf.Token, route.DeviceID, savePath, short, bot, lineID)
+		client.Start()
+		clients[short] = client
+	}
+
+	// Group routes
+	for short, route := range cfg.Route.Group {
+		lineID := cfg.Line.Group[short]
+		if lineID == "" {
+			log.Printf("WARNING: No line ID for group %s, skipping route", short)
+			continue
+		}
+		ocConf, ok := ocConfigs[route.OpenClaw]
+		if !ok {
+			log.Printf("WARNING: Unknown OpenClaw instance %s for group %s, skipping", route.OpenClaw, short)
+			continue
+		}
+		client := NewOpenClawClient(short, ocConf.URL, ocConf.Token, route.DeviceID, savePath, short, bot, lineID)
+		client.Start()
+		clients[short] = client
+	}
+
+	// Reverse lookup maps to find senderShortName from Line ID
 	userToShort := make(map[string]string)
 	for short, id := range cfg.Line.User {
 		userToShort[id] = short
@@ -344,31 +402,53 @@ func main() {
 				handleMessageContent(bot, savePath, event.Message)
 			}
 
-			// Routing Logic
-			var clientName string
+			// Routing Logic: find the client for this sender
 			var senderShortName string
 			if event.Source.Type == linebot.EventSourceTypeUser {
 				senderShortName = userToShort[event.Source.UserID]
-				clientName = cfg.Route.User[senderShortName]
 			} else if event.Source.Type == linebot.EventSourceTypeGroup {
 				senderShortName = groupToShort[event.Source.GroupID]
-				clientName = cfg.Route.Group[senderShortName]
 			}
 
 			routed := false
-			if oc, ok := clients[clientName]; ok {
+			if oc, ok := clients[senderShortName]; ok {
 				if msg, ok := event.Message.(*linebot.TextMessage); ok {
 					reqID := fmt.Sprintf("line-%s-%d", event.WebhookEventID, time.Now().Unix())
 					sessionKey := fmt.Sprintf("line-%s", senderShortName)
+
+					// Determine sender name (from config or UserID)
+					senderName := event.Source.UserID
+					if name, ok := userToShort[event.Source.UserID]; ok {
+						senderName = name
+					}
+
+					// Determine group name (if from group)
+					var groupName interface{}
+					if event.Source.Type == linebot.EventSourceTypeGroup {
+						groupName = senderShortName
+					}
+
+					// Append sender and group info to the message text
+					fullMessage := msg.Text + "\n\nSender: " + senderName
+					if groupName != nil {
+						fullMessage += fmt.Sprintf("\nGroup: %v", groupName)
+					}
+
+					params := map[string]interface{}{
+						"message":        fullMessage,
+						"sessionKey":     sessionKey,
+						"idempotencyKey": reqID,
+					}
+					paramsBytes, _ := json.Marshal(params)
 
 					chatReq := OpenClawFrame{
 						Type:   "req",
 						ID:     reqID,
 						Method: "chat.send",
-						Params: json.RawMessage(fmt.Sprintf(`{"message":%q,"sessionKey":"%s","idempotencyKey":"%s"}`, msg.Text, sessionKey, reqID)),
+						Params: json.RawMessage(paramsBytes),
 					}
 					oc.Send(chatReq)
-					log.Printf("Forwarded message text to OpenClaw [%s]: %s", clientName, senderShortName)
+					log.Printf("Forwarded message text to OpenClaw (via route %s): %s", senderShortName, msg.Text)
 					routed = true
 				}
 			}

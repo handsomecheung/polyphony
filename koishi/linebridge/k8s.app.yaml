@@ -10,11 +10,10 @@ data:
   config.yaml: |
     line:
       user:
-        hh: "__{{linebridge:f:line-user-id-hh}}__"
-        cc: "__{{linebridge:f:line-user-id-cc}}__"
+        "__{{infra.common-users:f:hh}}__": "__{{linebridge:f:line-user-id-hh}}__"
+        "__{{infra.common-users:f:cc}}__": "__{{linebridge:f:line-user-id-cc}}__"
       group:
         kzk: "__{{linebridge:f:line-group-id-kzk}}__"
-    openclaw_device_id: "koishi-linebridge"
     openclaw:
       - default:
           url: "wss://openclaw.home4p.__{{infra.domains:f:x}}__"
@@ -24,10 +23,16 @@ data:
           token: "__{{openclaw-kzk.infos:f:secret}}__"
     route:
       user:
-        hh: default
-        cc: kzk
+        "__{{infra.common-users:f:hh}}__":
+          openclaw: kzk
+          device_id: "koishi-linebridge-__{{infra.common-users:f:hh}}__"
+        "__{{infra.common-users:f:cc}}__":
+          openclaw: kzk
+          device_id: "koishi-linebridge-__{{infra.common-users:f:cc}}__"
       group:
-        kzk: kzk
+        kzk:
+          openclaw: kzk
+          device_id: "koishi-linebridge-kzk"
 
 ---
 apiVersion: apps/v1
