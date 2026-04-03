@@ -20,6 +20,7 @@ import (
 
 	"github.com/gorilla/websocket"
 	"github.com/line/line-bot-sdk-go/v8/linebot"
+	"github.com/line/line-bot-sdk-go/v8/linebot/messaging_api"
 	"gopkg.in/yaml.v3"
 )
 
@@ -324,6 +325,7 @@ func main() {
 	}
 
 	bot, _ := linebot.New(lineSecret, lineToken)
+	msgBot, _ := messaging_api.NewMessagingApiAPI(lineToken)
 
 	// Flatten OpenClaw configs for easy lookup
 	ocConfigs := make(map[string]OpenClawConfigItem)
@@ -449,6 +451,18 @@ func main() {
 					}
 					oc.Send(chatReq)
 					log.Printf("Forwarded message text to OpenClaw (via route %s): %s", senderShortName, msg.Text)
+
+					// Show "typing" animation to user
+					chatId := event.Source.UserID
+					if event.Source.Type == linebot.EventSourceTypeGroup {
+						chatId = event.Source.GroupID
+					}
+					if chatId != "" {
+						msgBot.ShowLoadingAnimation(&messaging_api.ShowLoadingAnimationRequest{
+							ChatId:         chatId,
+							LoadingSeconds: 60,
+						})
+					}
 					routed = true
 				}
 			}
