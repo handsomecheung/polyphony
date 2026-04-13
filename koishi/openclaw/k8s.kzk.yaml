@@ -149,33 +149,6 @@ spec:
       secretName: openclaw-kzk-domainx
 
 ---
-# called by linebridge
-apiVersion: networking.k8s.io/v1
-kind: Ingress
-metadata:
-  name: openclaw-kzk-home4p
-  namespace: default
-  annotations:
-    cert-manager.io/cluster-issuer: cluster-letsencrypt-dns-cloudflare
-spec:
-  ingressClassName: traefik
-  rules:
-    - host: openclaw-kzk.home4p.__{{infra.domains:f:x}}__
-      http:
-        paths:
-          - path: /
-            pathType: Prefix
-            backend:
-              service:
-                name: openclaw-kzk
-                port:
-                  name: gateway
-  tls:
-    - hosts:
-        - openclaw-kzk.home4p.__{{infra.domains:f:x}}__
-      secretName: openclaw-kzk-home4p.domainx
-
----
 # called by Line Server
 apiVersion: networking.k8s.io/v1
 kind: Ingress
