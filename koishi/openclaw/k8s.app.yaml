@@ -86,6 +86,15 @@ spec:
         - name: caddy-config
           configMap:
             name: openclaw-caddy-config
+        - name: openclaw-data
+          hostPath:
+            path: /mnt/coder-workspaces/private-workspace/repos/local/openclaw-data/default
+            type: DirectoryOrCreate
+        - name: common
+          hostPath:
+            path: /mnt/coder-workspaces/private-workspace/repos/local/openclaw-data/common
+            type: DirectoryOrCreate
+
         - name: coder-workspaces
           hostPath:
             path: /mnt/coder-workspaces
@@ -97,20 +106,19 @@ spec:
       initContainers:
         - name: init
           image: busybox:latest
-          command: ["sh", "-c", "chown -R 1000:1000 /data/default"]
+          command: ["sh", "-c", "chown -R 1000:1000 /openclaw-data"]
           securityContext:
             runAsUser: 0
           volumeMounts:
-            - name: coder-workspaces
-              subPath: private-workspace/repos/local/openclaw-data/default
-              mountPath: /data/default
+            - name: openclaw-data
+              mountPath: /openclaw-data
       containers:
         - name: app
           image: cloudpublic/default/openclaw:latest
           command: ["openclaw", "gateway", "--bind", "lan", "--port", "18789"]
           env:
             - name: PATH
-              value: "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/home/node/.openclaw/bin"
+              value: "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/home/node/bin"
             - name: OPENCLAW_PUBLIC_DOMAIN
               value: "openclaw.__{{infra.domains:f:x}}__"
             - name: OPENCLAW_GATEWAY_TOKEN
@@ -119,10 +127,6 @@ spec:
               value: "--max-old-space-size=1536"
             - name: LITELLM_API_KEY
               value: "__{{koishi.litellm}}__"
-            - name: LINE_CHANNEL_SECRET
-              value: "__{{linebridge:f:channel-secret}}__"
-            - name: LINE_CHANNEL_ACCESS_TOKEN
-              value: "__{{linebridge:f:channel-access-token}}__"
             - name: GOG_ACCOUNT
               value: "__{{openclaw.infos:f:gog.email}}__"
             - name: GOG_KEYRING_PASSWORD
@@ -131,17 +135,26 @@ spec:
               value: https://vaultwarden.__{{infra.domains:f:x}}__
             - name: GEMINI_API_KEY
               value: "__{{llm.api-keys:f:gemini}}__"
+            - name: NOTION_API_KEY
+              value: "__{{openclaw.infos:f:NOTION_API_KEY}}__"
+            - name: ELEVENLABS_API_KEY
+              value: "__{{openclaw.infos:f:ELEVENLABS_API_KEY}}__"
           ports:
             - name: gateway
               protocol: TCP
               containerPort: 18789
           volumeMounts:
-            - name: coder-workspaces
-              subPath: private-workspace/repos/local/openclaw-data/default/data
+            - name: openclaw-data
+              subPath: data
               mountPath: /home/node/.openclaw
-            - name: coder-workspaces
-              subPath: private-workspace/repos/local/openclaw-data/default/config
+            - name: openclaw-data
+              subPath: config
               mountPath: /home/node/.config
+
+            - name: common
+              subPath: bin
+              mountPath: /home/node/bin
+
             - name: coder-workspaces
               mountPath: /mnt/coder-workspaces
             - name: coder-sharepoint
@@ -169,12 +182,12 @@ spec:
             - name: caddy-config
               subPath: Caddyfile
               mountPath: /etc/caddy/Caddyfile
-            - name: coder-workspaces
-              subPath: private-workspace/repos/local/openclaw-data/default/data/workspace
-              mountPath: /srv/workspace
             - name: caddy-config
               subPath: _layout.html
               mountPath: /srv/_layout.html
+            - name: openclaw-data
+              subPath: data/workspace
+              mountPath: /srv/workspace
 
 ---
 apiVersion: v1
@@ -226,33 +239,6 @@ spec:
                 port:
                   name: caddy-http
           - path: /
-            pathType: Prefix
-            backend:
-              service:
-                name: openclaw
-                port:
-                  name: oc-gateway
-  tls:
-    - hosts:
-        - openclaw.__{{infra.domains:f:x}}__
-      secretName: openclaw-domainx
-
----
-# called by Line Server
-apiVersion: networking.k8s.io/v1
-kind: Ingress
-metadata:
-  name: openclaw-line-webhook
-  namespace: default
-  annotations:
-    cert-manager.io/cluster-issuer: cluster-letsencrypt-dns-cloudflare
-spec:
-  ingressClassName: traefik
-  rules:
-    - host: openclaw.__{{infra.domains:f:x}}__
-      http:
-        paths:
-          - path: /line/webhook
             pathType: Prefix
             backend:
               service:

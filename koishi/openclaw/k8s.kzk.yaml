@@ -1,0 +1,203 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: openclaw-kzk
+  namespace: default
+  labels:
+    app.kubernetes.io/name: openclaw-kzk
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: openclaw-kzk
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: openclaw-kzk
+    spec:
+      nodeSelector:
+        kubernetes.io/hostname: nur
+      securityContext:
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+      volumes:
+        - name: openclaw-data
+          hostPath:
+            path: /mnt/coder-workspaces/private-workspace/repos/local/openclaw-data/kzk
+            type: Directory
+        - name: common
+          hostPath:
+            path: /mnt/coder-workspaces/private-workspace/repos/local/openclaw-data/common
+            type: DirectoryOrCreate
+      initContainers:
+        - name: init
+          image: busybox:latest
+          command: ["sh", "-c", "chown -R 1000:1000 /openclaw-data"]
+          securityContext:
+            runAsUser: 0
+          volumeMounts:
+            - name: openclaw-data
+              mountPath: /openclaw-data
+      containers:
+        - name: app
+          image: cloudpublic/default/openclaw:latest
+          command: ["openclaw", "gateway", "--bind", "lan", "--port", "18789"]
+          env:
+            - name: PATH
+              value: "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/home/node/bin"
+            - name: OPENCLAW_PUBLIC_DOMAIN
+              value: "openclaw-kzk.__{{infra.domains:f:x}}__"
+            - name: OPENCLAW_GATEWAY_TOKEN
+              value: "__{{openclaw-kzk.infos:f:secret}}__"
+            - name: NODE_OPTIONS
+              value: "--max-old-space-size=1536"
+            - name: LITELLM_API_KEY
+              value: "__{{koishi.litellm}}__"
+            - name: GOG_ACCOUNT
+              value: "__{{openclaw-kzk.infos:f:gog.email}}__"
+            - name: GOG_KEYRING_PASSWORD
+              value: "__{{openclaw-kzk.infos:f:gog.keyring_password}}__"
+            - name: VW_URL
+              value: https://vaultwarden.__{{infra.domains:f:x}}__
+            - name: GEMINI_API_KEY
+              value: "__{{llm.api-keys:f:gemini}}__"
+            - name: LINE_CHANNEL_SECRET
+              value: "__{{linebridge:f:channel-secret}}__"
+            - name: LINE_CHANNEL_ACCESS_TOKEN
+              value: "__{{linebridge:f:channel-access-token}}__"
+          ports:
+            - name: gateway
+              protocol: TCP
+              containerPort: 18789
+          volumeMounts:
+            - name: openclaw-data
+              subPath: data
+              mountPath: /home/node/.openclaw
+            - name: openclaw-data
+              subPath: config
+              mountPath: /home/node/.config
+            - name: common
+              subPath: bin
+              mountPath: /home/node/bin
+          resources:
+            requests:
+              cpu: 1000m
+              memory: 512Mi
+          livenessProbe:
+            tcpSocket:
+              port: gateway
+            initialDelaySeconds: 30
+            periodSeconds: 20
+          readinessProbe:
+            tcpSocket:
+              port: gateway
+            initialDelaySeconds: 15
+            periodSeconds: 10
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: openclaw-kzk
+  namespace: default
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: openclaw-kzk
+  ports:
+    - name: gateway
+      port: 80
+      targetPort: gateway
+      protocol: TCP
+
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: openclaw-kzk
+  namespace: default
+  annotations:
+    cert-manager.io/cluster-issuer: cluster-letsencrypt-dns-cloudflare
+    traefik.ingress.kubernetes.io/router.middlewares: middleware-playonjan@kubernetescrd,middleware-antimitm@kubernetescrd,sso-domainx@kubernetescrd
+    gethomepage.dev/enabled: "true"
+    gethomepage.dev/group: AI
+    gethomepage.dev/name: OpenClaw KZK
+    gethomepage.dev/icon: https://openclaw.ai/apple-touch-icon.png
+    gethomepage.dev/href: https://openclaw-kzk.__{{infra.domains:f:x}}__
+    gethomepage.dev/siteMonitor: https://openclaw-kzk.__{{infra.domains:f:x}}__
+    gethomepage.dev/weight: "50"
+spec:
+  ingressClassName: traefik
+  rules:
+    - host: openclaw-kzk.__{{infra.domains:f:x}}__
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: openclaw-kzk
+                port:
+                  name: gateway
+  tls:
+    - hosts:
+        - openclaw-kzk.__{{infra.domains:f:x}}__
+      secretName: openclaw-kzk-domainx
+
+---
+# called by linebridge
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: openclaw-kzk-home4p
+  namespace: default
+  annotations:
+    cert-manager.io/cluster-issuer: cluster-letsencrypt-dns-cloudflare
+spec:
+  ingressClassName: traefik
+  rules:
+    - host: openclaw-kzk.home4p.__{{infra.domains:f:x}}__
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: openclaw-kzk
+                port:
+                  name: gateway
+  tls:
+    - hosts:
+        - openclaw-kzk.home4p.__{{infra.domains:f:x}}__
+      secretName: openclaw-kzk-home4p.domainx
+
+---
+# called by Line Server
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: openclaw-kzk-line-webhook
+  namespace: default
+  annotations:
+    cert-manager.io/cluster-issuer: cluster-letsencrypt-dns-cloudflare
+spec:
+  ingressClassName: traefik
+  rules:
+    - host: openclaw-kzk.__{{infra.domains:f:x}}__
+      http:
+        paths:
+          - path: /line/webhook
+            pathType: Prefix
+            backend:
+              service:
+                name: openclaw
+                port:
+                  name: oc-gateway
+  tls:
+    - hosts:
+        - openclaw-kzk.__{{infra.domains:f:x}}__
+      secretName: openclaw-kzk-domainx
