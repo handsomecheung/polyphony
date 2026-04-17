@@ -1,0 +1,241 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: markviewer-caddy-config
+  namespace: default
+data:
+  Caddyfile: |
+    :8080 {
+        root * /srv
+        templates
+        
+        @markdown {
+            file {path}
+            path *.md
+        }
+        rewrite @markdown /_layout.html
+        
+        file_server {
+            browse /data/browse.html
+        }
+    }
+  # This custom template is used to disable the 'autofocus' attribute on the search input,
+  # which prevents the on-screen keyboard from automatically appearing on mobile devices
+  # when the directory listing is loaded.
+  browse.html: |
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <title>Index of {{.Name}}</title>
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/github-markdown-css/5.2.0/github-markdown.min.css">
+        <style>
+            .markdown-body {
+                box-sizing: border-box;
+                min-width: 200px;
+                max-width: 980px;
+                margin: 0 auto;
+                padding: 45px;
+            }
+            .search-container { margin-bottom: 20px; }
+            input[type="text"] {
+                width: 100%;
+                padding: 10px;
+                border: 1px solid #ddd;
+                border-radius: 6px;
+                font-size: 16px;
+            }
+            .file-list { list-style: none; padding: 0; }
+            .file-item { 
+                padding: 10px 0; 
+                border-bottom: 1px solid #eee; 
+                display: flex; 
+                justify-content: space-between; 
+                align-items: center;
+            }
+            .file-item a { 
+                text-decoration: none; 
+                color: #0366d6; 
+                word-break: break-all;
+                flex-grow: 1;
+            }
+            .file-item a:hover { text-decoration: underline; }
+            .file-meta { 
+                color: #666; 
+                font-size: 0.85em; 
+                white-space: nowrap;
+                margin-left: 15px;
+            }
+        </style>
+    </head>
+    <body class="markdown-body">
+        <h1>Index of {{.Name}}</h1>
+        <div class="search-container">
+            <input type="text" id="search" placeholder="Search files..." onkeyup="filterFiles()">
+        </div>
+        <ul class="file-list" id="file-list">
+            {{if .CanGoUp}}
+            <li class="file-item"><a href="..">.. (parent directory)</a></li>
+            {{end}}
+            {{range .Items}}
+            <li class="file-item">
+                <a href="{{.URL}}">{{.Name}}</a>
+                <span class="file-meta">{{if .IsDir}}dir{{else}}{{.HumanSize}}{{end}}</span>
+            </li>
+            {{end}}
+        </ul>
+        <script>
+            function filterFiles() {
+                var input = document.getElementById('search');
+                var filter = input.value.toLowerCase();
+                var items = document.getElementsByClassName('file-item');
+                for (var i = 0; i < items.length; i++) {
+                    var link = items[i].getElementsByTagName('a')[0];
+                    if (!link) continue;
+                    var text = link.innerText.toLowerCase();
+                    if (text === ".. (parent directory)") continue;
+                    items[i].style.display = text.indexOf(filter) > -1 ? "" : "none";
+                }
+            }
+        </script>
+    </body>
+    </html>
+  _layout.html: |
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <title>Markviewer Notes</title>
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/github-markdown-css/5.2.0/github-markdown.min.css">
+        <style>
+            .markdown-body {
+                box-sizing: border-box;
+                min-width: 200px;
+                max-width: 980px;
+                margin: 0 auto;
+                padding: 45px;
+            }
+            @media (max-width: 767px) {
+                .markdown-body { padding: 15px; }
+            }
+        </style>
+    </head>
+    <body class="markdown-body">
+        {{ include .OriginalReq.URL.Path | markdown }}
+    </body>
+    </html>
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: markviewer
+  namespace: default
+  labels:
+    app.kubernetes.io/name: markviewer
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: markviewer
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: markviewer
+    spec:
+      nodeSelector:
+        kubernetes.io/hostname: nur
+      volumes:
+        - name: caddy-config
+          configMap:
+            name: markviewer-caddy-config
+
+        - name: data-obsidian
+          hostPath:
+            path: /mnt/coder-workspaces/private-workspace/repos/local/notebook/obsidian
+            type: Directory
+        - name: data-openclaw-default-workspace
+          hostPath:
+            path: /mnt/coder-workspaces/private-workspace/repos/local/openclaw-data/default/data/workspace
+            type: Directory
+        - name: data-openclaw-kzk-workspace
+          hostPath:
+            path: /mnt/coder-workspaces/private-workspace/repos/local/openclaw-data/kzk/data/workspace
+            type: Directory
+      containers:
+        - name: app
+          image: caddy:latest
+          ports:
+            - name: default
+              containerPort: 8080
+          volumeMounts:
+            - name: caddy-config
+              subPath: Caddyfile
+              mountPath: /etc/caddy/Caddyfile
+            - name: caddy-config
+              subPath: _layout.html
+              mountPath: /srv/_layout.html
+            - name: caddy-config
+              subPath: browse.html
+              mountPath: /data/browse.html
+
+            - name: data-obsidian
+              mountPath: /srv/obsidian
+              readOnly: true
+            - name: data-openclaw-default-workspace
+              mountPath: /srv/openclaw/default/workspace
+              readOnly: true
+            - name: data-openclaw-kzk-workspace
+              mountPath: /srv/openclaw/kzk/workspace
+              readOnly: true
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: markviewer
+  namespace: default
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: markviewer
+  ports:
+    - name: default
+      port: 8080
+      targetPort: default
+      protocol: TCP
+
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: markviewer
+  namespace: default
+  annotations:
+    cert-manager.io/cluster-issuer: cluster-letsencrypt-dns-cloudflare
+    traefik.ingress.kubernetes.io/router.middlewares: middleware-playonjan@kubernetescrd,middleware-antimitm@kubernetescrd,sso-domainx@kubernetescrd
+    gethomepage.dev/enabled: "true"
+    gethomepage.dev/group: Tool
+    gethomepage.dev/name: Markviewer
+    gethomepage.dev/href: https://markviewer.__{{infra.domains:f:x}}__
+    gethomepage.dev/weight: "60"
+spec:
+  ingressClassName: traefik
+  rules:
+    - host: markviewer.__{{infra.domains:f:x}}__
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: markviewer
+                port:
+                  name: default
+  tls:
+    - hosts:
+        - markviewer.__{{infra.domains:f:x}}__
+      secretName: markviewer-domainx
