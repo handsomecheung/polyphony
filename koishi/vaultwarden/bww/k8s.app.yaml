@@ -1,0 +1,80 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: bww
+  namespace: default-vaultwarden
+  labels:
+    app: bww
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: bww
+  template:
+    metadata:
+      labels:
+        app: bww
+    spec:
+      containers:
+        - name: app
+          image: cloudpublic/default/bww:latest
+          imagePullPolicy: Always
+          ports:
+            - name: default
+              containerPort: 8080
+          env:
+            - name: BW_URL
+              value: "https://vaultwarden.__{{infra.domains:f:x}}__"
+            - name: BW_CLIENTID
+              value: "__{{vaultwarden.koshi.infra:f:client-id}}__"
+            - name: BW_CLIENTSECRET
+              value: "__{{vaultwarden.koshi.infra:f:client-secret}}__"
+            - name: BW_PASSWORD
+              value: "__{{vaultwarden.koshi.infra}}__"
+          resources:
+            requests:
+              cpu: 50m
+              memory: 100Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: bww
+  namespace: default-vaultwarden
+  labels:
+    app: bww
+spec:
+  type: ClusterIP
+  ports:
+    - name: default
+      port: 80
+      targetPort: default
+  selector:
+    app: bww
+
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: bww
+  namespace: default-vaultwarden
+  annotations:
+    cert-manager.io/cluster-issuer: cluster-letsencrypt-dns-cloudflare
+spec:
+  ingressClassName: traefik
+  rules:
+    - host: bww.home4p.__{{infra.domains:f:x}}__
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: bww
+                port:
+                  name: default
+  tls:
+    - hosts:
+        - bww.home4p.__{{infra.domains:f:x}}__
+      secretName: bww-home4p-domainx
