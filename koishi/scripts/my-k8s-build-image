@@ -12,13 +12,15 @@ script_dir="$(dirname "${BASH_SOURCE[0]}")"
 bash ~/.kube/get-token.devbox-user.sh session >/dev/null
 echo "kubectl configured. start building image ..."
 
-cmd_kubectl="kubectl"
-host_cloudpublic=$(my-secret getpassword --key=koishi.deploy.cloudpublic_registry_host 2>/dev/null)
-host_cloudprivate=$(my-secret getpassword --key=koishi.deploy.cloudprivate_registry_host 2>/dev/null)
+bwww sync
 
-cloudpublic_registry_id=$(my-secret getpassword --key=koishi.deploy.cloudpublic_registry_id 2>/dev/null)
-cloudprivate_registry_id=$(my-secret getpassword --key=koishi.deploy.cloudprivate_registry_id 2>/dev/null)
-cloudpublic_registry_password=$(my-secret getpassword --key=github.docker-image.token 2>/dev/null)
+cmd_kubectl="kubectl"
+host_cloudpublic=$(bwww get-password koishi.deploy.cloudpublic_registry_host 2>/dev/null)
+host_cloudprivate=$(bwww get-password koishi.deploy.cloudprivate_registry_host 2>/dev/null)
+
+cloudpublic_registry_id=$(bwww get-password koishi.deploy.cloudpublic_registry_id 2>/dev/null)
+cloudprivate_registry_id=$(bwww get-password koishi.deploy.cloudprivate_registry_id 2>/dev/null)
+cloudpublic_registry_password=$(bwww get-password github.docker-image.token 2>/dev/null)
 
 # for push cache layer and cloudprivate
 docker login "${host_cloudpublic}" --username "${cloudpublic_registry_id}" --password "${cloudpublic_registry_password}"
@@ -67,10 +69,10 @@ sed -e "s|PLACEHOLDER_NAMESPACE|${build_namespace}|g" \
 	"${template_file}" >"${job_file}"
 
 echo "render code files ..."
-my-secret render .
+bwww render-file .
 
 echo "render config files ..."
-my-secret render "${build_config_dir}"
+bwww render-file "${build_config_dir}"
 
 # Handle `FROM cloudpublic/` `FROM cloudprivate/` in Dockerfile
 echo "Processing Dockerfile FROM instructions..."

@@ -3,7 +3,7 @@
 require 'yaml'
 require 'tmpdir'
 require File.join(File.expand_path(__dir__), 'common')
-require File.join('~/scripts/workspace/my-secret.scripts/lib', 'bw')
+load File.join(File.expand_path(__dir__), '../..', 'scripts', 'bwww')
 
 CMD_KUBECTL = "kubectl"
 
@@ -13,7 +13,7 @@ CLOUDPRIVATE_REGISTRY_SECRET_NAME = 'dockersecret-cloudprivate'
 
 module Kubectl
   def self.get_secret_config(key)
-    BW.get_password_by_key "koishi.deploy.#{key}"
+    BWWW.get_password "koishi.deploy.#{key}"
   end
 
   def self.get_timezone
@@ -44,11 +44,15 @@ module Kubectl
   end
 
   def self.setup_config(raw_config_file, options)
+    BWWW.sync
+
     docs = rewrite_config raw_config_file, options
     deploy docs, options
   end
 
   def self.setup_meta(meta, options)
+    BWWW.sync
+
     unless meta == 'pullsecret-cloudprivate'
       puts 'unknown meta, only support pullsecret-cloudprivate'
       exit 1
@@ -81,24 +85,12 @@ module Kubectl
   end
 
   def self.bw_render_text(content)
-    value, errors = BW.render content
-    unless errors.empty?
-      puts errors
-      exit 1
-    end
-
-    value
+    BWWW.render_content content
   end
 
   def self.bw_download_attachment(secret_name, attachment_name)
     filepath = File.join gen_tmpdir, attachment_name
-
-    error = BW.download_attachment secret_name, attachment_name, filepath
-    unless error.nil?
-      puts error
-      exit 1
-    end
-
+    content = BWWW.download_attachment secret_name, attachment_name, filepath
     filepath
   end
 
