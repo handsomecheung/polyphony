@@ -39,8 +39,10 @@ module BWWW
     @secret_key ||= get_config['BWW_SECRET_KEY']
   end
 
-  def self.get_password(name)
-    request_get("/#{name}/password")
+  def self.get_password(name, base64 = false)
+    path = "/#{name}/password"
+    path += '/base64' if base64
+    request_get(path)
   end
 
   def self.get_field(name, field)
@@ -178,7 +180,7 @@ def main
   method = ARGV[0]
   case method
   when 'get-password'
-    puts BWWW.get_password(ARGV[1])
+    puts BWWW.get_password(ARGV[1], ARGV[2] == 'base64')
   when 'get-field'
     puts BWWW.get_field(ARGV[1], ARGV[2])
   when 'get-attachment'

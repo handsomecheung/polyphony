@@ -286,6 +286,11 @@ func handleRender(w http.ResponseWriter, r *http.Request) {
 				var bVal []byte
 				bVal, err = getAttachmentValue(parts[0], parts[2], false)
 				val = string(bVal)
+			} else if parts[1] == "_" && parts[2] == "b64" {
+				val, err = getPasswordValue(parts[0])
+				if err == nil {
+					val = base64.StdEncoding.EncodeToString([]byte(val))
+				}
 			}
 		case 5:
 			if parts[1] == "a" && parts[3] == "a" && parts[4] == "b64" {
@@ -307,16 +312,20 @@ func handleRender(w http.ResponseWriter, r *http.Request) {
 
 func handlePassword(w http.ResponseWriter, r *http.Request) {
 	parts := strings.Split(r.URL.Path, "/")
-	if len(parts) < 2 {
+	if len(parts) < 3 {
 		http.NotFound(w, r)
 		return
 	}
 	name := parts[1]
+	isBase64 := len(parts) > 3 && parts[3] == "base64"
 	val, err := getPasswordValue(name)
 	if err != nil {
 		log.Printf("Failed to get password for %s: %v", name, err)
 		http.Error(w, err.Error(), http.StatusNotFound)
 		return
+	}
+	if isBase64 {
+		val = base64.StdEncoding.EncodeToString([]byte(val))
 	}
 	w.Write([]byte(val))
 }
