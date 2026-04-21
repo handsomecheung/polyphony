@@ -1,7 +1,11 @@
 package main
 
 import (
+	"bytes"
+	"crypto/hmac"
+	"crypto/sha256"
 	"encoding/base64"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -10,8 +14,10 @@ import (
 	"os"
 	"os/exec"
 	"regexp"
+	"strconv"
 	"strings"
 	"sync"
+	"time"
 )
 
 type Field struct {
@@ -31,10 +37,65 @@ type Item struct {
 var (
 	cache      = make(map[string]Item)
 	cacheMutex sync.RWMutex
+	secretKey  []byte
 )
 
 type BWStatus struct {
 	Status string `json:"status"`
+}
+
+func authMiddleware(next http.HandlerFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if len(secretKey) == 0 {
+			log.Println("Error: BWW_SECRET_KEY is not set")
+			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+			return
+		}
+
+		timestampStr := r.Header.Get("X-BWW-Timestamp")
+		signatureHex := r.Header.Get("X-BWW-Signature")
+
+		if timestampStr == "" || signatureHex == "" {
+			http.Error(w, "Unauthorized: Missing auth headers", http.StatusUnauthorized)
+			return
+		}
+
+		// Validate timestamp (prevent replay attacks, 5 minutes window)
+		timestamp, err := strconv.ParseInt(timestampStr, 10, 64)
+		if err != nil {
+			http.Error(w, "Unauthorized: Invalid timestamp", http.StatusUnauthorized)
+			return
+		}
+		now := time.Now().Unix()
+		if now-timestamp > 300 || timestamp-now > 300 {
+			http.Error(w, "Unauthorized: Request expired", http.StatusUnauthorized)
+			return
+		}
+
+		// Read body for signature verification
+		body, err := io.ReadAll(r.Body)
+		if err != nil {
+			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+			return
+		}
+		r.Body = io.NopCloser(bytes.NewBuffer(body))
+
+		// Create signature: timestamp + method + path + body
+		mac := hmac.New(sha256.New, secretKey)
+		mac.Write([]byte(timestampStr))
+		mac.Write([]byte(r.Method))
+		mac.Write([]byte(r.URL.Path))
+		mac.Write(body)
+		expectedSignature := hex.EncodeToString(mac.Sum(nil))
+
+		if !hmac.Equal([]byte(signatureHex), []byte(expectedSignature)) {
+			log.Printf("Unauthorized: Signature mismatch. Got: %s, Expected: %s", signatureHex, expectedSignature)
+			http.Error(w, "Unauthorized: Invalid signature", http.StatusUnauthorized)
+			return
+		}
+
+		next(w, r)
+	}
 }
 
 func ensureUnlocked() error {
@@ -245,7 +306,12 @@ func handleRender(w http.ResponseWriter, r *http.Request) {
 }
 
 func handlePassword(w http.ResponseWriter, r *http.Request) {
-	name := strings.Split(r.URL.Path, "/")[1]
+	parts := strings.Split(r.URL.Path, "/")
+	if len(parts) < 2 {
+		http.NotFound(w, r)
+		return
+	}
+	name := parts[1]
 	val, err := getPasswordValue(name)
 	if err != nil {
 		log.Printf("Failed to get password for %s: %v", name, err)
@@ -257,6 +323,10 @@ func handlePassword(w http.ResponseWriter, r *http.Request) {
 
 func handleField(w http.ResponseWriter, r *http.Request) {
 	parts := strings.Split(r.URL.Path, "/")
+	if len(parts) < 4 {
+		http.NotFound(w, r)
+		return
+	}
 	name := parts[1]
 	fieldName := parts[3]
 	val, err := getFieldValue(name, fieldName)
@@ -270,6 +340,10 @@ func handleField(w http.ResponseWriter, r *http.Request) {
 
 func handleAttachment(w http.ResponseWriter, r *http.Request) {
 	parts := strings.Split(r.URL.Path, "/")
+	if len(parts) < 4 {
+		http.NotFound(w, r)
+		return
+	}
 	name := parts[1]
 	fileName := parts[3]
 	isBase64 := len(parts) > 4 && parts[4] == "base64"
@@ -289,13 +363,19 @@ func handleAttachment(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
+	key := os.Getenv("BWW_SECRET_KEY")
+	if key == "" {
+		log.Fatal("BWW_SECRET_KEY environment variable is required")
+	}
+	secretKey = []byte(key)
+
 	if err := syncCache(); err != nil {
 		log.Fatalf("Initial sync failed: %v", err)
 	}
 
-	http.HandleFunc("/sync", handleSync)
-	http.HandleFunc("/render", handleRender)
-	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+	http.HandleFunc("/sync", authMiddleware(handleSync))
+	http.HandleFunc("/render", authMiddleware(handleRender))
+	http.HandleFunc("/", authMiddleware(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodGet {
 			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 			return
@@ -316,8 +396,8 @@ func main() {
 		default:
 			http.NotFound(w, r)
 		}
-	})
+	}))
 
-	fmt.Println("Server starting on :8080...")
+	fmt.Println("Server starting on :8080 with HMAC authentication...")
 	log.Fatal(http.ListenAndServe(":8080", nil))
 }

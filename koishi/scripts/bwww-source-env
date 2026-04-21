@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+set -e
+
+DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &>/dev/null && pwd)
+
+echo "read bwww env with sudo ..." >&2
+if ! env_content=$(sudo cat "${DIR}/.config/bwww/env"); then
+    echo "Failed to read environment file." >&2
+    exit 1
+fi
+source <(echo "$env_content")

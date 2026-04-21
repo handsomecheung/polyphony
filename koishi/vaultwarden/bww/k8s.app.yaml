@@ -32,6 +32,8 @@ spec:
               value: "__{{vaultwarden.koshi.infra:f:client-secret}}__"
             - name: BW_PASSWORD
               value: "__{{vaultwarden.koshi.infra}}__"
+            - name: BWW_SECRET_KEY
+              value: "__{{vaultwarden.koshi.infra:f:bww-secret-key}}__"
           resources:
             requests:
               cpu: 50m

@@ -2,10 +2,12 @@
 set -e
 
 if [[ -f ${HOME}/.kube/get-token.devbox-user.sh ]]; then
+    echo "set kubectl token with sudo ..."
     bash "${HOME}/.kube/get-token.devbox-user.sh" session >/dev/null
 fi
 
 current="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-deploy_rb="${current}/../deploy/deploy.rb"
 
-ruby "${deploy_rb}" "$@"
+source "${current}/bwww-source-env"
+
+ruby "${current}/../deploy/deploy.rb" "$@"

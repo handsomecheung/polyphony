@@ -3,7 +3,7 @@
 require 'yaml'
 require 'tmpdir'
 require File.join(File.expand_path(__dir__), 'common')
-load File.join(File.expand_path(__dir__), '../..', 'scripts', 'bwww')
+require File.join(File.expand_path(__dir__), '../../', 'scripts', 'bwww')
 
 CMD_KUBECTL = "kubectl"
 

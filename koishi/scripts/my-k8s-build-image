@@ -9,10 +9,12 @@ current_dir=$(pwd)
 script_name="$(basename "${BASH_SOURCE[0]}")"
 script_dir="$(dirname "${BASH_SOURCE[0]}")"
 
+echo "set kubectl token with sudo ..."
 bash ~/.kube/get-token.devbox-user.sh session >/dev/null
-echo "kubectl configured. start building image ..."
 
 bwww sync
+
+echo "kubectl and bwww configured. start building image ..."
 
 cmd_kubectl="kubectl"
 host_cloudpublic=$(bwww get-password koishi.deploy.cloudpublic_registry_host 2>/dev/null)
