@@ -362,6 +362,11 @@ func handleAttachment(w http.ResponseWriter, r *http.Request) {
 	w.Write(val)
 }
 
+func handleHealth(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusOK)
+	w.Write([]byte("OK"))
+}
+
 func main() {
 	key := os.Getenv("BWW_SECRET_KEY")
 	if key == "" {
@@ -373,6 +378,7 @@ func main() {
 		log.Fatalf("Initial sync failed: %v", err)
 	}
 
+	http.HandleFunc("/ok", handleHealth)
 	http.HandleFunc("/sync", authMiddleware(handleSync))
 	http.HandleFunc("/render", authMiddleware(handleRender))
 	http.HandleFunc("/", authMiddleware(func(w http.ResponseWriter, r *http.Request) {

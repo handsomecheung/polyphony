@@ -38,6 +38,22 @@ spec:
             requests:
               cpu: 50m
               memory: 100Mi
+          livenessProbe:
+            httpGet:
+              path: /ok
+              port: default
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /ok
+              port: default
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          resources:
+            requests:
+              cpu: 30m
+              memory: 50Mi
 ---
 apiVersion: v1
 kind: Service
