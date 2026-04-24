@@ -106,15 +106,30 @@ module BWWW
       exit 1
     end
   end
-
-  def self.render_for_dir(path)
-    Find.find(path) do |p|
-      next if File.directory?(p)
-
-      render_for_file(p)
+def self.render_for_dir(path)
+  Find.find(path) do |p|
+    if File.directory?(p) && File.basename(p) == '.git'
+      Find.prune
     end
-  end
+    next if File.directory?(p)
+    next unless text_file?(p)
 
+    render_for_file(p)
+  end
+end
+
+def self.text_file?(path)
+  File.open(path, 'rb') do |f|
+    chunk = f.read(1024)
+    return true if chunk.nil? # empty file
+
+    !chunk.include?("\0")
+  end
+rescue StandardError
+  false
+end
+
+private
   def self.get_render_content(filepath)
     uri = URI("#{base_url}/render")
     content = File.read(filepath)
