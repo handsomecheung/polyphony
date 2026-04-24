@@ -10,6 +10,7 @@ DOMAIN_Y = common.get_os_env_force("DOMAIN_Y")
 DOMAIN_P = common.get_os_env_force("DOMAIN_P")
 DOMAIN_T = common.get_os_env_force("DOMAIN_T")
 DOMAIN_C = common.get_os_env_force("DOMAIN_C")
+DOMAIN_D = common.get_os_env_force("DOMAIN_D")
 
 DEFAULT_TTL = 60
 DOMAINS_IPV4 = {
@@ -34,6 +35,10 @@ DOMAINS_IPV4 = {
         ["*.", True],
     ],
     DOMAIN_C: [
+        ["", True],
+        ["*.", True],
+    ],
+    DOMAIN_D: [
         ["", True],
         ["*.", True],
     ],
