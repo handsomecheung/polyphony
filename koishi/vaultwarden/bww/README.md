@@ -19,32 +19,38 @@ BWW (BitWarden for Webapp) is a Go-based application that wraps the Bitwarden CL
 - **URL**: `GET /{name}/field/{field_name}`
 - **Description**: Returns the value of a custom field for the specified item.
 
-### 3. Get Attachment
+### 3. Get Custom Field (Base64)
+- **URL**: `GET /{name}/field/{field_name}/base64`
+- **Description**: Returns the Base64-encoded value of a custom field.
+
+### 4. Get Attachment
 - **URL**: `GET /{name}/attachment/{filename}`
 - **Description**: Downloads the specified attachment file.
 
-### 4. Get Attachment (Base64)
+### 5. Get Attachment (Base64)
 - **URL**: `GET /{name}/attachment/{filename}/base64`
 - **Description**: Returns the content of the attachment encoded in Base64 (Plain text).
 
-### 5. Sync Cache
+### 6. Sync Cache
 - **URL**: `UPDATE /sync`
 - **Method**: `UPDATE`
 - **Description**: Triggers `bw sync` and reloads all items into memory.
 
-### 6. Render Template
+### 7. Render Template
 - **URL**: `POST /render`
 - **Method**: `POST`
 - **Description**: Accepts a file (binary/text) in the request body and replaces placeholders with Bitwarden data.
 
 ## Placeholder Formats for `/render`
 
-| Format | Description | Example |
-| :--- | :--- | :--- |
-| `__{{name}}__` | Password of item `name` | `__{{koishi.litellm}}__` |
-| `__{{name:f:field}}__` | Custom field `field` of item `name` | `__{{infra.common-users:f:hh}}__` |
-| `__{{name:a:file}}__` | Content of attachment `file` | `__{{sshkeys:a:id_rsa}}__` |
-| `__{{name:a:file:a:b64}}__` | Base64 content of attachment `file` | `__{{sshkeys:a:id_rsa:a:b64}}__` |
+| Format                      | Description                         | Example                           |
+|:----------------------------|:------------------------------------|:----------------------------------|
+| `__{{name}}__`              | Password of item `name`             | `__{{koishi.litellm}}__`          |
+| `__{{name:_:b64}}__`        | Base64 encodeed of password `name`  | `__{{koishi.litellm:_:b64}}__`    |
+| `__{{name:f:field}}__`      | Custom field `field` of item `name` | `__{{infra.common-users:f:hh}}__` |
+| `__{{name:f:field:f:b64}}__` | Base64 encoded custom field `field` | `__{{infra:f:token:f:b64}}__` |
+| `__{{name:a:file}}__`       | Content of attachment `file`        | `__{{sshkeys:a:id_rsa}}__`        |
+| `__{{name:a:file:a:b64}}__` | Base64 content of attachment `file` | `__{{sshkeys:a:id_rsa:a:b64}}__`  |
 
 ## Deployment
 

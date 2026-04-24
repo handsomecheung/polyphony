@@ -178,18 +178,22 @@ func getItem(name string) (Item, bool) {
 	return item, ok
 }
 
-func getPasswordValue(name string) (string, error) {
-	log.Printf("Fetching password for item: %s", name)
+func getPasswordValue(name string, isBase64 bool) (string, error) {
+	log.Printf("Fetching password for item: %s (base64: %v)", name, isBase64)
 
 	item, ok := getItem(name)
 	if !ok {
 		return "", fmt.Errorf("item not found")
 	}
-	return item.Login.Password, nil
+	val := item.Login.Password
+	if isBase64 {
+		val = base64.StdEncoding.EncodeToString([]byte(val))
+	}
+	return val, nil
 }
 
-func getFieldValue(name, fieldName string) (string, error) {
-	log.Printf("Fetching field '%s' for item: %s", fieldName, name)
+func getFieldValue(name, fieldName string, isBase64 bool) (string, error) {
+	log.Printf("Fetching field '%s' for item: %s (base64: %v)", fieldName, name, isBase64)
 
 	item, ok := getItem(name)
 	if !ok {
@@ -197,7 +201,11 @@ func getFieldValue(name, fieldName string) (string, error) {
 	}
 	for _, f := range item.Fields {
 		if f.Name == fieldName {
-			return f.Value, nil
+			val := f.Value
+			if isBase64 {
+				val = base64.StdEncoding.EncodeToString([]byte(val))
+			}
+			return val, nil
 		}
 	}
 	return "", fmt.Errorf("field not found")
@@ -278,25 +286,24 @@ func handleRender(w http.ResponseWriter, r *http.Request) {
 
 		switch len(parts) {
 		case 1:
-			val, err = getPasswordValue(parts[0])
+			val, err = getPasswordValue(parts[0], false)
 		case 3:
 			if parts[1] == "f" {
-				val, err = getFieldValue(parts[0], parts[2])
+				val, err = getFieldValue(parts[0], parts[2], false)
 			} else if parts[1] == "a" {
 				var bVal []byte
 				bVal, err = getAttachmentValue(parts[0], parts[2], false)
 				val = string(bVal)
 			} else if parts[1] == "_" && parts[2] == "b64" {
-				val, err = getPasswordValue(parts[0])
-				if err == nil {
-					val = base64.StdEncoding.EncodeToString([]byte(val))
-				}
+				val, err = getPasswordValue(parts[0], true)
 			}
 		case 5:
 			if parts[1] == "a" && parts[3] == "a" && parts[4] == "b64" {
 				var bVal []byte
 				bVal, err = getAttachmentValue(parts[0], parts[2], true)
 				val = string(bVal)
+			} else if parts[1] == "f" && parts[3] == "f" && parts[4] == "b64" {
+				val, err = getFieldValue(parts[0], parts[2], true)
 			}
 		}
 
@@ -318,14 +325,11 @@ func handlePassword(w http.ResponseWriter, r *http.Request) {
 	}
 	name := parts[1]
 	isBase64 := len(parts) > 3 && parts[3] == "base64"
-	val, err := getPasswordValue(name)
+	val, err := getPasswordValue(name, isBase64)
 	if err != nil {
 		log.Printf("Failed to get password for %s: %v", name, err)
 		http.Error(w, err.Error(), http.StatusNotFound)
 		return
-	}
-	if isBase64 {
-		val = base64.StdEncoding.EncodeToString([]byte(val))
 	}
 	w.Write([]byte(val))
 }
@@ -338,7 +342,8 @@ func handleField(w http.ResponseWriter, r *http.Request) {
 	}
 	name := parts[1]
 	fieldName := parts[3]
-	val, err := getFieldValue(name, fieldName)
+	isBase64 := len(parts) > 4 && parts[4] == "base64"
+	val, err := getFieldValue(name, fieldName, isBase64)
 	if err != nil {
 		log.Printf("Failed to get field '%s' for %s: %v", fieldName, name, err)
 		http.Error(w, err.Error(), http.StatusNotFound)
