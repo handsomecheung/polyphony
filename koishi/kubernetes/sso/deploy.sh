@@ -9,3 +9,4 @@ my-k8s-deploy --file=k8s.domaint.yaml
 my-k8s-deploy --file=k8s.domainy.yaml
 my-k8s-deploy --file=k8s.domainp.yaml
 my-k8s-deploy --file=k8s.domainc.yaml
+my-k8s-deploy --file=k8s.domaind.yaml
