@@ -7,7 +7,7 @@ It supports HTTP(S), TCP, DNS, SSL, and parallel port scanning, aiming to verify
 
 - **Full parallel execution**: All monitoring tasks are executed concurrently for maximum speed.
 - **Global resource management**: Uses a global semaphore to limit concurrent network connections (default 1000) across all tasks.
-- **Multi-protocol support**: HTTP/API, TCP Port, DNS Resolution, SSL Certificate.
+- **Multi-protocol support**: HTTP/API, TCP Port, DNS Resolution, SSL Certificate, NoIndex Tags.
 - **Fast parallel port scanning**: Efficiently scans large port ranges using the global connection pool.
 - **Flexible expectation validation**: Supports status codes, body strings, JSONPath, expected/unexpected IP addresses, and more.
 - **Modular configuration**: Load multiple YAML files from a directory and merge global settings.
@@ -58,7 +58,7 @@ Generation behavior can be managed via this YAML file:
 
 ### Generation Rules
 
-- **Ingress**: Generates HTTP GET checks for each host. Uses HTTPS if TLS is configured.
+- **Ingress**: Generates HTTP GET checks for each host. Uses HTTPS if TLS is configured. Also generates **noindex** checks for all hosts to ensure search engine exclusion is active.
 - **LoadBalancer Service**: Generates TCP connectivity checks for all TCP ports found in the service.
 
 ## Configuration Method (YAML)
@@ -122,6 +122,14 @@ globals:
   expect_open: [22, 80] # Ports that should be open
   expect_closed: [443]  # Ports that should be closed
 ```
+
+#### 6. NoIndex Tag Check
+```yaml
+- name: "Search Engine Exclusion"
+  type: noindex
+  target: "https://private.example.com"
+```
+Verifies that the page is protected against search engine indexing by checking for the `X-Robots-Tag: noindex` HTTP header or the `<meta name="robots" content="noindex">` HTML tag.
 
 ## Design Philosophy
 

@@ -13,6 +13,7 @@ use jsonpath_lib::select;
 use futures::future::join_all;
 use std::sync::Arc;
 use std::env;
+use regex::Regex;
 
 #[derive(Debug, Deserialize)]
 struct Config {
@@ -181,6 +182,7 @@ async fn main() -> Result<()> {
                 "dns" => check_dns(&task, sem).await,
                 "ssl" => check_ssl(&task, global_timeout, sem).await,
                 "port_scan" => check_port_scan(&task, sem).await,
+                "noindex" => check_noindex(&task, global_timeout, sem).await,
                 _ => Err(anyhow!("Unknown task type: {}", task.task_type)),
             };
             let duration = start.elapsed();
@@ -418,4 +420,41 @@ async fn check_port_scan(task: &Task, semaphore: Arc<Semaphore>) -> Result<()> {
     }
 
     Ok(())
+}
+
+async fn check_noindex(task: &Task, global_timeout: Duration, semaphore: Arc<Semaphore>) -> Result<()> {
+    let target_raw = task.target.as_ref().ok_or(anyhow!("Missing target"))?;
+    let target = target_raw.trim_matches('"');
+    let timeout = task.timeout.as_deref().map(parse_duration).unwrap_or(global_timeout);
+
+    let client = Client::builder()
+        .timeout(timeout)
+        .use_rustls_tls()
+        .redirect(Policy::default())
+        .build()?;
+
+    let _permit = semaphore.acquire().await.unwrap();
+    let resp = client.get(target).send().await?;
+    
+    // 1. Check HTTP header: X-Robots-Tag
+    if let Some(robots_tag) = resp.headers().get("X-Robots-Tag") {
+        if let Ok(val) = robots_tag.to_str() {
+            if val.to_lowercase().contains("noindex") {
+                return Ok(());
+            }
+        }
+    }
+
+    let body = resp.text().await?;
+    drop(_permit);
+
+    // 2. Check HTML Meta tag
+    // Matches <meta name="robots" content="noindex"> and specific bots like googlebot
+    let re = Regex::new(r#"(?i)<meta\s+[^>]*name=["'](?:robots|googlebot|bingbot|slurp|msnbot|teoma)["'][^>]*content=["'][^"']*noindex[^"']*["']"#).unwrap();
+    
+    if re.is_match(&body) {
+        Ok(())
+    } else {
+        Err(anyhow!("No noindex tag found in headers or body"))
+    }
 }

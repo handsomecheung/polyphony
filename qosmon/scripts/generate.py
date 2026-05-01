@@ -96,6 +96,14 @@ def generate_qosmon_config(namespace, ingresses, services, service_host_override
                 }
                 tasks.append(task)
 
+                # Add noindex check for each ingress host
+                noindex_task = {
+                    "name": f"{namespace}/noindex/{ingress_name}/{host}",
+                    "type": "noindex",
+                    "target": target
+                }
+                tasks.append(noindex_task)
+
                 if protocol == "https":
                     ssl_task = {
                         "name": f"{namespace}/ssl/{ingress_name}/{host}",
