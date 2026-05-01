@@ -70,6 +70,14 @@ def generate_qosmon_config(namespace, ingresses, services, service_host_override
                 }
                 tasks.append(task)
 
+                if protocol == "https":
+                    ssl_task = {
+                        "name": f"{namespace}/ssl/{ingress_name}/{host}",
+                        "type": "ssl",
+                        "target": f"{host}:443"
+                    }
+                    tasks.append(ssl_task)
+
     # Process LoadBalancer Services
     if services:
         for item in services.get("items", []):
