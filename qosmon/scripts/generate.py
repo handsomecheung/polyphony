@@ -4,6 +4,8 @@ import subprocess
 import json
 import yaml
 import os
+import socket
+import ipaddress
 
 def get_k8s_resources(namespace, resource_type):
     try:
@@ -19,7 +21,27 @@ def get_k8s_resources(namespace, resource_type):
         print(f"Error decoding JSON for {resource_type} in {namespace}: {e}")
         return None
 
-def generate_qosmon_config(namespace, ingresses, services, service_host_override=None, sso_middlewares=None):
+def is_public_domain(host):
+    """
+    Check if the host can be resolved to a public IP address.
+    Internal/Private IPs are considered non-public.
+    """
+    try:
+        addr_info = socket.getaddrinfo(host, None)
+        for res in addr_info:
+            ip_str = res[4][0]
+            try:
+                ip = ipaddress.ip_address(ip_str)
+                # Check if the IP is global (not private, not loopback, not link-local, etc.)
+                if ip.is_global:
+                    return True
+            except ValueError:
+                continue
+        return False
+    except socket.gaierror:
+        return False
+
+def generate_qosmon_config(namespace, ingresses, services, service_host_override=None, sso_middlewares=None, reject_internal=False):
     tasks = []
     
     if sso_middlewares is None:
@@ -45,6 +67,10 @@ def generate_qosmon_config(namespace, ingresses, services, service_host_override
             for rule in rules:
                 host = rule.get("host")
                 if not host:
+                    continue
+
+                if reject_internal and not is_public_domain(host):
+                    print(f"Skipping internal/unresolvable host: {host}")
                     continue
                 
                 protocol = "http"
@@ -132,6 +158,7 @@ def generate_qosmon_config(namespace, ingresses, services, service_host_override
 def main():
     parser = argparse.ArgumentParser(description="Generate qosmon config from k8s ingresses and services using a config file")
     parser.add_argument("--config", required=True, help="Path to the generator configuration file")
+    parser.add_argument("--reject-internal-ingress", action="store_true", help="Reject ingresses with internal/unresolvable domains")
     args = parser.parse_args()
     
     if not os.path.exists(args.config):
@@ -153,7 +180,7 @@ def main():
         ingresses = get_k8s_resources(ns, "ingress")
         services = get_k8s_resources(ns, "service")
         
-        config = generate_qosmon_config(ns, ingresses, services, service_host, sso_middlewares)
+        config = generate_qosmon_config(ns, ingresses, services, service_host, sso_middlewares, args.reject_internal_ingress)
         if config:
             file_path = os.path.join(output_dir, f"{ns}.yaml")
             with open(file_path, "w") as f:
