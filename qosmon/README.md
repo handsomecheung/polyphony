@@ -5,11 +5,12 @@ It supports HTTP(S), TCP, DNS, SSL, and parallel port scanning, aiming to verify
 
 ## Key Features
 
+- **Full parallel execution**: All monitoring tasks are executed concurrently for maximum speed.
+- **Global resource management**: Uses a global semaphore to limit concurrent network connections (default 1000) across all tasks.
 - **Multi-protocol support**: HTTP/API, TCP Port, DNS Resolution, SSL Certificate.
-- **Fast parallel port scanning**: Uses Tokio to scan up to 1,000 ports concurrently.
+- **Fast parallel port scanning**: Efficiently scans large port ranges using the global connection pool.
 - **Flexible expectation validation**: Supports status codes, body strings, JSONPath, expected/unexpected IP addresses, and more.
 - **Modular configuration**: Load multiple YAML files from a directory and merge global settings.
-- **Asynchronous execution**: All I/O operations are performed asynchronously for efficient operation.
 
 ## Quick Start
 
@@ -125,8 +126,9 @@ globals:
 ## Design Philosophy
 
 - **Surgical Execution**: A tool for quick execution and results when needed, without unnecessary daemonization or persistence.
+- **High Concurrency**: Executes all tasks in parallel, printing results as they complete for immediate feedback.
+- **Resource Safety**: Uses a global semaphore to strictly control the number of concurrent network connections, preventing OS resource exhaustion and network congestion.
 - **Fail Fast**: Clearly reports the cause of failures (which IP, port, or mismatch with expected values).
-- **Safety First**: Uses semaphores during port scanning to control parallelism and protect local resources and the network.
 
 ## License
 

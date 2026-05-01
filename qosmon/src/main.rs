@@ -168,32 +168,41 @@ async fn main() -> Result<()> {
     println!("{:<30} {:<10} {:<10} {:<10}", "NAME", "TYPE", "STATUS", "LATENCY");
     println!("{}", "-".repeat(65));
 
-    for task in all_tasks {
-        let start = Instant::now();
-        let result = match task.task_type.as_str() {
-            "http" => check_http(&task, global_timeout).await,
-            "tcp" => check_tcp(&task, global_timeout).await,
-            "dns" => check_dns(&task).await,
-            "ssl" => check_ssl(&task, global_timeout).await,
-            "port_scan" => check_port_scan(&task).await,
-            _ => Err(anyhow!("Unknown task type: {}", task.task_type)),
-        };
-        let duration = start.elapsed();
+    let semaphore = Arc::new(Semaphore::new(1000));
+    let mut handles = Vec::new();
 
-        match result {
-            Ok(_) => {
-                println!("{:<30} {:<10} \x1b[32m{:<10}\x1b[0m {:<10?}", task.name, task.task_type, "OK", duration);
+    for task in all_tasks {
+        let sem = semaphore.clone();
+        let handle = tokio::spawn(async move {
+            let start = Instant::now();
+            let result = match task.task_type.as_str() {
+                "http" => check_http(&task, global_timeout, sem).await,
+                "tcp" => check_tcp(&task, global_timeout, sem).await,
+                "dns" => check_dns(&task, sem).await,
+                "ssl" => check_ssl(&task, global_timeout, sem).await,
+                "port_scan" => check_port_scan(&task, sem).await,
+                _ => Err(anyhow!("Unknown task type: {}", task.task_type)),
+            };
+            let duration = start.elapsed();
+
+            match result {
+                Ok(_) => {
+                    println!("{:<30} {:<10} \x1b[32m{:<10}\x1b[0m {:<10?}", task.name, task.task_type, "OK", duration);
+                }
+                Err(e) => {
+                    println!("{:<30} {:<10} \x1b[31m{:<10}\x1b[0m {:<10?} Error: {}", task.name, task.task_type, "FAIL", duration, e);
+                }
             }
-            Err(e) => {
-                println!("{:<30} {:<10} \x1b[31m{:<10}\x1b[0m {:<10?} Error: {}", task.name, task.task_type, "FAIL", duration, e);
-            }
-        }
+        });
+        handles.push(handle);
     }
+
+    join_all(handles).await;
 
     Ok(())
 }
 
-async fn check_http(task: &Task, global_timeout: Duration) -> Result<()> {
+async fn check_http(task: &Task, global_timeout: Duration, semaphore: Arc<Semaphore>) -> Result<()> {
     let target_raw = task.target.as_ref().ok_or(anyhow!("Missing target"))?;
     let target = target_raw.trim_matches('"');
     let timeout = task.timeout.as_deref().map(parse_duration).unwrap_or(global_timeout);
@@ -221,9 +230,11 @@ async fn check_http(task: &Task, global_timeout: Duration) -> Result<()> {
         rb = rb.body(body.clone());
     }
 
+    let _permit = semaphore.acquire().await.unwrap();
     let resp = rb.send().await?;
     let status = resp.status().as_u16();
     let body_text = resp.text().await.unwrap_or_default();
+    drop(_permit);
 
     if let Some(expect) = &task.expect {
         if let Some(expected_status) = expect.status {
@@ -254,7 +265,7 @@ async fn check_http(task: &Task, global_timeout: Duration) -> Result<()> {
     Ok(())
 }
 
-async fn check_tcp(task: &Task, global_timeout: Duration) -> Result<()> {
+async fn check_tcp(task: &Task, global_timeout: Duration, semaphore: Arc<Semaphore>) -> Result<()> {
     let host = task.host.as_ref().or(task.target.as_ref()).ok_or(anyhow!("Missing host/target"))?;
     let timeout = task.timeout.as_deref().map(parse_duration).unwrap_or(global_timeout);
     
@@ -277,7 +288,9 @@ async fn check_tcp(task: &Task, global_timeout: Duration) -> Result<()> {
     let mut check_tasks = Vec::new();
     for port in ports {
         let addr = SocketAddr::from((ip, port));
+        let sem = semaphore.clone();
         check_tasks.push(async move {
+            let _permit = sem.acquire().await.unwrap();
             match tokio::time::timeout(timeout, TcpStream::connect(&addr)).await {
                 Ok(Ok(_)) => Ok(()),
                 _ => Err(anyhow!("Port {} is unreachable", port)),
@@ -293,10 +306,12 @@ async fn check_tcp(task: &Task, global_timeout: Duration) -> Result<()> {
     Ok(())
 }
 
-async fn check_dns(task: &Task) -> Result<()> {
+async fn check_dns(task: &Task, semaphore: Arc<Semaphore>) -> Result<()> {
     let target = task.target.as_ref().ok_or(anyhow!("Missing target"))?;
+    let _permit = semaphore.acquire().await.unwrap();
     let resolver = get_resolver(&task.server).await?;
     let response = resolver.lookup_ip(target).await?;
+    drop(_permit);
     let ips: Vec<String> = response.iter().map(|ip| ip.to_string()).collect();
     
     if let Some(expected) = &task.expected_records {
@@ -318,7 +333,7 @@ async fn check_dns(task: &Task) -> Result<()> {
     Ok(())
 }
 
-async fn check_ssl(task: &Task, global_timeout: Duration) -> Result<()> {
+async fn check_ssl(task: &Task, global_timeout: Duration, semaphore: Arc<Semaphore>) -> Result<()> {
     let target_raw = task.target.as_ref().ok_or(anyhow!("Missing target"))?;
     let target = target_raw.trim_matches('"');
     let timeout = task.timeout.as_deref().map(parse_duration).unwrap_or(global_timeout);
@@ -334,11 +349,12 @@ async fn check_ssl(task: &Task, global_timeout: Duration) -> Result<()> {
         format!("https://{}", target)
     };
     
+    let _permit = semaphore.acquire().await.unwrap();
     client.get(&url).send().await?;
     Ok(())
 }
 
-async fn check_port_scan(task: &Task) -> Result<()> {
+async fn check_port_scan(task: &Task, semaphore: Arc<Semaphore>) -> Result<()> {
     let host = task.host.as_ref().or(task.target.as_ref()).ok_or(anyhow!("Missing host/target"))?;
     let mut ports_to_scan = Vec::new();
 
@@ -361,7 +377,6 @@ async fn check_port_scan(task: &Task) -> Result<()> {
         return Err(anyhow!("No ports specified for scan"));
     }
 
-    let semaphore = Arc::new(Semaphore::new(1000));
     let mut scan_tasks = Vec::new();
 
     let resolver = get_resolver(&task.server).await?;
