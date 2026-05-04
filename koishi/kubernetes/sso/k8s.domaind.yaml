@@ -54,7 +54,7 @@ spec:
             - name: COOKIE_DOMAIN
               value: __{{infra.domains:f:d}}__
             - name: AUTH_HOST
-              value: auth.__{{infra.domains:f:d}}__
+              value: gsso.__{{infra.domains:f:d}}__
             - name: INSECURE_COOKIE
               value: "false"
             - name: URL_PATH
@@ -109,7 +109,7 @@ metadata:
 spec:
   ingressClassName: traefik
   rules:
-    - host: auth.__{{infra.domains:f:d}}__
+    - host: gsso.__{{infra.domains:f:d}}__
       http:
         paths:
           - path: /
@@ -121,5 +121,5 @@ spec:
                   name: default
   tls:
     - hosts:
-        - auth.__{{infra.domains:f:d}}__
+        - gsso.__{{infra.domains:f:d}}__
       secretName: auth-domaind
