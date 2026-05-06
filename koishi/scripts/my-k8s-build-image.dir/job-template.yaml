@@ -13,7 +13,7 @@ metadata:
   name: PLACEHOLDER_JOB_NAME
   namespace: PLACEHOLDER_NAMESPACE
 spec:
-  backoffLimit: 2
+  backoffLimit: 0
   activeDeadlineSeconds: 3600
   template:
     spec:
