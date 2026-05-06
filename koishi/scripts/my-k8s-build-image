@@ -12,8 +12,6 @@ script_dir="$(dirname "${BASH_SOURCE[0]}")"
 echo "set kubectl token with sudo ..."
 bash ~/.kube/get-token.devbox-user.sh session >/dev/null
 
-bwww sync
-
 echo "kubectl and bwww configured. start building image ..."
 
 cmd_kubectl="kubectl"

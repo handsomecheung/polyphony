@@ -44,15 +44,11 @@ module Kubectl
   end
 
   def self.setup_config(raw_config_file, options)
-    BWWW.sync
-
     docs = rewrite_config raw_config_file, options
     deploy docs, options
   end
 
   def self.setup_meta(meta, options)
-    BWWW.sync
-
     unless meta == 'pullsecret-cloudprivate'
       puts 'unknown meta, only support pullsecret-cloudprivate'
       exit 1
