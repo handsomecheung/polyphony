@@ -1,0 +1,104 @@
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: dify-weaviate-pv
+spec:
+  capacity:
+    storage: 16Gi
+  accessModes: [ReadWriteOnce]
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: manual
+  hostPath:
+    path: /mnt/runtime-data-app/dify/weaviate
+    type: DirectoryOrCreate
+  nodeAffinity:
+    required:
+      nodeSelectorTerms:
+        - matchExpressions:
+            - key: kubernetes.io/hostname
+              operator: In
+              values: ["nur"]
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: dify-weaviate-pvc
+  namespace: dify
+spec:
+  accessModes: [ReadWriteOnce]
+  storageClassName: manual
+  resources:
+    requests:
+      storage: 16Gi
+  volumeName: dify-weaviate-pv
+
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: dify-api-pv
+spec:
+  capacity:
+    storage: 10Gi
+  accessModes: [ReadWriteOnce]
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: manual
+  hostPath:
+    path: /mnt/runtime-data-app/dify/api
+    type: DirectoryOrCreate
+  nodeAffinity:
+    required:
+      nodeSelectorTerms:
+        - matchExpressions:
+            - key: kubernetes.io/hostname
+              operator: In
+              values: ["nur"]
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: dify-api-pvc
+  namespace: dify
+spec:
+  accessModes: [ReadWriteOnce]
+  storageClassName: manual
+  resources:
+    requests:
+      storage: 10Gi
+  volumeName: dify-api-pv
+
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: dify-db-pv
+spec:
+  capacity:
+    storage: 10Gi
+  accessModes: [ReadWriteOnce]
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: manual
+  hostPath:
+    path: /mnt/runtime-data-app/dify/db
+    type: DirectoryOrCreate
+  nodeAffinity:
+    required:
+      nodeSelectorTerms:
+        - matchExpressions:
+            - key: kubernetes.io/hostname
+              operator: In
+              values: ["nur"]
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: dify-db-pvc
+  namespace: dify
+spec:
+  accessModes: [ReadWriteOnce]
+  storageClassName: manual
+  resources:
+    requests:
+      storage: 10Gi
+  volumeName: dify-db-pv
