@@ -11,6 +11,9 @@ app = Flask(__name__)
 PORT = 80
 UPLOAD_DIR = "/files"
 
+SHOW_URL = os.getenv("SHOW_URL", "false").lower() == "true"
+ROOT_URL = os.getenv("ROOT_URL", "")
+
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 
 
@@ -35,13 +38,25 @@ def upload_files():
         return "Failed: No file part", 400
 
     files = request.files.getlist("file")
+    saved_files = []
 
     try:
         for file in files:
             if file.filename:
                 print(f"Uploading file: {file.filename}")
                 file.save(os.path.join(UPLOAD_DIR, file.filename))
-        return "Success\n"
+                saved_files.append(file.filename)
+
+        response_text = "Success<br>\n"
+        if SHOW_URL and saved_files:
+            base_url = ROOT_URL
+            if base_url and not base_url.endswith("/"):
+                base_url += "/"
+            
+            links = [f'<a href="{base_url}{filename}" target="_blank">{base_url}{filename}</a>' for filename in saved_files]
+            response_text += "<br>\n<br>\n".join(links) + "<br>\n"
+
+        return response_text
     except IOError:
         return "Failed: Can't upload files\n", 500
 

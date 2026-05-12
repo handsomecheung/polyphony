@@ -27,6 +27,11 @@ spec:
         - name: app
           image: cloudpublic/default/fs-upserver:latest
           imagePullPolicy: Always
+          env:
+            - name: SHOW_URL
+              value: "true"
+            - name: ROOT_URL
+              value: "https://downserver.__{{infra.domains:f:x}}__/cc"
           volumeMounts:
             - name: filesdowncc
               mountPath: /files
