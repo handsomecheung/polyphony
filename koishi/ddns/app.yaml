@@ -2,14 +2,14 @@
 apiVersion: v1
 kind: Namespace
 metadata:
-  name: my-ddns
+  name: ddns
 
 ---
 apiVersion: v1
 kind: ConfigMap
 metadata:
   name: common-envs
-  namespace: my-ddns
+  namespace: ddns
 data:
   DOMAIN_X: "__{{infra.domains:f:x}}__"
   DOMAIN_Y: "__{{infra.domains:f:y}}__"
@@ -28,7 +28,7 @@ apiVersion: batch/v1
 kind: CronJob
 metadata:
   name: cloudflare
-  namespace: my-ddns
+  namespace: ddns
 spec:
   schedule: "*/5 * * * *"
   concurrencyPolicy: Forbid
@@ -59,7 +59,7 @@ apiVersion: batch/v1
 kind: CronJob
 metadata:
   name: aliyun
-  namespace: my-ddns
+  namespace: ddns
 spec:
   schedule: "*/5 * * * *"
   concurrencyPolicy: Forbid
