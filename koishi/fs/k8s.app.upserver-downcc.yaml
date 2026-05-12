@@ -1,0 +1,101 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: fs-upserver-downcc
+  namespace: default
+  labels:
+    app: fs-upserver-downcc
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: fs-upserver-downcc
+  template:
+    metadata:
+      labels:
+        app: fs-upserver-downcc
+    spec:
+      nodeSelector:
+        kubernetes.io/hostname: nur
+      volumes:
+        - name: filesdowncc
+          hostPath:
+            path: /mnt/runtime-data-app/commondata/downserver/cc
+            type: DirectoryOrCreate
+      containers:
+        - name: app
+          image: cloudpublic/default/fs-upserver:latest
+          imagePullPolicy: Always
+          volumeMounts:
+            - name: filesdowncc
+              mountPath: /files
+          ports:
+            - name: default
+              containerPort: 80
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+          livenessProbe:
+            httpGet:
+              path: /ok
+              port: 80
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /ok
+              port: 80
+            initialDelaySeconds: 5
+            periodSeconds: 10
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: fs-upserver-downcc
+  namespace: default
+  labels:
+    app: fs-upserver-downcc
+spec:
+  type: ClusterIP
+  ports:
+    - name: default
+      port: 80
+      protocol: TCP
+      targetPort: default
+  selector:
+    app: fs-upserver-downcc
+
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: fs-upserver-downcc
+  namespace: default
+  annotations:
+    cert-manager.io/cluster-issuer: cluster-letsencrypt-dns-cloudflare
+    traefik.ingress.kubernetes.io/router.middlewares: middleware-antimitm@kubernetescrd,sso-domainx@kubernetescrd,default-fsupserversizelimit@kubernetescrd
+    gethomepage.dev/enabled: "true"
+    gethomepage.dev/group: CK Misc
+    gethomepage.dev/name: Upload to Daily Paw
+    gethomepage.dev/href: https://upserver-downcc.__{{infra.domains:f:x}}__/
+    gethomepage.dev/weight: "50"
+spec:
+  ingressClassName: traefik
+  rules:
+    - host: upserver-downcc.__{{infra.domains:f:x}}__
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: fs-upserver-downcc
+                port:
+                  name: default
+  tls:
+    - hosts:
+        - upserver-downcc.__{{infra.domains:f:x}}__
+      secretName: upserver-downcc-domainx
