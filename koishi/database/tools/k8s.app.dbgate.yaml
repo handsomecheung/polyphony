@@ -1,85 +1,9 @@
 ---
 apiVersion: v1
-kind: PersistentVolume
-metadata:
-  name: my-database-nfs-subscout
-  labels:
-    storage.k8s.io/name: nfs
-    storage.k8s.io/part-of: kubernetes-complete-reference
-    storage.k8s.io/created-by: chou
-spec:
-  accessModes:
-    - ReadOnlyMany
-    - ReadWriteOnce
-    - ReadWriteMany
-  capacity:
-    storage: 100Gi
-  storageClassName: my-database-nfs-subscout
-  persistentVolumeReclaimPolicy: Retain
-  volumeMode: Filesystem
-  nfs:
-    server: __{{infra.machine.nur:f:ip}}__
-    path: /mnt/nfs/exports/disk/coder-workspaces/private-workspace/workspace/encrypted-configs/.subscout
-    readOnly: no
-
----
-apiVersion: v1
-kind: PersistentVolumeClaim
-metadata:
-  name: my-database-nfs-subscout
-  namespace: my-database
-spec:
-  storageClassName: my-database-nfs-subscout
-  accessModes:
-    - ReadWriteMany
-  resources:
-    requests:
-      storage: 100Gi
-
----
-apiVersion: v1
-kind: PersistentVolume
-metadata:
-  name: my-database-nfs-openclaw
-  labels:
-    storage.k8s.io/name: nfs
-    storage.k8s.io/part-of: kubernetes-complete-reference
-    storage.k8s.io/created-by: chou
-spec:
-  accessModes:
-    - ReadOnlyMany
-    - ReadWriteOnce
-    - ReadWriteMany
-  capacity:
-    storage: 1Gi
-  storageClassName: my-database-nfs-openclaw
-  persistentVolumeReclaimPolicy: Retain
-  volumeMode: Filesystem
-  nfs:
-    server: __{{infra.machine.nur:f:ip}}__
-    path: /mnt/nfs/exports/disk/runtime-data-app/openclaw
-    readOnly: yes
-
----
-apiVersion: v1
-kind: PersistentVolumeClaim
-metadata:
-  name: my-database-nfs-openclaw
-  namespace: my-database
-spec:
-  storageClassName: my-database-nfs-openclaw
-  accessModes:
-    - ReadWriteMany
-  resources:
-    requests:
-      storage: 1Gi
-
----
-apiVersion: v1
 kind: ConfigMap
 metadata:
   name: dbgate-dns-config
-  namespace: my-database
+  namespace: default
 data:
   hosts: |
     __{{db.ci-jsf.newsub.aws.prod:f:ip}}__ __{{db.ci-jsf.newsub.aws.prod:f:host}}__
@@ -89,13 +13,13 @@ data:
 apiVersion: traefik.io/v1alpha1
 kind: Middleware
 metadata:
-  name: sabliertooldbgate
-  namespace: my-database
+  name: sablierdbgate
+  namespace: default
 spec:
   plugin:
     sablier:
       sablierUrl: "http://sablier.sablier"
-      group: "tool-dbgate"
+      group: "dbgate"
       sessionDuration: "1h"
       dynamic:
         theme: "ghost"
@@ -105,55 +29,57 @@ spec:
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: tool-dbgate
-  namespace: my-database
+  name: dbgate
+  namespace: default
   labels:
-    app.kubernetes.io/name: tool-dbgate
+    app.kubernetes.io/name: dbgate
     sablier.enable: "true"
-    sablier.group: "tool-dbgate"
+    sablier.group: "dbgate"
 spec:
   replicas: 0
   selector:
     matchLabels:
-      app.kubernetes.io/name: tool-dbgate
+      app.kubernetes.io/name: dbgate
   template:
     metadata:
       labels:
-        app.kubernetes.io/name: tool-dbgate
+        app.kubernetes.io/name: dbgate
     spec:
       volumes:
         - name: dns-config
           configMap:
             name: dbgate-dns-config
-        - name: subscout
+        - name: coder-workspaces
           persistentVolumeClaim:
-            claimName: my-database-nfs-subscout
-        - name: openclaw
-          persistentVolumeClaim:
-            claimName: my-database-nfs-openclaw
+            claimName: nfs-disk-coder-workspaces
       containers:
         - name: app
-          image: cloudpublic/database/dbgate:latest
+          image: cloudpublic/default/dbgate:latest
           imagePullPolicy: Always
           volumeMounts:
             - name: dns-config
               mountPath: /etc/hosts
               subPath: hosts
               readOnly: true
-            - name: subscout
-              subPath: subscout.db
+            - name: coder-workspaces
+              subPath: private-workspace/workspace/encrypted-configs/.subscout/subscout.db
               mountPath: /tmp/subscout/subscout.db
-            - name: openclaw
-              subPath: memory/main.sqlite
-              mountPath: /tmp/openclaw/main.sqlite
+            - name: coder-workspaces
+              subPath: private-workspace/repos/local/openclaw-data/default/data/memory/main.sqlite
+              mountPath: /tmp/openclaw-default/main.sqlite
+              readOnly: true
+            - name: coder-workspaces
+              subPath: private-workspace/repos/local/openclaw-data/kzk/data/memory/main.sqlite
+              mountPath: /tmp/openclaw-kzk/main.sqlite
+              readOnly: true
           env:
             - name: CONNECTIONS
-              value: postgresdev,postgresprod,pushionsprod,cijsfawsdev,cijsfawsprod,ciipasssystem,ciipasseucdev,ciipasseucprod,ciipasslibrary,subscout,openclaw
+              value: postgresdev,postgresprod,pushionsprod,cijsfawsdev,cijsfawsprod,ciipasssystem,ciipasseucdev,ciipasseucprod,ciipasslibrary,subscout,openclawdefault,openclawkzk
 
             - name: LABEL_postgresdev
               value: Koishi PostgreSQL Dev
             - name: SERVER_postgresdev
-              value: db-postgres-dev.my-database
+              value: postgres.db-dev
             - name: PORT_postgresdev
               value: "5432"
             - name: USER_postgresdev
@@ -166,7 +92,7 @@ spec:
             - name: LABEL_postgresprod
               value: Koishi PostgreSQL Prod
             - name: SERVER_postgresprod
-              value: db-postgres-prod.my-database
+              value: postgres.db-prod
             - name: PORT_postgresprod
               value: "5432"
             - name: USER_postgresprod
@@ -274,11 +200,18 @@ spec:
             - name: ENGINE_subscout
               value: sqlite@dbgate-plugin-sqlite
 
-            - name: LABEL_openclaw
-              value: OpenClaw
-            - name: FILE_openclaw
-              value: /tmp/openclaw/main.sqlite
-            - name: ENGINE_openclaw
+            - name: LABEL_openclawdefault
+              value: OpenClaw Default
+            - name: FILE_openclawdefault
+              value: /tmp/openclaw-default/main.sqlite
+            - name: ENGINE_openclawdefault
+              value: sqlite@dbgate-plugin-sqlite
+
+            - name: LABEL_openclawkzk
+              value: OpenClaw KZK
+            - name: FILE_openclawkzk
+              value: /tmp/openclaw-kzk/main.sqlite
+            - name: ENGINE_openclawkzk
               value: sqlite@dbgate-plugin-sqlite
 
           ports:
@@ -293,14 +226,14 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: tool-dbgate
-  namespace: my-database
+  name: dbgate
+  namespace: default
   labels:
-    app.kubernetes.io/name: tool-dbgate
+    app.kubernetes.io/name: dbgate
 spec:
   type: ClusterIP
   selector:
-    app.kubernetes.io/name: tool-dbgate
+    app.kubernetes.io/name: dbgate
   ports:
     - name: default
       port: 3000
@@ -311,11 +244,39 @@ spec:
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: tool-dbgate
-  namespace: my-database
+  name: dbgate-1
+  namespace: default
   annotations:
     cert-manager.io/cluster-issuer: cluster-letsencrypt-dns-cloudflare
-    traefik.ingress.kubernetes.io/router.middlewares: middleware-playonjan@kubernetescrd,middleware-antimitm@kubernetescrd,sso-domainx@kubernetescrd,my-database-sabliertooldbgate@kubernetescrd
+    traefik.ingress.kubernetes.io/router.middlewares: default-sablierdbgate@kubernetescrd
+spec:
+  ingressClassName: traefik
+  rules:
+    - host: dbgate.home4p.__{{infra.domains:f:x}}__
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: dbgate
+                port:
+                  name: default
+  tls:
+    - hosts:
+        - dbgate.home4p.__{{infra.domains:f:x}}__
+      secretName: dbgate-home4p-domainx
+
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: dbgate
+  namespace: default
+  annotations:
+    cert-manager.io/cluster-issuer: cluster-letsencrypt-dns-cloudflare
+    traefik.ingress.kubernetes.io/router.middlewares: middleware-playonjan@kubernetescrd,middleware-antimitm@kubernetescrd,sso-domainx@kubernetescrd
+    # traefik.ingress.kubernetes.io/router.middlewares: middleware-playonjan@kubernetescrd,middleware-antimitm@kubernetescrd,sso-domainx@kubernetescrd,default-sablierdbgate@kubernetescrd
     gethomepage.dev/enabled: "true"
     gethomepage.dev/group: Development
     gethomepage.dev/name: dbgate
@@ -332,7 +293,7 @@ spec:
             pathType: Prefix
             backend:
               service:
-                name: tool-dbgate
+                name: dbgate
                 port:
                   name: default
   tls:
@@ -344,13 +305,13 @@ spec:
 apiVersion: traefik.io/v1alpha1
 kind: Middleware
 metadata:
-  name: sabliertooldbgatelite
-  namespace: my-database
+  name: sablierdbgatelite
+  namespace: default
 spec:
   plugin:
     sablier:
       sablierUrl: "http://sablier.sablier"
-      group: "tool-dbgate-lite"
+      group: "dbgate-lite"
       sessionDuration: "1h"
       dynamic:
         theme: "ghost"
@@ -360,21 +321,21 @@ spec:
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: tool-dbgate-lite
-  namespace: my-database
+  name: dbgate-lite
+  namespace: default
   labels:
-    app.kubernetes.io/name: tool-dbgate-lite
+    app.kubernetes.io/name: dbgate-lite
     sablier.enable: "true"
-    sablier.group: "tool-dbgate-lite"
+    sablier.group: "dbgate-lite"
 spec:
   replicas: 0
   selector:
     matchLabels:
-      app.kubernetes.io/name: tool-dbgate-lite
+      app.kubernetes.io/name: dbgate-lite
   template:
     metadata:
       labels:
-        app.kubernetes.io/name: tool-dbgate-lite
+        app.kubernetes.io/name: dbgate-lite
     spec:
       volumes:
         - name: dns-config
@@ -396,7 +357,7 @@ spec:
             - name: LABEL_postgresdev
               value: Koishi PostgreSQL Dev
             - name: SERVER_postgresdev
-              value: db-postgres-dev.my-database
+              value: postgres.db-dev
             - name: PORT_postgresdev
               value: "5432"
             - name: USER_postgresdev
@@ -483,14 +444,14 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: tool-dbgate-lite
-  namespace: my-database
+  name: dbgate-lite
+  namespace: default
   labels:
-    app.kubernetes.io/name: tool-dbgate-lite
+    app.kubernetes.io/name: dbgate-lite
 spec:
   type: ClusterIP
   selector:
-    app.kubernetes.io/name: tool-dbgate-lite
+    app.kubernetes.io/name: dbgate-lite
   ports:
     - name: default
       port: 3000
@@ -501,11 +462,11 @@ spec:
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: tool-dbgate-lite
-  namespace: my-database
+  name: dbgate-lite
+  namespace: default
   annotations:
     cert-manager.io/cluster-issuer: cluster-letsencrypt-dns-cloudflare
-    traefik.ingress.kubernetes.io/router.middlewares: middleware-playonjan@kubernetescrd,middleware-antimitm@kubernetescrd,sso-domainx@kubernetescrd,my-database-sabliertooldbgatelite@kubernetescrd
+    traefik.ingress.kubernetes.io/router.middlewares: middleware-playonjan@kubernetescrd,middleware-antimitm@kubernetescrd,sso-domainx@kubernetescrd,default-sablierdbgatelite@kubernetescrd
     gethomepage.dev/enabled: "true"
     gethomepage.dev/group: Development
     gethomepage.dev/name: dbgate lite
@@ -522,7 +483,7 @@ spec:
             pathType: Prefix
             backend:
               service:
-                name: tool-dbgate-lite
+                name: dbgate-lite
                 port:
                   name: default
   tls:
@@ -534,16 +495,16 @@ spec:
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
-  name: tool-dbgate
-  namespace: my-database
+  name: dbgate
+  namespace: default
 spec:
   podSelector:
     matchExpressions:
       - key: app.kubernetes.io/name
         operator: In
         values:
-          - tool-dbgate
-          - tool-dbgate-lite
+          - dbgate
+          - dbgate-lite
   policyTypes:
     - Egress
   egress:
@@ -571,12 +532,11 @@ spec:
     - to:
         - namespaceSelector:
             matchLabels:
-              kubernetes.io/metadata.name: my-database
-
+              kubernetes.io/metadata.name: db-dev
     - to:
         - namespaceSelector:
             matchLabels:
-              kubernetes.io/metadata.name: ck-pushion-prod
+              kubernetes.io/metadata.name: db-prod
 
     - to:
         - namespaceSelector:

@@ -2,21 +2,21 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: db-postgres-prod
-  namespace: my-database
+  name: postgres
+  namespace: db-prod
   labels:
-    app.kubernetes.io/name: db-postgres-prod
+    app.kubernetes.io/name: postgres
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app.kubernetes.io/name: db-postgres-prod
+      app.kubernetes.io/name: postgres
   strategy:
     type: Recreate
   template:
     metadata:
       labels:
-        app.kubernetes.io/name: db-postgres-prod
+        app.kubernetes.io/name: postgres
     spec:
       nodeSelector:
         kubernetes.io/hostname: miniba
@@ -59,14 +59,14 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: db-postgres-prod
-  namespace: my-database
+  name: postgres
+  namespace: db-prod
   labels:
-    app.kubernetes.io/name: db-postgres-prod
+    app.kubernetes.io/name: postgres
 spec:
   type: ClusterIP
   selector:
-    app.kubernetes.io/name: db-postgres-prod
+    app.kubernetes.io/name: postgres
   ports:
     - name: default
       port: 5432

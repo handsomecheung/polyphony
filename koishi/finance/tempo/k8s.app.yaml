@@ -19,7 +19,7 @@ spec:
               imagePullPolicy: Always
               env:
                 - name: DB_HOST
-                  value: "db-postgres-prod.my-database"
+                  value: "postgres.db-prod"
                 - name: DB_PORT
                   value: "5432"
                 - name: DB_NAME

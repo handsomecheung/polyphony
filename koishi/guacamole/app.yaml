@@ -105,7 +105,7 @@ spec:
             - name: GUACD_HOSTNAME
               value: guacamole-guacd
             - name: POSTGRESQL_HOSTNAME
-              value: db-postgres-prod.my-database
+              value: postgres.db-prod
             - name: POSTGRESQL_PORT
               value: "5432"
             - name: POSTGRESQL_USERNAME

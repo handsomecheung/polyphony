@@ -2,21 +2,21 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: db-postgres-dev
-  namespace: my-database
+  name: postgres
+  namespace: db-dev
   labels:
-    app.kubernetes.io/name: db-postgres-dev
+    app.kubernetes.io/name: postgres
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app.kubernetes.io/name: db-postgres-dev
+      app.kubernetes.io/name: postgres
   strategy:
     type: Recreate
   template:
     metadata:
       labels:
-        app.kubernetes.io/name: db-postgres-dev
+        app.kubernetes.io/name: postgres
     spec:
       nodeSelector:
         kubernetes.io/hostname: nur
@@ -59,41 +59,15 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: db-postgres-dev
-  namespace: my-database
+  name: postgres
+  namespace: db-dev
   labels:
-    app.kubernetes.io/name: db-postgres-dev
+    app.kubernetes.io/name: postgres
 spec:
   type: ClusterIP
   selector:
-    app.kubernetes.io/name: db-postgres-dev
+    app.kubernetes.io/name: postgres
   ports:
     - name: default
       port: 5432
       targetPort: default
-
----
-# for cc access from macm4
-apiVersion: v1
-kind: Service
-metadata:
-  name: db-postgres-dev-cc
-  namespace: my-database
-  labels:
-    app.kubernetes.io/name: tool-dbgate-cc
-  finalizers:
-    - service.kubernetes.io/load-balancer-cleanup
-spec:
-  type: LoadBalancer
-  allocateLoadBalancerNodePorts: true
-  externalTrafficPolicy: Cluster
-  internalTrafficPolicy: Cluster
-  ipFamilies:
-    - IPv4
-  ipFamilyPolicy: SingleStack
-  selector:
-    app.kubernetes.io/name: db-postgres-dev
-  ports:
-    - port: 37290
-      protocol: TCP
-      targetPort: 5432
