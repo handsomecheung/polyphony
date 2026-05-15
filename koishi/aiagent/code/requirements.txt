@@ -1,0 +1,5 @@
+fastapi
+uvicorn
+pydantic
+pydantic-ai-slim[openai]
+pydantic-ai-skills
