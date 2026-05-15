@@ -500,6 +500,13 @@ if __name__ == "__main__":
                 print(f"- {name}: {description or '(no description)'}")
     elif args.serve:
         log("Starting FastAPI server on 0.0.0.0:8000")
+        import logging
+
+        class PingFilter(logging.Filter):
+            def filter(self, record: logging.LogRecord) -> bool:
+                return record.getMessage().find("GET /ping") == -1
+
+        logging.getLogger("uvicorn.access").addFilter(PingFilter())
         uvicorn.run(app, host="0.0.0.0", port=8000)
     else:
         if not args.prompt:

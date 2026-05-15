@@ -420,6 +420,7 @@
               responseNode.textContent = payload.data.response || "";
               responseNode.classList.remove("empty");
               renderFiles(payload.data.files || []);
+              promptInput.value = "";
             }
           });
         });
