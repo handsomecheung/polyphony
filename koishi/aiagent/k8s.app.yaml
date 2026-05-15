@@ -1,0 +1,127 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: aiagent
+  namespace: default
+  labels:
+    app: aiagent
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: aiagent
+  template:
+    metadata:
+      labels:
+        app: aiagent
+    spec:
+      nodeSelector:
+        kubernetes.io/hostname: nur
+      volumes:
+        - name: coder-workspaces
+          hostPath:
+            path: /mnt/coder-workspaces
+            type: Directory
+      containers:
+        - name: app
+          image: cloudpublic/default/aiagent:latest
+          imagePullPolicy: Always
+          volumeMounts:
+            - name: coder-workspaces
+              subPath: private-workspace/repos/local/notebook/obsidian/Default/AI/Skills
+              mountPath: /data/skills
+              readOnly: true
+            - name: coder-workspaces
+              subPath: private-workspace/repos/local/polyphony/koishi/aiagent/output
+              mountPath: /data/output
+          env:
+            - name: AI_MODEL
+              value: balanced-model
+            - name: LITELLM_API_BASE
+              value: http://litellm.default
+            - name: LITELLM_API_KEY
+              value: "__{{koishi.litellm}}__"
+
+            - name: AI_MODEL_TIMEOUT_SECONDS
+              value: "120"
+            - name: AI_AGENT_HEARTBEAT_SECONDS
+              value: "10"
+            - name: AI_OUTPUT_DIR
+              value: /data/output
+            - name: SKILLS_ROOT
+              value: /data/skills
+          ports:
+            - name: default
+              containerPort: 8000
+          startupProbe:
+            httpGet:
+              path: /ping
+              port: default
+            failureThreshold: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /ping
+              port: default
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /ping
+              port: default
+            periodSeconds: 10
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: aiagent
+  namespace: default
+  labels:
+    app: aiagent
+spec:
+  type: ClusterIP
+  ports:
+    - name: default
+      port: 80
+      protocol: TCP
+      targetPort: default
+  selector:
+    app: aiagent
+
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: aiagent
+  namespace: default
+  annotations:
+    cert-manager.io/cluster-issuer: cluster-letsencrypt-dns-cloudflare
+    traefik.ingress.kubernetes.io/router.middlewares: middleware-playonjan@kubernetescrd,middleware-antimitm@kubernetescrd,sso-domainx@kubernetescrd
+    gethomepage.dev/enabled: "true"
+    gethomepage.dev/group: AI
+    gethomepage.dev/name: AiAgent
+    gethomepage.dev/href: https://aiagent.__{{infra.domains:f:x}}__/
+    gethomepage.dev/weight: "30"
+spec:
+  ingressClassName: traefik
+  rules:
+    - host: aiagent.__{{infra.domains:f:x}}__
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: aiagent
+                port:
+                  name: default
+  tls:
+    - hosts:
+        - aiagent.__{{infra.domains:f:x}}__
+      secretName: aiagent-domainx

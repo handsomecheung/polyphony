@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import json
 import os
 import re
@@ -12,7 +13,8 @@ from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Query, WebSocket, WebSocketDisconnect
+from fastapi.responses import FileResponse
 from openai import AsyncOpenAI
 from pydantic import BaseModel, Field
 from pydantic_ai import Agent, RunContext
@@ -44,12 +46,16 @@ class RunResult(BaseModel):
     files: list[str] = Field(default_factory=list)
 
 
+class SkillsResult(BaseModel):
+    skills: list[str] = Field(default_factory=list)
+
+
 @dataclass
 class AgentDeps:
     output_dir: Path
 
 
-DEFAULT_OUTPUT_DIR = Path(__file__).resolve().parent.parent / "output"
+WEBUI_DIR = Path(__file__).resolve().parent / "webui"
 DEFAULT_MODEL_TIMEOUT_SECONDS = float(os.environ.get("AI_MODEL_TIMEOUT_SECONDS", "90"))
 DEFAULT_MODEL_MAX_RETRIES = int(os.environ.get("AI_MODEL_MAX_RETRIES", "0"))
 DEFAULT_HEARTBEAT_SECONDS = int(os.environ.get("AI_AGENT_HEARTBEAT_SECONDS", "10"))
@@ -68,6 +74,13 @@ def get_required_env(name: str) -> str:
 
 
 SKILLS_ROOT = Path(get_required_env("SKILLS_ROOT")).resolve()
+
+
+def get_required_path_env(name: str) -> Path:
+    return Path(get_required_env(name)).expanduser().resolve()
+
+
+OUTPUT_DIR = get_required_path_env("AI_OUTPUT_DIR")
 
 
 def build_model() -> OpenAIChatModel:
@@ -151,6 +164,10 @@ if loaded_skills:
     log(f"Loaded skills: {', '.join(sorted(loaded_skills.keys()))}")
 else:
     log("Loaded skills: none")
+
+
+def get_loaded_skill_names() -> list[str]:
+    return sorted(str(name) for name in loaded_skills.keys())
 
 BASE_INSTRUCTIONS = (
     "You are a general-purpose AI agent with skill support. "
@@ -347,7 +364,7 @@ def run_agent(request: RunRequest) -> RunResult:
         "Starting agent request "
         f"(prompt={request.prompt})"
     )
-    deps = AgentDeps(output_dir=DEFAULT_OUTPUT_DIR)
+    deps = AgentDeps(output_dir=OUTPUT_DIR)
     log(f"Using output directory: {deps.output_dir}")
     log("Invoking agent.run_sync; waiting for model + skill workflow to complete")
     agent = build_agent()
@@ -372,6 +389,29 @@ def ok() -> dict[str, str]:
     return {"status": "ok"}
 
 
+@app.get("/ping")
+def ping() -> str:
+    return "pong"
+
+
+@app.get("/skills", response_model=SkillsResult)
+def skills() -> SkillsResult:
+    return SkillsResult(skills=get_loaded_skill_names())
+
+
+@app.get("/download")
+def download(path: str = Query(..., description="Absolute file path to download.")) -> FileResponse:
+    file_path = Path(path).expanduser().resolve()
+    if not file_path.exists() or not file_path.is_file():
+        raise HTTPException(status_code=404, detail="File not found.")
+    return FileResponse(file_path, filename=file_path.name)
+
+
+@app.get("/")
+def webui() -> FileResponse:
+    return FileResponse(WEBUI_DIR / "index.html")
+
+
 @app.post("/run", response_model=RunResult)
 def run(request: RunRequest) -> RunResult:
     try:
@@ -380,6 +420,51 @@ def run(request: RunRequest) -> RunResult:
     except Exception as exc:
         log(f"HTTP request failed: {exc}")
         raise HTTPException(status_code=500, detail=format_model_error(exc)) from exc
+
+
+@app.websocket("/ws")
+async def websocket_run(websocket: WebSocket) -> None:
+    await websocket.accept()
+    log("WebSocket client connected")
+    try:
+        while True:
+            payload = await websocket.receive_json()
+            prompt = str(payload.get("prompt", "")).strip()
+            if not prompt:
+                await websocket.send_json(
+                    {
+                        "type": "error",
+                        "message": "Prompt is required.",
+                    }
+                )
+                continue
+
+            await websocket.send_json(
+                {
+                    "type": "status",
+                    "message": "Running agent...",
+                }
+            )
+            try:
+                result = await asyncio.to_thread(run_agent, RunRequest(prompt=prompt))
+            except Exception as exc:
+                log(f"WebSocket request failed: {exc}")
+                await websocket.send_json(
+                    {
+                        "type": "error",
+                        "message": format_model_error(exc),
+                    }
+                )
+                continue
+
+            await websocket.send_json(
+                {
+                    "type": "result",
+                    "data": result.model_dump(),
+                }
+            )
+    except WebSocketDisconnect:
+        log("WebSocket client disconnected")
 
 
 if __name__ == "__main__":

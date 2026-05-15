@@ -1,5 +1,7 @@
 fastapi
-uvicorn
+uvicorn[standard]
 pydantic
 pydantic-ai-slim[openai]
 pydantic-ai-skills
+
+python-pptx
