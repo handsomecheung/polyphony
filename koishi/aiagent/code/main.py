@@ -9,6 +9,7 @@ import re
 import sys
 import threading
 import time
+import traceback
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
@@ -64,6 +65,13 @@ DEFAULT_HEARTBEAT_SECONDS = int(os.environ.get("AI_AGENT_HEARTBEAT_SECONDS", "10
 def log(message: str) -> None:
     timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     print(f"[{timestamp}] {message}", file=sys.stderr, flush=True)
+
+
+def log_exception(context: str, exc: Exception) -> None:
+    log(f"{context}: {exc}")
+    formatted = "".join(traceback.format_exception(type(exc), exc, exc.__traceback__)).rstrip()
+    if formatted:
+        log(formatted)
 
 
 def get_required_env(name: str) -> str:
@@ -418,7 +426,7 @@ def run(request: RunRequest) -> RunResult:
         log("Received HTTP request: POST /run")
         return run_agent(request)
     except Exception as exc:
-        log(f"HTTP request failed: {exc}")
+        log_exception("HTTP request failed", exc)
         raise HTTPException(status_code=500, detail=format_model_error(exc)) from exc
 
 
@@ -448,7 +456,7 @@ async def websocket_run(websocket: WebSocket) -> None:
             try:
                 result = await asyncio.to_thread(run_agent, RunRequest(prompt=prompt))
             except Exception as exc:
-                log(f"WebSocket request failed: {exc}")
+                log_exception("WebSocket request failed", exc)
                 await websocket.send_json(
                     {
                         "type": "error",
@@ -502,5 +510,5 @@ if __name__ == "__main__":
             log("Running CLI agent request")
             print(json.dumps(run_agent(payload).model_dump(), ensure_ascii=False, indent=2))
         except Exception as exc:
-            log(f"CLI request failed: {exc}")
+            log_exception("CLI request failed", exc)
             raise SystemExit(format_model_error(exc)) from exc

@@ -10,11 +10,11 @@ The goal is not to hardcode a single workflow. Instead, this demo shows how to:
 - provide a few generic local file tools for intermediate files and generated artifacts
 - return the main textual response separately from detected file paths
 
-This repository currently includes one example skill:
+This repository currently points `SKILLS_ROOT` at an external skills directory, for example:
 
-- `aiagent/skills/slide-generator`
+- `/mnt/coder-workspaces/private-workspace/repos/local/notebook/obsidian/Default/AI/Skills`
 
-`main.py` does not hardcode the `slide-generator` workflow anymore. It is just one example skill the agent can choose to use.
+`main.py` does not hardcode any single workflow anymore. `slide-generator` is just one example skill the agent can choose to use when it exists under the configured skills root.
 
 ## Installation
 
@@ -40,6 +40,7 @@ export LITELLM_API_BASE=http://127.0.0.1:4000
 export LITELLM_API_KEY=sk-your-litellm-key
 export AI_MODEL=openai/gpt-5.2
 export AI_OUTPUT_DIR=/abs/path/to/aiagent-output
+export SKILLS_ROOT=/mnt/coder-workspaces/private-workspace/repos/local/notebook/obsidian/Default/AI/Skills
 ```
 
 If any of them are missing, the program exits at startup with an error.
@@ -54,16 +55,16 @@ If you are using a different OpenAI-compatible endpoint behind LiteLLM, update `
 
 ## Skills
 
-By default, the agent scans:
+The agent always scans `SKILLS_ROOT` first. In the current local setup:
 
 ```bash
-aiagent/skills
+export SKILLS_ROOT=/mnt/coder-workspaces/private-workspace/repos/local/notebook/obsidian/Default/AI/Skills
 ```
 
-The example local skill in this repository lives here:
+For example, `slide-generator` would live here:
 
 ```bash
-aiagent/skills/slide-generator
+/mnt/coder-workspaces/private-workspace/repos/local/notebook/obsidian/Default/AI/Skills/slide-generator
 ```
 
 You can also add more skill directories with `AI_SKILLS_DIRS`:
@@ -83,6 +84,81 @@ To verify what was loaded:
 ```bash
 python3 main.py --list-skills
 ```
+
+## Skill Dependencies
+
+The recommended rule is:
+
+- the agent owns host-level dependencies
+- each skill owns its own runtime dependencies
+
+In practice, `aiagent/code/requirements.txt` should only contain dependencies needed to run the generic agent itself, such as:
+
+- `pydantic-ai-slim[openai]`
+- `pydantic-ai-skills`
+- `uvicorn[standard]`
+
+Do not merge every skill dependency into the agent's root environment. Different skills may use different runtimes, dependency managers, and system libraries. Keeping them local to the skill avoids version conflicts and makes each skill portable.
+
+Recommended layout:
+
+```text
+Skills/
+  my-python-skill/
+    SKILL.md
+    pyproject.toml
+    uv.lock
+    scripts/
+  my-nodejs-skill/
+    SKILL.md
+    package.json
+    package-lock.json
+    scripts/
+```
+
+Suggested conventions by runtime:
+
+- Python skill: use `pyproject.toml`, and preferably commit `uv.lock`. If the skill is simple, `requirements.txt` is also acceptable.
+- Node.js skill: use `package.json`, and commit a lockfile such as `package-lock.json` or `pnpm-lock.yaml`.
+- Other runtimes: keep dependency manifests in the skill directory and document install and run steps in `SKILL.md`.
+
+Recommended operational contract:
+
+- the agent discovers and loads skills
+- the skill declares how its scripts should be installed and run
+- dependency installation happens per skill, not globally across all skills
+
+Each skill should document its dependency bootstrap clearly in `SKILL.md`, for example:
+
+```text
+## Setup
+
+Python:
+
+uv sync
+
+Run:
+
+uv run python scripts/example.py --input /abs/path/input.json
+```
+
+Or for Node.js:
+
+```text
+## Setup
+
+npm ci
+
+Run:
+
+npm run start -- --input /abs/path/input.json
+```
+
+This keeps ownership clear:
+
+- `aiagent/code` stays small and stable
+- each skill can evolve its own dependencies independently
+- Python, Node.js, and future runtimes can coexist under the same `SKILLS_ROOT`
 
 ## CLI Usage
 
