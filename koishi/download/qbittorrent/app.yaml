@@ -18,10 +18,13 @@ spec:
       labels:
         app.kubernetes.io/name: qbittorrent
     spec:
+      nodeSelector:
+        kubernetes.io/hostname: nur
       volumes:
         - name: default-common-encrypted
-          persistentVolumeClaim:
-            claimName: default-common-encrypted
+          hostPath:
+            path: /mnt/runtime-data-app/commondata
+            type: Directory
         - name: nfs-data-download
           persistentVolumeClaim:
             claimName: nfs-data-download

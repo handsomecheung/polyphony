@@ -16,10 +16,13 @@ spec:
       labels:
         app: fs-downserver
     spec:
+      nodeSelector:
+        kubernetes.io/hostname: nur
       volumes:
         - name: default-common-encrypted
-          persistentVolumeClaim:
-            claimName: default-common-encrypted
+          hostPath:
+            path: /mnt/runtime-data-app/commondata
+            type: Directory
         - name: coder-sharepoint
           hostPath:
             path: /mnt/coder-sharepoint/

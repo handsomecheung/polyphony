@@ -22,10 +22,13 @@ spec:
         sysctls:
           - name: net.ipv4.ip_forward
             value: "1"
+      nodeSelector:
+        kubernetes.io/hostname: nur
       volumes:
         - name: default-common
-          persistentVolumeClaim:
-            claimName: default-common-encrypted
+          hostPath:
+            path: /mnt/runtime-data-app/commondata
+            type: Directory
       containers:
         - name: app
           # https://github.com/wg-easy/wg-easy

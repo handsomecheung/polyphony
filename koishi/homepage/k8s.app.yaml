@@ -176,6 +176,8 @@ spec:
       automountServiceAccountToken: true
       dnsPolicy: ClusterFirst
       enableServiceLinks: true
+      nodeSelector:
+        kubernetes.io/hostname: nur
       volumes:
         - name: rawconfig
           configMap:
@@ -185,8 +187,9 @@ spec:
         - name: logs
           emptyDir: {}
         - name: default-common
-          persistentVolumeClaim:
-            claimName: default-common-encrypted
+          hostPath:
+            path: /mnt/runtime-data-app/commondata
+            type: Directory
       initContainers:
         - name: init
           image: cloudpublic/base/bash:latest

@@ -21,10 +21,13 @@ spec:
       nodeSelector:
         kubernetes.io/hostname: nur
       terminationGracePeriodSeconds: 5
+      nodeSelector:
+        kubernetes.io/hostname: nur
       volumes:
         - name: default-common
-          persistentVolumeClaim:
-            claimName: default-common-encrypted
+          hostPath:
+            path: /mnt/runtime-data-app/commondata
+            type: Directory
         - name: etc-passwd
           hostPath:
             path: /etc/passwd

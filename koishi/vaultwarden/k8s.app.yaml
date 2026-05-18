@@ -39,10 +39,13 @@ spec:
         app.kubernetes.io/name: vaultwarden
         app.kubernetes.io/instance: vaultwarden
     spec:
+      nodeSelector:
+        kubernetes.io/hostname: nur
       volumes:
         - name: vaultwarden-encrypted
-          persistentVolumeClaim:
-            claimName: vaultwarden-encrypted
+          hostPath:
+            path: /mnt/runtime-data-app/vaultwarden
+            type: Directory
       containers:
         - name: app
           image: vaultwarden/server:latest

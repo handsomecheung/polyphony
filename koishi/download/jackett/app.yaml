@@ -20,10 +20,13 @@ spec:
       labels:
         app.kubernetes.io/name: jackett
     spec:
+      nodeSelector:
+        kubernetes.io/hostname: nur
       volumes:
         - name: default-common-encrypted
-          persistentVolumeClaim:
-            claimName: default-common-encrypted
+          hostPath:
+            path: /mnt/runtime-data-app/commondata
+            type: Directory
       containers:
         - name: app
           image: linuxserver/jackett

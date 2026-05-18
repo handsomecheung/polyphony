@@ -16,10 +16,13 @@ spec:
       labels:
         app.kubernetes.io/name: wireproxy
     spec:
+      nodeSelector:
+        kubernetes.io/hostname: nur
       volumes:
         - name: default-common
-          persistentVolumeClaim:
-            claimName: default-common-encrypted
+          hostPath:
+            path: /mnt/runtime-data-app/commondata
+            type: Directory
       containers:
         - name: app
           # https://github.com/pufferffish/wireproxy
