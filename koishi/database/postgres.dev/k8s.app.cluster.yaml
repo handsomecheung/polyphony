@@ -1,4 +1,42 @@
 ---
+apiVersion: v1
+kind: Secret
+type: Opaque
+metadata:
+  name: gcs-creds
+  namespace: db-dev
+data:
+  gcs-key.json: __{{database.postgres-dev.accounts:a:koishi-cnpg-backup-sa.json:a:b64}}__
+
+---
+apiVersion: v1
+kind: Secret
+type: kubernetes.io/basic-auth
+metadata:
+  name: postgres-superuser
+  namespace: db-dev
+stringData:
+  username: postgres
+  password: "__{{database.postgres-dev.accounts:f:postgres}}__"
+
+---
+apiVersion: barmancloud.cnpg.io/v1
+kind: ObjectStore
+metadata:
+  name: postgres-backup
+  namespace: db-dev
+spec:
+  configuration:
+    destinationPath: gs://koishi-cnpg-backup-dev/backups/
+    googleCredentials:
+      applicationCredentials:
+        name: gcs-creds
+        key: gcs-key.json
+    wal:
+      compression: gzip
+  retentionPolicy: "3d"
+
+---
 apiVersion: postgresql.cnpg.io/v1
 kind: Cluster
 metadata:
@@ -7,10 +45,23 @@ metadata:
 spec:
   instances: 2
   imageName: ghcr.io/cloudnative-pg/postgresql:18
+  enableSuperuserAccess: true
+
+  superuserSecret:
+    name: postgres-superuser
 
   storage:
     size: 1Gi
     storageClass: local-path
+
+  monitoring:
+    enablePodMonitor: false
+
+  plugins:
+    - name: barman-cloud.cloudnative-pg.io
+      isWALArchiver: true
+      parameters:
+        barmanObjectName: postgres-backup
 
   managed:
     roles:
@@ -26,9 +77,6 @@ spec:
         login: true
       - name: forma
         login: true
-
-  monitoring:
-    enablePodMonitor: true
 
 ---
 apiVersion: v1
@@ -49,3 +97,19 @@ spec:
   selector:
     cnpg.io/cluster: postgres
     cnpg.io/instanceRole: primary
+
+---
+apiVersion: postgresql.cnpg.io/v1
+kind: ScheduledBackup
+metadata:
+  name: postgres-daily-backup
+  namespace: db-dev
+spec:
+  schedule: "0 0 3 * * *"
+  immediate: true
+  backupOwnerReference: self
+  cluster:
+    name: postgres
+  method: plugin
+  pluginConfiguration:
+    name: barman-cloud.cloudnative-pg.io

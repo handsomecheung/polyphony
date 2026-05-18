@@ -8,4 +8,11 @@ kubectl apply --server-side -f \
 echo "Waiting for CloudNativePG deployment to be ready..."
 kubectl wait --for=condition=ready pod -l app.kubernetes.io/name=cloudnative-pg -n cnpg-system --timeout=300s
 
+echo "Installing Barman Cloud Plugin v0.12.0..."
+kubectl apply -f \
+    https://github.com/cloudnative-pg/plugin-barman-cloud/releases/download/v0.12.0/manifest.yaml
+
+echo "Waiting for Barman Cloud Plugin deployment to be ready..."
+kubectl rollout status deployment -n cnpg-system barman-cloud --timeout=300s
+
 echo "CloudNativePG Operator installed successfully."
