@@ -1,0 +1,51 @@
+---
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: postgres
+  namespace: db-dev
+spec:
+  instances: 2
+  imageName: ghcr.io/cloudnative-pg/postgresql:18
+
+  storage:
+    size: 1Gi
+    storageClass: local-path
+
+  managed:
+    roles:
+      - name: nulltrace
+        login: true
+      - name: formant
+        login: true
+      - name: kausabu
+        login: true
+      - name: home
+        login: true
+      - name: pushion
+        login: true
+      - name: forma
+        login: true
+
+  monitoring:
+    enablePodMonitor: true
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres
+  namespace: db-dev
+  labels:
+    app.kubernetes.io/name: postgres
+    cnpg.io/cluster: postgres
+spec:
+  type: ClusterIP
+  ports:
+    - name: postgres
+      port: 5432
+      targetPort: 5432
+      protocol: TCP
+  selector:
+    cnpg.io/cluster: postgres
+    cnpg.io/instanceRole: primary
