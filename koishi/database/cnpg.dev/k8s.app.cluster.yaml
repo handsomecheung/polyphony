@@ -52,7 +52,7 @@ spec:
 
   storage:
     size: 1Gi
-    storageClass: local-path
+    storageClass: local-path-retain
 
   monitoring:
     enablePodMonitor: false
