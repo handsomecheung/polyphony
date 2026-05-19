@@ -1,0 +1,30 @@
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: postgres-external-creds
+  namespace: db-dev
+type: Opaque
+stringData:
+  username: postgres
+  password: "__{{database.postgres-dev.accounts:f:postgres}}__"
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres-cluster
+  namespace: db-dev
+  labels:
+    app.kubernetes.io/name: postgres-cluster
+    cnpg.io/cluster: postgres-cluster
+spec:
+  type: ClusterIP
+  ports:
+    - name: postgres
+      port: 5432
+      targetPort: 5432
+      protocol: TCP
+  selector:
+    cnpg.io/cluster: postgres
+    cnpg.io/instanceRole: primary

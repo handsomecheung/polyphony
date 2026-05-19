@@ -1,0 +1,44 @@
+---
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: postgres
+  namespace: db-dev
+spec:
+  instances: 2
+  imageName: ghcr.io/cloudnative-pg/postgresql:18
+
+  bootstrap:
+    initdb:
+      import:
+        type: monolith
+        databases:
+          - "*"
+        source:
+          externalCluster: postgres-old
+      # インポート開始前にロールを作成
+      postInitSQL:
+        - CREATE ROLE nulltrace WITH LOGIN PASSWORD '__{{database.postgres.ck-dev.accounts:f:nulltrace}}__';
+        - CREATE ROLE formant WITH LOGIN PASSWORD '__{{database.postgres.ck-dev.accounts:f:formant}}__';
+        - CREATE ROLE kausabu WITH LOGIN PASSWORD '__{{database.postgres.ck-dev.accounts:f:kausabu}}__';
+        - CREATE ROLE home WITH LOGIN PASSWORD '__{{database.postgres.ck-dev.accounts:f:home}}__';
+        - CREATE ROLE pushion WITH LOGIN PASSWORD '__{{database.postgres.ck-dev.accounts:f:pushion}}__';
+        - CREATE ROLE forma WITH LOGIN PASSWORD '__{{database.postgres.ck-dev.accounts:f:forma}}__';
+
+  externalClusters:
+    - name: postgres-old
+      connectionParameters:
+        host: postgres.db-dev.svc.cluster.local
+        user: postgres
+        dbname: default
+        sslmode: disable
+      password:
+        name: postgres-external-creds
+        key: password
+
+  storage:
+    size: 1Gi
+    storageClass: local-path-retain
+
+  monitoring:
+    enablePodMonitor: false
