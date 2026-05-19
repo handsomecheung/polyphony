@@ -3,7 +3,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: postgres
-  namespace: db-prod
+  namespace: database
   labels:
     app.kubernetes.io/name: postgres
 spec:
@@ -19,11 +19,11 @@ spec:
         app.kubernetes.io/name: postgres
     spec:
       nodeSelector:
-        kubernetes.io/hostname: miniba
+        kubernetes.io/hostname: nur
       volumes:
         - name: data
           hostPath:
-            path: /mnt/runtime-data-app/postgres.prod
+            path: /mnt/runtime-data-app/postgres.local
             type: DirectoryOrCreate
       containers:
         - name: app
@@ -32,7 +32,7 @@ spec:
             - name: POSTGRES_USER
               value: postgres
             - name: POSTGRES_PASSWORD
-              value: "__{{database.postgres.accounts:f:postgres}}__"
+              value: "__{{database.postgres-local.accounts:f:postgres}}__"
             - name: POSTGRES_DB
               value: default
           volumeMounts:
@@ -60,7 +60,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: postgres
-  namespace: db-prod
+  namespace: database
   labels:
     app.kubernetes.io/name: postgres
 spec:

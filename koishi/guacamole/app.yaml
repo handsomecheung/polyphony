@@ -105,13 +105,13 @@ spec:
             - name: GUACD_HOSTNAME
               value: guacamole-guacd
             - name: POSTGRESQL_HOSTNAME
-              value: postgres.db-prod
+              value: postgres.database
             - name: POSTGRESQL_PORT
               value: "5432"
             - name: POSTGRESQL_USERNAME
               value: guacamole
             - name: POSTGRESQL_PASSWORD
-              value: "__{{database.postgres.accounts:f:guacamole}}__"
+              value: "__{{database.postgres-local.accounts:f:guacamole}}__"
             - name: POSTGRESQL_DATABASE
               value: guacamole
             # - name: LOGBACK_LEVEL

@@ -19,7 +19,7 @@ spec:
               imagePullPolicy: Always
               env:
                 - name: DB_HOST
-                  value: "postgres.db-prod"
+                  value: "postgres.database"
                 - name: DB_PORT
                   value: "5432"
                 - name: DB_NAME
@@ -27,5 +27,5 @@ spec:
                 - name: DB_USER
                   value: "finance"
                 - name: DB_PASSWORD
-                  value: "__{{database.postgres.accounts:f:finance}}__"
+                  value: "__{{database.postgres-local.accounts:f:finance}}__"
           restartPolicy: Never

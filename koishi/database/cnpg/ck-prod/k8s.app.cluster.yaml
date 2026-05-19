@@ -4,9 +4,9 @@ kind: Secret
 type: Opaque
 metadata:
   name: gcs-creds
-  namespace: db-dev
+  namespace: ck-prod
 data:
-  gcs-key.json: __{{database.postgres-dev.accounts:a:koishi-cnpg-backup-sa.json:a:b64}}__
+  gcs-key.json: __{{database.postgres.ck-prod.accounts:a:koishi-cnpg-backup-sa.json:a:b64}}__
 
 ---
 apiVersion: v1
@@ -14,36 +14,36 @@ kind: Secret
 type: kubernetes.io/basic-auth
 metadata:
   name: postgres-superuser
-  namespace: db-dev
+  namespace: ck-prod
 stringData:
   username: postgres
-  password: "__{{database.postgres-dev.accounts:f:postgres}}__"
+  password: "__{{database.postgres.ck-prod.accounts:f:postgres}}__"
 
 ---
 apiVersion: barmancloud.cnpg.io/v1
 kind: ObjectStore
 metadata:
   name: postgres-backup
-  namespace: db-dev
+  namespace: ck-prod
 spec:
   configuration:
-    destinationPath: gs://koishi-cnpg-backup-dev/backups/
+    destinationPath: gs://koishi-cnpg-backup-prod/backups/
     googleCredentials:
       applicationCredentials:
         name: gcs-creds
         key: gcs-key.json
     wal:
       compression: gzip
-  retentionPolicy: "3d"
+  retentionPolicy: "30d"
 
 ---
 apiVersion: postgresql.cnpg.io/v1
 kind: Cluster
 metadata:
   name: postgres
-  namespace: db-dev
+  namespace: ck-prod
 spec:
-  instances: 2
+  instances: 3
   imageName: ghcr.io/cloudnative-pg/postgresql:18
   enableSuperuserAccess: true
 
@@ -51,7 +51,7 @@ spec:
     name: postgres-superuser
 
   storage:
-    size: 1Gi
+    size: 10Gi
     storageClass: local-path-retain
 
   monitoring:
@@ -65,17 +65,15 @@ spec:
 
   managed:
     roles:
-      - name: nulltrace
+      - name: home
         login: true
       - name: formant
         login: true
-      - name: kausabu
+      - name: forma
         login: true
-      - name: home
+      - name: nulltrace
         login: true
       - name: pushion
-        login: true
-      - name: forma
         login: true
 
 ---
@@ -83,7 +81,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: postgres
-  namespace: db-dev
+  namespace: ck-prod
   labels:
     app.kubernetes.io/name: postgres
     cnpg.io/cluster: postgres
@@ -103,9 +101,9 @@ apiVersion: postgresql.cnpg.io/v1
 kind: ScheduledBackup
 metadata:
   name: postgres-daily-backup
-  namespace: db-dev
+  namespace: ck-prod
 spec:
-  schedule: "0 0 3 * * *"
+  schedule: "0 0 23 * * *"
   immediate: true
   backupOwnerReference: self
   cluster:

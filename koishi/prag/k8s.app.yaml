@@ -29,7 +29,7 @@ spec:
           imagePullPolicy: Always
           env:
             - name: REDIS_HOST
-              value: "redis.db-prod"
+              value: "redis.ck-prod"
             - name: REDIS_PORT
               value: "6379"
             - name: REDIS_DB

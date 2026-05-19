@@ -1,0 +1,115 @@
+---
+apiVersion: v1
+kind: Secret
+type: Opaque
+metadata:
+  name: gcs-creds
+  namespace: ck-dev
+data:
+  gcs-key.json: __{{database.postgres.ck-dev.accounts:a:koishi-cnpg-backup-sa.json:a:b64}}__
+
+---
+apiVersion: v1
+kind: Secret
+type: kubernetes.io/basic-auth
+metadata:
+  name: postgres-superuser
+  namespace: ck-dev
+stringData:
+  username: postgres
+  password: "__{{database.postgres.ck-dev.accounts:f:postgres}}__"
+
+---
+apiVersion: barmancloud.cnpg.io/v1
+kind: ObjectStore
+metadata:
+  name: postgres-backup
+  namespace: ck-dev
+spec:
+  configuration:
+    destinationPath: gs://koishi-cnpg-backup-dev/backups/
+    googleCredentials:
+      applicationCredentials:
+        name: gcs-creds
+        key: gcs-key.json
+    wal:
+      compression: gzip
+  retentionPolicy: "3d"
+
+---
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: postgres
+  namespace: ck-dev
+spec:
+  instances: 2
+  imageName: ghcr.io/cloudnative-pg/postgresql:18
+  enableSuperuserAccess: true
+
+  superuserSecret:
+    name: postgres-superuser
+
+  storage:
+    size: 1Gi
+    storageClass: local-path-retain
+
+  monitoring:
+    enablePodMonitor: false
+
+  plugins:
+    - name: barman-cloud.cloudnative-pg.io
+      isWALArchiver: true
+      parameters:
+        barmanObjectName: postgres-backup
+
+  managed:
+    roles:
+      - name: nulltrace
+        login: true
+      - name: formant
+        login: true
+      - name: kausabu
+        login: true
+      - name: home
+        login: true
+      - name: pushion
+        login: true
+      - name: forma
+        login: true
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres
+  namespace: ck-dev
+  labels:
+    app.kubernetes.io/name: postgres
+    cnpg.io/cluster: postgres
+spec:
+  type: ClusterIP
+  ports:
+    - name: postgres
+      port: 5432
+      targetPort: 5432
+      protocol: TCP
+  selector:
+    cnpg.io/cluster: postgres
+    cnpg.io/instanceRole: primary
+
+---
+apiVersion: postgresql.cnpg.io/v1
+kind: ScheduledBackup
+metadata:
+  name: postgres-daily-backup
+  namespace: ck-dev
+spec:
+  schedule: "0 0 3 * * *"
+  immediate: true
+  backupOwnerReference: self
+  cluster:
+    name: postgres
+  method: plugin
+  pluginConfiguration:
+    name: barman-cloud.cloudnative-pg.io

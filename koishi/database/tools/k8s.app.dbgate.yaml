@@ -74,32 +74,45 @@ spec:
               readOnly: true
           env:
             - name: CONNECTIONS
-              value: postgresdev,postgresprod,pushionsprod,cijsfawsdev,cijsfawsprod,ciipasssystem,ciipasseucdev,ciipasseucprod,ciipasslibrary,subscout,openclawdefault,openclawkzk
+              value: postgreslocal,postgresckdev,postgresckprod,pushionsprod,cijsfawsdev,cijsfawsprod,ciipasssystem,ciipasseucdev,ciipasseucprod,ciipasslibrary,subscout,openclawdefault,openclawkzk
 
-            - name: LABEL_postgresdev
-              value: Koishi PostgreSQL Dev
-            - name: SERVER_postgresdev
-              value: postgres.db-dev
-            - name: PORT_postgresdev
+            - name: LABEL_postgreslocal
+              value: Koishi PostgreSQL Local
+            - name: SERVER_postgreslocal
+              value: postgres.database
+            - name: PORT_postgreslocal
               value: "5432"
-            - name: USER_postgresdev
+            - name: USER_postgreslocal
               value: postgres
-            - name: PASSWORD_postgresdev
-              value: "__{{database.postgres-dev.accounts:f:postgres}}__"
-            - name: ENGINE_postgresdev
+            - name: PASSWORD_postgreslocal
+              value: "__{{database.postgres-local.accounts:f:postgres}}__"
+            - name: ENGINE_postgreslocal
               value: postgres@dbgate-plugin-postgres
 
-            - name: LABEL_postgresprod
-              value: Koishi PostgreSQL Prod
-            - name: SERVER_postgresprod
-              value: postgres.db-prod
-            - name: PORT_postgresprod
+            - name: LABEL_postgresckdev
+              value: Koishi PostgreSQL CK Dev
+            - name: SERVER_postgresckdev
+              value: postgres-rw.ck-dev
+            - name: PORT_postgresckdev
               value: "5432"
-            - name: USER_postgresprod
+            - name: USER_postgresckdev
               value: postgres
-            - name: PASSWORD_postgresprod
-              value: "__{{database.postgres.accounts:f:postgres}}__"
-            - name: ENGINE_postgresprod
+            - name: PASSWORD_postgresckdev
+              value: "__{{database.postgres.ck-dev.accounts:f:postgres}}__"
+            - name: ENGINE_postgresckdev
+              value: postgres@dbgate-plugin-postgres
+
+            - name: LABEL_postgresckprod
+              value: Koishi PostgreSQL CK Prod
+            - name: SERVER_postgresckprod
+              value: postgres.ck-prod
+            - name: PORT_postgresckprod
+              value: "5432"
+            - name: USER_postgresckprod
+              value: postgres
+            - name: PASSWORD_postgresckprod
+              value: "__{{database.postgres.ck-prod.accounts:f:postgres}}__"
+            - name: ENGINE_postgresckprod
               value: postgres@dbgate-plugin-postgres
 
             - name: LABEL_pushionsprod
@@ -352,19 +365,19 @@ spec:
               readOnly: true
           env:
             - name: CONNECTIONS
-              value: postgresdev,cijsfawsdev,ciipasssystem,ciipasseucdev,ciipasseucprod,ciipasslibrary
+              value: postgresckdev,cijsfawsdev,ciipasssystem,ciipasseucdev,ciipasseucprod,ciipasslibrary
 
-            - name: LABEL_postgresdev
-              value: Koishi PostgreSQL Dev
-            - name: SERVER_postgresdev
-              value: postgres.db-dev
-            - name: PORT_postgresdev
+            - name: LABEL_postgresckdev
+              value: Koishi PostgreSQL CK Dev
+            - name: SERVER_postgresckdev
+              value: postgres.ck-dev
+            - name: PORT_postgresckdev
               value: "5432"
-            - name: USER_postgresdev
+            - name: USER_postgresckdev
               value: postgres
-            - name: PASSWORD_postgresdev
-              value: "__{{database.postgres-dev.accounts:f:postgres}}__"
-            - name: ENGINE_postgresdev
+            - name: PASSWORD_postgresckdev
+              value: "__{{database.postgres.ck-dev.accounts:f:postgres}}__"
+            - name: ENGINE_postgresckdev
               value: postgres@dbgate-plugin-postgres
 
             - name: LABEL_cijsfawsdev
@@ -529,14 +542,19 @@ spec:
     - to:
         - ipBlock:
             cidr: __{{koishi.infra.infos:f:subnetv4}}__.0/24
+
     - to:
         - namespaceSelector:
             matchLabels:
-              kubernetes.io/metadata.name: db-dev
+              kubernetes.io/metadata.name: database
     - to:
         - namespaceSelector:
             matchLabels:
-              kubernetes.io/metadata.name: db-prod
+              kubernetes.io/metadata.name: ck-dev
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: ck-prod
 
     - to:
         - namespaceSelector:

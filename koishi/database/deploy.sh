@@ -5,11 +5,11 @@ cd "$(dirname "${BASH_SOURCE[0]}")"
 
 my-k8s-deploy --file=k8s.app.namespace.yaml
 
-my-k8s-deploy --file=k8s.app.redis.prod.yaml
-my-k8s-deploy --file=k8s.app.redis.dev.yaml
+my-k8s-deploy --file=k8s.app.redis.ck-prod.yaml
+my-k8s-deploy --file=k8s.app.redis.ck-dev.yaml
 
-./postgres.dev/deploy.sh
+./local/deploy.sh
 
-./postgres.prod/deploy.sh
+./cnpg/deploy.sh
 
 ./tools/deploy.sh

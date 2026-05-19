@@ -1,0 +1,42 @@
+---
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: postgres
+  namespace: ck-prod
+spec:
+  instances: 3
+  imageName: ghcr.io/cloudnative-pg/postgresql:18
+
+  bootstrap:
+    initdb:
+      import:
+        type: monolith
+        databases:
+          - "*"
+        source:
+          externalCluster: postgres-old
+      postInitSQL:
+        - CREATE ROLE home WITH LOGIN PASSWORD '__{{database.postgres.ck-prod.accounts:f:home}}__';
+        - CREATE ROLE formant WITH LOGIN PASSWORD '__{{database.postgres.ck-prod.accounts:f:formant}}__';
+        - CREATE ROLE forma WITH LOGIN PASSWORD '__{{database.postgres.ck-prod.accounts:f:forma}}__';
+        - CREATE ROLE pushion WITH LOGIN PASSWORD '__{{database.postgres.ck-prod.accounts:f:pushion}}__';
+        - CREATE ROLE nulltrace WITH LOGIN PASSWORD '__{{database.postgres.ck-prod.accounts:f:nulltrace}}__';
+
+  externalClusters:
+    - name: postgres-old
+      connectionParameters:
+        host: postgres.db-prod.svc.cluster.local
+        user: postgres
+        dbname: default
+        sslmode: disable
+      password:
+        name: postgres-external-creds
+        key: password
+
+  storage:
+    size: 10Gi
+    storageClass: local-path-retain
+
+  monitoring:
+    enablePodMonitor: false

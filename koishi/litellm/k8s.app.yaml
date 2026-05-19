@@ -89,7 +89,7 @@ spec:
             - name: LITELLM_SALT_KEY
               value: "__{{koishi.litellm:f:salt-key}}__"
             - name: DATABASE_URL
-              value: "postgresql://litellm:__{{database.postgres.accounts:f:litellm}}__@postgres.db-prod:5432/litellm"
+              value: "postgresql://litellm:__{{database.postgres-local.accounts:f:litellm}}__@postgres.database:5432/litellm"
             - name: GEMINI_API_KEY
               value: "__{{llm.api-keys:f:gemini}}__"
             - name: ANTHROPIC_API_KEY
