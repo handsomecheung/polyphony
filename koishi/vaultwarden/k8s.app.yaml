@@ -35,10 +35,18 @@ spec:
         - name: app
           image: vaultwarden/server:latest
           imagePullPolicy: Always
+          env:
+            - name: LOG_FILE
+              value: "/log/vaultwarden.log"
+            - name: LOG_LEVEL
+              value: "info"
           volumeMounts:
             - name: vaultwarden-encrypted
-              mountPath: /data
               subPath: data
+              mountPath: /data
+            - name: vaultwarden-encrypted
+              subPath: log
+              mountPath: /log
           ports:
             - containerPort: 80
           resources:

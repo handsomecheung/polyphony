@@ -28,6 +28,7 @@ MONITOR_COPY_DIRS = {
     "/mnt/user-data-music/music/warehouse": {
         "remotes": [
             {"name": "pikpak", "path": "backup/p/music/warehouse"},
+            {"name": "gdrive", "path": "SharePoint/backup/p/music/warehouse"},
         ],
     },
     "/mnt/user-data-others/data": {

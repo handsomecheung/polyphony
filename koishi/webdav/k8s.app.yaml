@@ -99,6 +99,10 @@ spec:
           hostPath:
             path: /mnt/coder-sharepoint
             type: DirectoryOrCreate
+        - name: coder-workspaces
+          hostPath:
+            path: /mnt/coder-workspaces
+            type: DirectoryOrCreate
         - name: decrypted
           hostPath:
             path: /mnt/decrypted
@@ -137,6 +141,20 @@ spec:
               mountPath: /data/__{{infra.common-users:f:hh}}__/decrypted
 
             - name: user-data-slight
+              subPath: private-data/foldersync/gphoto/cc/pending
+              mountPath: /data/__{{infra.common-users:f:hh}}__/gphoto/cc-pending
+            - name: user-data-slight
+              subPath: private-data/foldersync/gphoto/cc/sync
+              mountPath: /data/__{{infra.common-users:f:hh}}__/gphoto/cc-sync
+            - name: user-data-slight
+              subPath: private-data/foldersync/gphoto/hh/from-cc
+              mountPath: /data/__{{infra.common-users:f:hh}}__/gphoto/hh-sync
+
+            - name: coder-workspaces
+              subPath: private-workspace/repos/local/mystatic
+              mountPath: /data/__{{infra.common-users:f:hh}}__/repos/local/mystatic
+
+            - name: user-data-slight
               subPath: share-point
               mountPath: /data/__{{infra.common-users:f:hz73}}__/share-point
 
@@ -148,6 +166,10 @@ spec:
             - name: user-data-slight
               subPath: share-point
               mountPath: /data/__{{infra.common-users:f:cc}}__/share-point
+
+            - name: coder-workspaces
+              subPath: private-workspace/repos/local/mystatic
+              mountPath: /data/__{{infra.common-users:f:cc}}__/repos/mystatic
 
           resources:
             requests:

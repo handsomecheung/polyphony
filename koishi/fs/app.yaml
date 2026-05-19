@@ -142,7 +142,7 @@ spec:
         app: fs-upserver
     spec:
       nodeSelector:
-        kubernetes.io/hostname: miniba
+        kubernetes.io/hostname: nur
       volumes:
         - name: files
           hostPath:

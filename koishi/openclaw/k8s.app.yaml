@@ -134,7 +134,7 @@ spec:
             - name: VW_URL
               value: https://vaultwarden.__{{infra.domains:f:x}}__
             - name: GEMINI_API_KEY
-              value: "__{{llm.api-keys:f:gemini}}__"
+              value: "__{{llm.api-keys:f:gemini-openclaw}}__"
             - name: NOTION_API_KEY
               value: "__{{openclaw.infos:f:NOTION_API_KEY}}__"
             - name: ELEVENLABS_API_KEY
@@ -154,6 +154,16 @@ spec:
             - name: common
               subPath: bin
               mountPath: /home/node/bin
+
+            - name: coder-workspaces
+              subPath: private-workspace/repos/local/notebook/obsidian/Default/AI/Skills/prag
+              mountPath: /home/node/.openclaw/skills/prag
+            - name: coder-workspaces
+              subPath: private-workspace/repos/local/notebook/obsidian/Default/AI/Skills/vw
+              mountPath: /home/node/.openclaw/skills/vw
+            - name: coder-workspaces
+              subPath: private-workspace/repos/local/notebook/obsidian/Default/AI/Skills/slide-generator
+              mountPath: /home/node/.openclaw/skills/slide-generator
 
             - name: coder-workspaces
               mountPath: /mnt/coder-workspaces

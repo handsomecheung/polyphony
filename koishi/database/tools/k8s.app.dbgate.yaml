@@ -257,39 +257,11 @@ spec:
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: dbgate-1
-  namespace: default
-  annotations:
-    cert-manager.io/cluster-issuer: cluster-letsencrypt-dns-cloudflare
-    traefik.ingress.kubernetes.io/router.middlewares: default-sablierdbgate@kubernetescrd
-spec:
-  ingressClassName: traefik
-  rules:
-    - host: dbgate.home4p.__{{infra.domains:f:x}}__
-      http:
-        paths:
-          - path: /
-            pathType: Prefix
-            backend:
-              service:
-                name: dbgate
-                port:
-                  name: default
-  tls:
-    - hosts:
-        - dbgate.home4p.__{{infra.domains:f:x}}__
-      secretName: dbgate-home4p-domainx
-
----
-apiVersion: networking.k8s.io/v1
-kind: Ingress
-metadata:
   name: dbgate
   namespace: default
   annotations:
     cert-manager.io/cluster-issuer: cluster-letsencrypt-dns-cloudflare
-    traefik.ingress.kubernetes.io/router.middlewares: middleware-playonjan@kubernetescrd,middleware-antimitm@kubernetescrd,sso-domainx@kubernetescrd
-    # traefik.ingress.kubernetes.io/router.middlewares: middleware-playonjan@kubernetescrd,middleware-antimitm@kubernetescrd,sso-domainx@kubernetescrd,default-sablierdbgate@kubernetescrd
+    traefik.ingress.kubernetes.io/router.middlewares: middleware-playonjan@kubernetescrd,middleware-antimitm@kubernetescrd,sso-domainx@kubernetescrd,default-sablierdbgate@kubernetescrd
     gethomepage.dev/enabled: "true"
     gethomepage.dev/group: Development
     gethomepage.dev/name: dbgate

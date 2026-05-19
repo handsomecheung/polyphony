@@ -33,6 +33,10 @@ spec:
           hostPath:
             path: /mnt/coder-workspaces/private-workspace/repos/local/openclaw-data/common
             type: DirectoryOrCreate
+        - name: coder-workspaces
+          hostPath:
+            path: /mnt/coder-workspaces
+            type: Directory
       initContainers:
         - name: init
           image: busybox:latest
@@ -64,7 +68,7 @@ spec:
             - name: VW_URL
               value: https://vaultwarden.__{{infra.domains:f:x}}__
             - name: GEMINI_API_KEY
-              value: "__{{llm.api-keys:f:gemini}}__"
+              value: "__{{llm.api-keys:f:gemini-openclaw}}__"
             - name: LINE_CHANNEL_SECRET
               value: "__{{linebridge:f:channel-secret}}__"
             - name: LINE_CHANNEL_ACCESS_TOKEN
@@ -83,6 +87,10 @@ spec:
             - name: common
               subPath: bin
               mountPath: /home/node/bin
+
+            - name: coder-workspaces
+              subPath: private-workspace/repos/local/notebook/obsidian/Default/AI/Skills/gcal
+              mountPath: /home/node/.openclaw/skills/gcal
           resources:
             requests:
               cpu: 1000m
@@ -167,9 +175,9 @@ spec:
             pathType: Prefix
             backend:
               service:
-                name: openclaw
+                name: openclaw-kzk
                 port:
-                  name: oc-gateway
+                  name: gateway
   tls:
     - hosts:
         - openclaw-kzk.__{{infra.domains:f:x}}__
