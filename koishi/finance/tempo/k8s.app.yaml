@@ -24,7 +24,7 @@ spec:
                   value: "5432"
                 - name: DB_NAME
                   value: "finance"
-                - name: DB_USER
+                - name: DB_USERNAME
                   value: "finance"
                 - name: DB_PASSWORD
                   value: "__{{database.postgres-local.accounts:f:finance}}__"

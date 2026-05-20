@@ -30,16 +30,16 @@ def get_required_env(key):
 DB_HOST = get_required_env("DB_HOST")
 DB_PORT = get_required_env("DB_PORT")
 DB_NAME = get_required_env("DB_NAME")
-DB_USER = get_required_env("DB_USER")
-DB_PASS = get_required_env("DB_PASS")
+DB_USERNAME = get_required_env("DB_USERNAME")
+DB_PASSWORD = get_required_env("DB_PASSWORD")
 
 def get_db_connection():
     return psycopg2.connect(
         host=DB_HOST,
         port=DB_PORT,
         dbname=DB_NAME,
-        user=DB_USER,
-        password=DB_PASS
+        user=DB_USERNAME,
+        password=DB_PASSWORD
     )
 
 def init_db():
