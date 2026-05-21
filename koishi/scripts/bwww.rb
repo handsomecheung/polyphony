@@ -136,7 +136,7 @@ private
     res = secure_request(uri, 'POST', content)
 
     unless res.is_a?(Net::HTTPSuccess)
-      warn "Warning: Failed to render #{filepath}: #{res.code} #{res.message}"
+      warn "Warning: Failed to render #{filepath}: #{res.code} #{res.message}\n#{res.body}"
       return nil
     end
 
@@ -148,7 +148,7 @@ private
     res = secure_request(uri, 'GET')
     
     unless res.is_a?(Net::HTTPSuccess)
-      warn "Warning: Request to #{uri} failed: #{res.code} #{res.message}"
+      warn "Warning: Request to #{uri} failed: #{res.code} #{res.message}\n#{res.body}"
       return nil
     end
     

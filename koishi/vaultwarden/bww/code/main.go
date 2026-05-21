@@ -183,7 +183,7 @@ func getPasswordValue(name string, isBase64 bool) (string, error) {
 
 	item, ok := getItem(name)
 	if !ok {
-		return "", fmt.Errorf("item not found")
+		return "", fmt.Errorf("password not found in %s", name)
 	}
 	val := item.Login.Password
 	if isBase64 {
@@ -197,7 +197,7 @@ func getFieldValue(name, fieldName string, isBase64 bool) (string, error) {
 
 	item, ok := getItem(name)
 	if !ok {
-		return "", fmt.Errorf("item not found")
+		return "", fmt.Errorf("item %s not found", name)
 	}
 	for _, f := range item.Fields {
 		if f.Name == fieldName {
@@ -208,7 +208,7 @@ func getFieldValue(name, fieldName string, isBase64 bool) (string, error) {
 			return val, nil
 		}
 	}
-	return "", fmt.Errorf("field not found")
+	return "", fmt.Errorf("field %s not found in %s", fieldName, name)
 }
 
 func getAttachmentValue(name, filename string, isBase64 bool) ([]byte, error) {
@@ -220,7 +220,7 @@ func getAttachmentValue(name, filename string, isBase64 bool) ([]byte, error) {
 
 	item, ok := getItem(name)
 	if !ok {
-		return nil, fmt.Errorf("item not found")
+		return nil, fmt.Errorf("attachment %s not found in %s", filename, name)
 	}
 
 	tmpFile, err := os.CreateTemp("", "bw-attach-*")
@@ -277,7 +277,11 @@ func handleRender(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	var renderErr error
 	result := rePlaceholder.ReplaceAllFunc(body, func(match []byte) []byte {
+		if renderErr != nil {
+			return match
+		}
 		content := string(match[4 : len(match)-4])
 		parts := strings.Split(content, ":")
 
@@ -296,6 +300,8 @@ func handleRender(w http.ResponseWriter, r *http.Request) {
 				val = string(bVal)
 			} else if parts[1] == "_" && parts[2] == "b64" {
 				val, err = getPasswordValue(parts[0], true)
+			} else {
+				err = fmt.Errorf("invalid placeholder type: %s", parts[1])
 			}
 		case 5:
 			if parts[1] == "a" && parts[3] == "a" && parts[4] == "b64" {
@@ -304,15 +310,25 @@ func handleRender(w http.ResponseWriter, r *http.Request) {
 				val = string(bVal)
 			} else if parts[1] == "f" && parts[3] == "f" && parts[4] == "b64" {
 				val, err = getFieldValue(parts[0], parts[2], true)
+			} else {
+				err = fmt.Errorf("invalid placeholder format: %s", content)
 			}
+		default:
+			err = fmt.Errorf("unsupported placeholder format: %s", content)
 		}
 
 		if err != nil {
 			log.Printf("Render error for %s: %v", content, err)
+			renderErr = err
 			return match
 		}
 		return []byte(val)
 	})
+
+	if renderErr != nil {
+		http.Error(w, renderErr.Error(), http.StatusBadRequest)
+		return
+	}
 
 	w.Write(result)
 }

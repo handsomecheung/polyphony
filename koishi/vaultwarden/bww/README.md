@@ -43,14 +43,15 @@ BWW (BitWarden for Webapp) is a Go-based application that wraps the Bitwarden CL
 
 ## Placeholder Formats for `/render`
 
-| Format                      | Description                         | Example                           |
-|:----------------------------|:------------------------------------|:----------------------------------|
-| `__{{name}}__`              | Password of item `name`             | `__{{koishi.litellm}}__`          |
-| `__{{name:_:b64}}__`        | Base64 encodeed of password `name`  | `__{{koishi.litellm:_:b64}}__`    |
-| `__{{name:f:field}}__`      | Custom field `field` of item `name` | `__{{infra.common-users:f:hh}}__` |
-| `__{{name:f:field:f:b64}}__` | Base64 encoded custom field `field` | `__{{infra:f:token:f:b64}}__` |
-| `__{{name:a:file}}__`       | Content of attachment `file`        | `__{{sshkeys:a:id_rsa}}__`        |
-| `__{{name:a:file:a:b64}}__` | Base64 content of attachment `file` | `__{{sshkeys:a:id_rsa:a:b64}}__`  |
+| Format                         | Description                         | Example                                                                     |
+|:-------------------------------|:------------------------------------|:----------------------------------------------------------------------------|
+| `__ {{name}} __`               | Password of item `name`             | `__{{koishi.litellm}}__`                                                    |
+| `__ {{name:_:b64}} __`         | Base64 encodeed of password `name`  | `__{{koishi.litellm:_:b64}}__`                                              |
+| `__ {{name:f:field}} __`       | Custom field `field` of item `name` | `__{{infra.common-users:f:hh}}__`                                           |
+| `__ {{name:f:field:f:b64}} __` | Base64 encoded custom field `field` | `__{{infra.common-users:f:hh:f:b64}}__`                                     |
+| `__ {{name:a:file}} __`        | Content of attachment `file`        | `__{{koishi.foldersync.sshkeys.system.files:a:ssh_host_ecdsa_key}}__`       |
+| `__ {{name:a:file:a:b64}} __`  | Base64 content of attachment `file` | `__{{koishi.foldersync.sshkeys.system.files:a:ssh_host_ecdsa_key:a:b64}}__` |
+|                                |                                     |                                                                             |
 
 ## Deployment
 
