@@ -60,6 +60,18 @@ module BWWW
     File.write(output, content)
   end
 
+  def self.get_items
+    uri = URI("#{base_url}/items")
+    res = secure_request(uri, 'GET')
+
+    unless res.is_a?(Net::HTTPSuccess)
+      warn "Warning: Get Items failed: #{res.code} #{res.message}"
+      return nil
+    end
+
+    puts "#{res.body}"
+  end
+
   def self.sync
     uri = URI("#{base_url}/sync")
     res = secure_request(uri, 'UPDATE')
@@ -208,6 +220,8 @@ def main
     BWWW.render_content(ARGV[1])
   when 'sync'
     BWWW.sync
+  when 'get-items'
+    BWWW.get_items
   else
     warn "invalid method #{method}"
     exit 1

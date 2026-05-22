@@ -26,18 +26,36 @@ type Field struct {
 }
 
 type Item struct {
-	ID     string  `json:"id"`
-	Name   string  `json:"name"`
-	Fields []Field `json:"fields"`
-	Login  struct {
+	ID            string   `json:"id"`
+	Name          string   `json:"name"`
+	Notes         string   `json:"notes"`
+	CollectionIds []string `json:"collectionIds"`
+	Fields        []Field  `json:"fields"`
+	Login         struct {
 		Password string `json:"password"`
+		Uris     []struct {
+			Uri string `json:"uri"`
+		} `json:"uris"`
 	} `json:"login"`
 }
 
+type Collection struct {
+	ID   string `json:"id"`
+	Name string `json:"name"`
+}
+
+type ItemSummary struct {
+	Name        string   `json:"name"`
+	Note        string   `json:"note"`
+	Websites    []string `json:"websites"`
+	Collections []string `json:"collections"`
+}
+
 var (
-	cache      = make(map[string]Item)
-	cacheMutex sync.RWMutex
-	secretKey  []byte
+	cache            = make(map[string]Item)
+	collectionsCache = make(map[string]string) // ID -> Name
+	cacheMutex       sync.RWMutex
+	secretKey        []byte
 )
 
 type BWStatus struct {
@@ -147,6 +165,20 @@ func syncCache() error {
 		return fmt.Errorf("sync failed: %s, %v", string(output), err)
 	}
 
+	log.Println("Fetching collections...")
+	collOutput, err := bwCommand("list", "collections").CombinedOutput()
+	if err != nil {
+		return fmt.Errorf("list collections failed: %s, %v", string(collOutput), err)
+	}
+	var collections []Collection
+	if err := json.Unmarshal(collOutput, &collections); err != nil {
+		return fmt.Errorf("failed to parse collections: %v", err)
+	}
+	newCollectionsCache := make(map[string]string)
+	for _, c := range collections {
+		newCollectionsCache[c.ID] = c.Name
+	}
+
 	log.Println("Fetching items...")
 	output, err := bwCommand("list", "items").CombinedOutput()
 	if err != nil {
@@ -165,9 +197,10 @@ func syncCache() error {
 
 	cacheMutex.Lock()
 	cache = newCache
+	collectionsCache = newCollectionsCache
 	cacheMutex.Unlock()
 
-	log.Printf("Loaded %d items into memory.", len(items))
+	log.Printf("Loaded %d items and %d collections into memory.", len(items), len(collections))
 	return nil
 }
 
@@ -392,6 +425,47 @@ func handleAttachment(w http.ResponseWriter, r *http.Request) {
 	w.Write(val)
 }
 
+func handleItems(w http.ResponseWriter, r *http.Request) {
+	log.Println("Received items list request")
+	if r.Method != http.MethodGet {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	cacheMutex.RLock()
+	summaries := make([]ItemSummary, 0, len(cache))
+	for _, item := range cache {
+		websites := make([]string, 0, len(item.Login.Uris))
+		for _, u := range item.Login.Uris {
+			if u.Uri != "" {
+				websites = append(websites, u.Uri)
+			}
+		}
+		collections := make([]string, 0, len(item.CollectionIds))
+		for _, cid := range item.CollectionIds {
+			if name, ok := collectionsCache[cid]; ok {
+				collections = append(collections, name)
+			} else {
+				collections = append(collections, cid) // Fallback to ID if name not found
+			}
+		}
+		summaries = append(summaries, ItemSummary{
+			Name:        item.Name,
+			Note:        item.Notes,
+			Websites:    websites,
+			Collections: collections,
+		})
+	}
+	cacheMutex.RUnlock()
+
+	w.Header().Set("Content-Type", "application/json")
+	if err := json.NewEncoder(w).Encode(summaries); err != nil {
+		log.Printf("Failed to encode items: %v", err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+}
+
 func handleHealth(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 	w.Write([]byte("OK"))
@@ -409,6 +483,7 @@ func main() {
 	}
 
 	http.HandleFunc("/ok", handleHealth)
+	http.HandleFunc("/items", authMiddleware(handleItems))
 	http.HandleFunc("/sync", authMiddleware(handleSync))
 	http.HandleFunc("/render", authMiddleware(handleRender))
 	http.HandleFunc("/", authMiddleware(func(w http.ResponseWriter, r *http.Request) {
