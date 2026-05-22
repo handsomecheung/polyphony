@@ -115,6 +115,7 @@ fn collect_files_recursive(path: &std::path::Path, files: &mut Vec<std::path::Pa
 async fn main() -> Result<()> {
     let args: Vec<String> = env::args().collect();
     let mut config_files = Vec::new();
+    let mut concurrency = 64;
     
     let mut i = 1;
     while i < args.len() {
@@ -134,12 +135,17 @@ async fn main() -> Result<()> {
                 }
                 i += 2;
             }
+            "--concurrency" | "-c" if i + 1 < args.len() => {
+                concurrency = args[i + 1].parse::<usize>()
+                    .map_err(|_| anyhow!("Invalid concurrency value: {}", args[i + 1]))?;
+                i += 2;
+            }
             _ => i += 1,
         }
     }
 
     if config_files.is_empty() {
-        eprintln!("Usage: {} --config-file <file.yaml> | --config-dir <dir>", args[0]);
+        eprintln!("Usage: {} --config-file <file.yaml> | --config-dir <dir> [--concurrency <n>]", args[0]);
         std::process::exit(1);
     }
 
@@ -169,7 +175,7 @@ async fn main() -> Result<()> {
     println!("{:<30} {:<10} {:<10} {:<10}", "NAME", "TYPE", "STATUS", "LATENCY");
     println!("{}", "-".repeat(65));
 
-    let semaphore = Arc::new(Semaphore::new(1000));
+    let semaphore = Arc::new(Semaphore::new(concurrency));
     let mut handles = Vec::new();
 
     for task in all_tasks {
