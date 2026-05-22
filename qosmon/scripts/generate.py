@@ -41,7 +41,37 @@ def is_public_domain(host):
     except socket.gaierror:
         return False
 
-def generate_qosmon_config(namespace, ingresses, services, service_host_override=None, sso_middlewares=None, reject_internal=False):
+def get_health_check_path(service_name, services, deployments):
+    """
+    Find the health check path (readinessProbe or livenessProbe) for a given service.
+    """
+    if not services or not deployments:
+        return None
+
+    # Find the service to get its selector
+    service = next((s for s in services.get("items", []) if s["metadata"]["name"] == service_name), None)
+    if not service:
+        return None
+    
+    selector = service.get("spec", {}).get("selector")
+    if not selector:
+        return None
+    
+    # Find matching deployments
+    for dep in deployments.get("items", []):
+        labels = dep.get("spec", {}).get("template", {}).get("metadata", {}).get("labels", {})
+        # Check if selector is a subset of labels
+        if all(labels.get(k) == v for k, v in selector.items()):
+            containers = dep.get("spec", {}).get("template", {}).get("spec", {}).get("containers", [])
+            for container in containers:
+                # Priority: readinessProbe > livenessProbe
+                for probe_type in ["readinessProbe", "livenessProbe"]:
+                    probe = container.get(probe_type)
+                    if probe and "httpGet" in probe:
+                        return probe["httpGet"].get("path")
+    return None
+
+def generate_qosmon_config(namespace, ingresses, services, deployments, service_host_override=None, sso_middlewares=None, reject_internal=False):
     tasks = []
     
     if sso_middlewares is None:
@@ -80,7 +110,24 @@ def generate_qosmon_config(namespace, ingresses, services, service_host_override
                         protocol = "https"
                         break
                 
-                target = f"{protocol}://{host}"
+                # Try to find a health check path from backends
+                health_path = None
+                http_rule = rule.get("http", {})
+                for path_obj in http_rule.get("paths", []):
+                    backend = path_obj.get("backend", {})
+                    # Support both old (serviceName) and new (service.name) Ingress API
+                    svc = backend.get("service", {})
+                    svc_name = svc.get("name") or backend.get("serviceName")
+                    if svc_name:
+                        health_path = get_health_check_path(svc_name, services, deployments)
+                        if health_path:
+                            break
+                
+                path_suffix = health_path if health_path else ""
+                if path_suffix and not path_suffix.startswith("/"):
+                    path_suffix = "/" + path_suffix
+                
+                target = f"{protocol}://{host}{path_suffix}"
                 
                 task = {
                     "name": f"{namespace}/ingress/{ingress_name}/{host}",
@@ -187,8 +234,9 @@ def main():
         print(f"Processing namespace: {ns}")
         ingresses = get_k8s_resources(ns, "ingress")
         services = get_k8s_resources(ns, "service")
+        deployments = get_k8s_resources(ns, "deployment")
         
-        config = generate_qosmon_config(ns, ingresses, services, service_host, sso_middlewares, args.reject_internal_ingress)
+        config = generate_qosmon_config(ns, ingresses, services, deployments, service_host, sso_middlewares, args.reject_internal_ingress)
         if config:
             file_path = os.path.join(output_dir, f"{ns}.yaml")
             with open(file_path, "w") as f:
