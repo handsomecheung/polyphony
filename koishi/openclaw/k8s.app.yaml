@@ -156,13 +156,13 @@ spec:
               mountPath: /home/node/bin
 
             - name: coder-workspaces
-              subPath: private-workspace/repos/local/notebook/obsidian/Default/AI/Skills/prag
+              subPath: private-workspace/repos/local/notebook/hardback/AI/Skills/prag
               mountPath: /home/node/.openclaw/skills/prag
             - name: coder-workspaces
-              subPath: private-workspace/repos/local/notebook/obsidian/Default/AI/Skills/vw
+              subPath: private-workspace/repos/local/notebook/hardback/AI/Skills/vw
               mountPath: /home/node/.openclaw/skills/vw
             - name: coder-workspaces
-              subPath: private-workspace/repos/local/notebook/obsidian/Default/AI/Skills/slide-generator
+              subPath: private-workspace/repos/local/notebook/hardback/AI/Skills/slide-generator
               mountPath: /home/node/.openclaw/skills/slide-generator
 
             - name: coder-workspaces

@@ -153,9 +153,9 @@ spec:
           configMap:
             name: markviewer-caddy-config
 
-        - name: data-obsidian
+        - name: data-notebook
           hostPath:
-            path: /mnt/coder-workspaces/private-workspace/repos/local/notebook/obsidian
+            path: /mnt/coder-workspaces/private-workspace/repos/local/notebook
             type: Directory
         - name: data-openclaw-default-workspace
           hostPath:
@@ -182,8 +182,13 @@ spec:
               subPath: browse.html
               mountPath: /data/browse.html
 
-            - name: data-obsidian
-              mountPath: /srv/obsidian
+            - name: data-notebook
+              subPath: binder
+              mountPath: /srv/notebook/binder
+              readOnly: true
+            - name: data-notebook
+              subPath: hardback
+              mountPath: /srv/notebook/hardback
               readOnly: true
             - name: data-openclaw-default-workspace
               mountPath: /srv/openclaw/default/workspace

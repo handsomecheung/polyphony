@@ -19,9 +19,9 @@ spec:
       nodeSelector:
         kubernetes.io/hostname: nur
       volumes:
-        - name: obsidian
+        - name: data-binder
           hostPath:
-            path: /mnt/coder-workspaces/private-workspace/repos/local/notebook/obsidian
+            path: /mnt/coder-workspaces/private-workspace/repos/local/notebook/binder
             type: Directory
       containers:
         - name: app
@@ -29,7 +29,7 @@ spec:
           imagePullPolicy: Always
           env:
             - name: REDIS_HOST
-              value: "redis.ck-prod"
+              value: "redis.database"
             - name: REDIS_PORT
               value: "6379"
             - name: REDIS_DB
@@ -37,12 +37,12 @@ spec:
             - name: OLLAMA_API_BASE
               value: "http://ollama/v1"
             - name: NOTES_PATH
-              value: "/data/notes/Default"
+              value: "/data/notes"
           ports:
             - name: default
               containerPort: 8000
           volumeMounts:
-            - name: obsidian
+            - name: data-binder
               mountPath: /data/notes
               readOnly: false
           livenessProbe:

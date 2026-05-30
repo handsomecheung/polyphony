@@ -21,7 +21,7 @@ check_env()
 REDIS_HOST = os.getenv("REDIS_HOST")
 REDIS_PORT = int(os.getenv("REDIS_PORT", 6379))
 REDIS_DB = int(os.getenv("REDIS_DB", 0))
-INDEX_NAME = os.getenv("INDEX_NAME", "obsidian_notes")
+INDEX_NAME = os.getenv("INDEX_NAME", "prag_default")
 
 EMBEDDING_MODEL = os.getenv("EMBEDDING_MODEL", "bge-m3")
 

@@ -89,7 +89,7 @@ spec:
               mountPath: /home/node/bin
 
             - name: coder-workspaces
-              subPath: private-workspace/repos/local/notebook/obsidian/Default/AI/Skills/gcal
+              subPath: private-workspace/repos/local/notebook/hardback/AI/Skills/gcal
               mountPath: /home/node/.openclaw/skills/gcal
           resources:
             requests:

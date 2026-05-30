@@ -29,7 +29,7 @@ spec:
           imagePullPolicy: Always
           volumeMounts:
             - name: coder-workspaces
-              subPath: private-workspace/repos/local/notebook/obsidian/Default/AI/Skills
+              subPath: private-workspace/repos/local/notebook/hardback/AI/Skills
               mountPath: /data/skills
               readOnly: true
             - name: coder-workspaces

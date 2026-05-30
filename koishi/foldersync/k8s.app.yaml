@@ -90,9 +90,9 @@ spec:
           hostPath:
             path: /mnt/user-data-slight/private-data/foldersync/gphoto
             type: Directory
-        - name: obsidian
+        - name: binder
           hostPath:
-            path: /mnt/coder-workspaces/private-workspace/repos/local/notebook/obsidian
+            path: /mnt/coder-workspaces/private-workspace/repos/local/notebook/binder
             type: Directory
       containers:
         - name: app
@@ -109,8 +109,8 @@ spec:
               mountPath: /tmp/foldersync-sshkeys-system
             - name: gphoto
               mountPath: /data/gphoto
-            - name: obsidian
-              mountPath: /data/obsidian
+            - name: binder
+              mountPath: /data/binder
           ports:
             - containerPort: 22
           resources:

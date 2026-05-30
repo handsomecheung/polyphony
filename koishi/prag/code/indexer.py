@@ -23,7 +23,7 @@ def create_index(dim=1024):
         )
         redis_client.ft(INDEX_NAME).create_index(
             schema, 
-            definition=IndexDefinition(prefix=["rag:obsidian:"], index_type=IndexType.HASH)
+            definition=IndexDefinition(prefix=["prag:default:"], index_type=IndexType.HASH)
         )
         print(f"Created index {INDEX_NAME}.")
 
@@ -43,7 +43,7 @@ def index_notes():
             text = f.read()
             chunks = splitter.split_text(text)
             for i, chunk in enumerate(chunks):
-                doc_id = f"rag:obsidian:{file_path}:{i}"
+                doc_id = f"prag:default:{file_path}:{i}"
                 redis_client.hset(doc_id, mapping={
                     "content": chunk,
                     "path": file_path,

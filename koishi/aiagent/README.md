@@ -12,7 +12,7 @@ The goal is not to hardcode a single workflow. Instead, this demo shows how to:
 
 This repository currently points `SKILLS_ROOT` at an external skills directory, for example:
 
-- `/mnt/coder-workspaces/private-workspace/repos/local/notebook/obsidian/Default/AI/Skills`
+- `/mnt/coder-workspaces/private-workspace/repos/local/notebook/hardback/AI/Skills`
 
 `main.py` does not hardcode any single workflow anymore. `slide-generator` is just one example skill the agent can choose to use when it exists under the configured skills root.
 
@@ -40,7 +40,7 @@ export LITELLM_API_BASE=http://127.0.0.1:4000
 export LITELLM_API_KEY=sk-your-litellm-key
 export AI_MODEL=openai/gpt-5.2
 export AI_OUTPUT_DIR=/abs/path/to/aiagent-output
-export SKILLS_ROOT=/mnt/coder-workspaces/private-workspace/repos/local/notebook/obsidian/Default/AI/Skills
+export SKILLS_ROOT=/mnt/coder-workspaces/private-workspace/repos/local/notebook/hardback/AI/Skills
 ```
 
 If any of them are missing, the program exits at startup with an error.
@@ -58,13 +58,13 @@ If you are using a different OpenAI-compatible endpoint behind LiteLLM, update `
 The agent always scans `SKILLS_ROOT` first. In the current local setup:
 
 ```bash
-export SKILLS_ROOT=/mnt/coder-workspaces/private-workspace/repos/local/notebook/obsidian/Default/AI/Skills
+export SKILLS_ROOT=/mnt/coder-workspaces/private-workspace/repos/local/notebook/hardback/AI/Skills
 ```
 
 For example, `slide-generator` would live here:
 
 ```bash
-/mnt/coder-workspaces/private-workspace/repos/local/notebook/obsidian/Default/AI/Skills/slide-generator
+/mnt/coder-workspaces/private-workspace/repos/local/notebook/hardback/AI/Skills/slide-generator
 ```
 
 You can also add more skill directories with `AI_SKILLS_DIRS`:

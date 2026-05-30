@@ -7,10 +7,12 @@ metadata:
 spec:
   template:
     spec:
+      nodeSelector:
+        kubernetes.io/hostname: nur
       volumes:
         - name: macip-mapping
           hostPath:
-            path: /mnt/coder-workspaces/private-workspace/repos/local/notebook/obsidian/Default/Devices/macip-mapping.json
+            path: /mnt/coder-workspaces/private-workspace/repos/local/notebook/binder/Default/Devices/macip-mapping.json
             type: File
       containers:
         - name: app
