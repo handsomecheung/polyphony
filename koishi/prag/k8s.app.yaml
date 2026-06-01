@@ -19,9 +19,9 @@ spec:
       nodeSelector:
         kubernetes.io/hostname: nur
       volumes:
-        - name: data-binder
+        - name: data-notebook
           hostPath:
-            path: /mnt/coder-workspaces/private-workspace/repos/local/notebook/binder
+            path: /mnt/coder-workspaces/private-workspace/repos/local/notebook
             type: Directory
       containers:
         - name: app
@@ -37,14 +37,19 @@ spec:
             - name: OLLAMA_API_BASE
               value: "http://ollama/v1"
             - name: NOTES_PATH
-              value: "/data/notes"
+              value: "/data/notebook"
           ports:
             - name: default
               containerPort: 8000
           volumeMounts:
-            - name: data-binder
-              mountPath: /data/notes
-              readOnly: false
+            - name: data-notebook
+              subPath: binlder
+              mountPath: /data/notebook/binlder
+              readOnly: true
+            - name: data-notebook
+              subPath: paperback
+              mountPath: /data/notebook/paperback
+              readOnly: true
           livenessProbe:
             httpGet:
               path: /ok

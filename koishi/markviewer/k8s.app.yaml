@@ -190,6 +190,10 @@ spec:
               subPath: hardback
               mountPath: /srv/notebook/hardback
               readOnly: true
+            - name: data-notebook
+              subPath: paperback
+              mountPath: /srv/notebook/paperback
+              readOnly: true
             - name: data-openclaw-default-workspace
               mountPath: /srv/openclaw/default/workspace
               readOnly: true
