@@ -21,7 +21,6 @@ def check_and_reindex():
             index_notes()
     except Exception as e:
         print(f"Error checking index status: {e}. Indexing might be needed.")
-        index_notes()
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):

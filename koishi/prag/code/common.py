@@ -32,5 +32,7 @@ redis_client = redis.Redis(host=REDIS_HOST, port=REDIS_PORT, db=REDIS_DB, decode
 
 _embed_client = OpenAI(api_key="ollama", base_url=OLLAMA_API_BASE)
 
-def call_embedding(query_text):
-    return _embed_client.embeddings.create(input=[query_text], model=EMBEDDING_MODEL)
+def call_embedding(input_data):
+    if isinstance(input_data, str):
+        input_data = [input_data]
+    return _embed_client.embeddings.create(input=input_data, model=EMBEDDING_MODEL)
