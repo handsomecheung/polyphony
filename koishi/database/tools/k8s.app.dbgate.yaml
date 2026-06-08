@@ -254,6 +254,47 @@ spec:
       targetPort: default
 
 ---
+# dbgate-home handles the initial homepage access and triggers Sablier middleware to wake up the deployment.
+# It is separated from the main dbgate ingress because applying Sablier to all API/SSE traffic causes:
+# 1. Extreme latency (minutes of hang) due to synchronous Sablier API checks on every API request.
+# 2. Connection pool starvation (Head-of-line blocking) in the browser when multiple connections are held open.
+# 3. Potential data loss in SSE/chunked streams because the plugin's responseWriter discards data until it's ready.
+# dbgate-home has a higher priority ("100") than the direct dbgate ingress ("1") to handle the initial root requests.
+# use default-sablierdbgate@kubernetescrd
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: dbgate-root
+  namespace: default
+  annotations:
+    cert-manager.io/cluster-issuer: cluster-letsencrypt-dns-cloudflare
+    traefik.ingress.kubernetes.io/router.middlewares: middleware-playonjan@kubernetescrd,middleware-antimitm@kubernetescrd,sso-domainx@kubernetescrd,default-sablierdbgate@kubernetescrd
+    traefik.ingress.kubernetes.io/router.priority: "100"
+    gethomepage.dev/enabled: "true"
+    gethomepage.dev/group: Development
+    gethomepage.dev/name: dbgate
+    gethomepage.dev/icon: https://avatars.githubusercontent.com/u/78292618
+    gethomepage.dev/href: https://dbgate.__{{infra.domains:f:x}}__/
+    gethomepage.dev/weight: "40"
+spec:
+  ingressClassName: traefik
+  rules:
+    - host: dbgate.__{{infra.domains:f:x}}__
+      http:
+        paths:
+          - path: /
+            pathType: Exact
+            backend:
+              service:
+                name: dbgate
+                port:
+                  name: default
+  tls:
+    - hosts:
+        - dbgate.__{{infra.domains:f:x}}__
+      secretName: dbgate-domainx
+
+---
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
@@ -261,13 +302,8 @@ metadata:
   namespace: default
   annotations:
     cert-manager.io/cluster-issuer: cluster-letsencrypt-dns-cloudflare
-    traefik.ingress.kubernetes.io/router.middlewares: middleware-playonjan@kubernetescrd,middleware-antimitm@kubernetescrd,sso-domainx@kubernetescrd,default-sablierdbgate@kubernetescrd
-    gethomepage.dev/enabled: "true"
-    gethomepage.dev/group: Development
-    gethomepage.dev/name: dbgate
-    gethomepage.dev/icon: https://avatars.githubusercontent.com/u/78292618
-    gethomepage.dev/href: https://dbgate.__{{infra.domains:f:x}}__/
-    gethomepage.dev/weight: "40"
+    traefik.ingress.kubernetes.io/router.middlewares: middleware-playonjan@kubernetescrd,middleware-antimitm@kubernetescrd,sso-domainx@kubernetescrd
+    traefik.ingress.kubernetes.io/router.priority: "1"
 spec:
   ingressClassName: traefik
   rules:
@@ -447,17 +483,46 @@ spec:
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: dbgate-lite
+  name: dbgate-lite-root
   namespace: default
   annotations:
     cert-manager.io/cluster-issuer: cluster-letsencrypt-dns-cloudflare
     traefik.ingress.kubernetes.io/router.middlewares: middleware-playonjan@kubernetescrd,middleware-antimitm@kubernetescrd,sso-domainx@kubernetescrd,default-sablierdbgatelite@kubernetescrd
+    traefik.ingress.kubernetes.io/router.priority: "100"
     gethomepage.dev/enabled: "true"
     gethomepage.dev/group: Development
     gethomepage.dev/name: dbgate lite
     gethomepage.dev/icon: https://avatars.githubusercontent.com/u/78292618
     gethomepage.dev/href: https://dbgate-lite.__{{infra.domains:f:x}}__/
     gethomepage.dev/weight: "41"
+spec:
+  ingressClassName: traefik
+  rules:
+    - host: dbgate-lite.__{{infra.domains:f:x}}__
+      http:
+        paths:
+          - path: /
+            pathType: Exact
+            backend:
+              service:
+                name: dbgate-lite
+                port:
+                  name: default
+  tls:
+    - hosts:
+        - dbgate-lite.__{{infra.domains:f:x}}__
+      secretName: dbgate-lite-domainx
+
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: dbgate-lite
+  namespace: default
+  annotations:
+    cert-manager.io/cluster-issuer: cluster-letsencrypt-dns-cloudflare
+    traefik.ingress.kubernetes.io/router.middlewares: middleware-playonjan@kubernetescrd,middleware-antimitm@kubernetescrd,sso-domainx@kubernetescrd
+    traefik.ingress.kubernetes.io/router.priority: "1"
 spec:
   ingressClassName: traefik
   rules:
