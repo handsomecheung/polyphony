@@ -1,0 +1,178 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: gitnexus-backend
+  namespace: default
+  labels:
+    app.kubernetes.io/name: gitnexus-backend
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: gitnexus-backend
+  template:
+    metadata:
+      labels:
+        app: gitnexus-backend
+    spec:
+      nodeSelector:
+        kubernetes.io/hostname: nur
+      volumes:
+        - name: gitnexus-config
+          hostPath:
+            path: /mnt/coder-workspaces/private-workspace/workspace/encrypted-configs/gitnexus
+            type: Directory
+        - name: coder-workspaces
+          hostPath:
+            path: /mnt/coder-workspaces
+            type: Directory
+      containers:
+        - name: app
+          image: ghcr.io/abhigyanpatwari/gitnexus:latest
+          imagePullPolicy: Always
+          ports:
+            - name: default
+              containerPort: 4747
+              protocol: TCP
+          volumeMounts:
+            - name: gitnexus-config
+              mountPath: /data/gitnexus
+            - name: coder-workspaces
+              mountPath: /mnt/coder-workspaces
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: gitnexus-backend
+  namespace: default
+  labels:
+    app.kubernetes.io/name: gitnexus-backend
+spec:
+  type: ClusterIP
+  selector:
+    app: gitnexus-backend
+  ports:
+    - name: default
+      port: 80
+      protocol: TCP
+      targetPort: default
+
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: gitnexus-backend
+  namespace: default
+  annotations:
+    cert-manager.io/cluster-issuer: cluster-letsencrypt-dns-cloudflare
+    traefik.ingress.kubernetes.io/router.middlewares: middleware-antimitm@kubernetescrd,sso-domainx@kubernetescrd
+spec:
+  ingressClassName: traefik
+  rules:
+    - host: gitnexus.__{{infra.domains:f:x}}__
+      http:
+        paths:
+          - path: /api/
+            pathType: Prefix
+            backend:
+              service:
+                name: gitnexus-backend
+                port:
+                  name: default
+  tls:
+    - hosts:
+        - gitnexus.__{{infra.domains:f:x}}__
+      secretName: gitnexus-domainx
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: gitnexus-web
+  namespace: default
+  labels:
+    app.kubernetes.io/name: gitnexus-web
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: gitnexus-web
+  template:
+    metadata:
+      labels:
+        app: gitnexus-web
+    spec:
+      containers:
+        - name: app
+          image: ghcr.io/abhigyanpatwari/gitnexus-web:latest
+          imagePullPolicy: Always
+          env:
+            - name: GITNEXUS_BACKEND_URL
+              value: "https://gitnexus.__{{infra.domains:f:x}}__"
+          ports:
+            - name: default
+              containerPort: 4173
+              protocol: TCP
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              cpu: 200m
+              memory: 256Mi
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: gitnexus-web
+  namespace: default
+  labels:
+    app.kubernetes.io/name: gitnexus-web
+spec:
+  type: ClusterIP
+  selector:
+    app: gitnexus-web
+  ports:
+    - name: default
+      port: 80
+      protocol: TCP
+      targetPort: default
+
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: gitnexus-web
+  namespace: default
+  annotations:
+    cert-manager.io/cluster-issuer: cluster-letsencrypt-dns-cloudflare
+    traefik.ingress.kubernetes.io/router.middlewares: middleware-antimitm@kubernetescrd,sso-domainx@kubernetescrd
+    gethomepage.dev/enabled: "true"
+    gethomepage.dev/group: Tool
+    gethomepage.dev/name: GitNexus
+    gethomepage.dev/href: https://gitnexus.__{{infra.domains:f:x}}__
+    gethomepage.dev/weight: "55"
+spec:
+  ingressClassName: traefik
+  rules:
+    - host: gitnexus.__{{infra.domains:f:x}}__
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: gitnexus-web
+                port:
+                  name: default
+  tls:
+    - hosts:
+        - gitnexus.__{{infra.domains:f:x}}__
+      secretName: gitnexus-domainx
