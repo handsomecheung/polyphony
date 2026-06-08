@@ -1,13 +1,13 @@
 FROM rust:1.91.1 AS rust-builder
 
 RUN rustup target add wasm32-unknown-unknown && \
-    cargo install wasm-bindgen-cli
+    cargo install wasm-bindgen-cli --version 0.2.122
 
-RUN git clone https://github.com/handsomecheung/fountain.git /tmp/code/fountain && \
-    bash /tmp/code/fountain/script/rust/compile.wasm.sh && \
+RUN git clone https://github.com/handsomecheung/fountain-core.git /tmp/code/fountain-core && \
+    bash /tmp/code/fountain-core/script/rust/compile.wasm.sh && \
     mkdir -p /tmp/artifact && \
-    cp  /tmp/code/fountain/script/nginx.scanner.conf /tmp/artifact/nginx.conf && \
-    cp -r /tmp/code/fountain/www /tmp/artifact/www
+    cp  /tmp/code/fountain-core/script/nginx.scanner.conf /tmp/artifact/nginx.conf && \
+    cp -r /tmp/code/fountain-core/www /tmp/artifact/www
 
 
 FROM nginx:latest

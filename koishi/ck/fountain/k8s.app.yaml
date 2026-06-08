@@ -2,23 +2,23 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: scanner
+  name: fountain-scanner
   namespace: ck-prod
   labels:
-    app.kubernetes.io/name: scanner
+    app.kubernetes.io/name: fountain-scanner
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app.kubernetes.io/name: scanner
+      app.kubernetes.io/name: fountain-scanner
   template:
     metadata:
       labels:
-        app.kubernetes.io/name: scanner
+        app.kubernetes.io/name: fountain-scanner
     spec:
       containers:
         - name: app
-          image: cloudpublic/ck/fountain/scanner:latest
+          image: cloudpublic/ck/fountain-core/scanner:latest
           imagePullPolicy: Always
           ports:
             - name: default
@@ -35,15 +35,15 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: scanner
+  name: fountain-scanner
   namespace: ck-prod
   labels:
-    app.kubernetes.io/name: scanner
+    app.kubernetes.io/name: fountain-scanner
   annotations:
 spec:
   type: ClusterIP
   selector:
-    app.kubernetes.io/name: scanner
+    app.kubernetes.io/name: fountain-scanner
   ports:
     - name: default
       port: 80
@@ -54,7 +54,7 @@ spec:
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: scanner
+  name: fountain-scanner
   namespace: ck-prod
   annotations:
     cert-manager.io/cluster-issuer: cluster-letsencrypt-dns-cloudflare
@@ -74,7 +74,7 @@ spec:
             pathType: Prefix
             backend:
               service:
-                name: scanner
+                name: fountain-scanner
                 port:
                   name: default
   tls:
