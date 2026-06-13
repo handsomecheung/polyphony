@@ -120,3 +120,11 @@ spec:
               operator: In
               values: ["traefik"]
           topologyKey: "kubernetes.io/hostname"
+
+    experimental:
+      # -- Defines whether all plugins must be loaded successfully for Traefik to start
+      abortOnPluginFailure: false
+      plugins:
+        sablier:
+          moduleName: "github.com/sablierapp/sablier-traefik-plugin"
+          version: "v1.1.0"
