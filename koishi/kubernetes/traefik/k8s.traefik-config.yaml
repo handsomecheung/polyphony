@@ -25,12 +25,8 @@ spec:
             to: websecure
             scheme: https
             permanent: true
-        middlewares:
-          - default-noindex@kubernetescrd
       websecure:
         port: 443
-        middlewares:
-          - default-noindex@kubernetescrd
       traefik:
         port: 9000
         expose:
@@ -89,17 +85,6 @@ spec:
     ingressRoute:
       dashboard:
         enabled: true
-
-    extraObjects:
-      - kind: Middleware
-        apiVersion: traefik.io/v1alpha1
-        metadata:
-          namespace: default
-          name: noindex
-        spec:
-          headers:
-            customResponseHeaders:
-              X-Robots-Tag: noindex
 
     deployment:
       kind: Deployment
