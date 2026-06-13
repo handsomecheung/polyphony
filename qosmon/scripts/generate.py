@@ -6,6 +6,7 @@ import yaml
 import os
 import socket
 import ipaddress
+import urllib.request
 
 def get_k8s_resources(namespace, resource_type):
     try:
@@ -23,23 +24,32 @@ def get_k8s_resources(namespace, resource_type):
 
 def is_public_domain(host):
     """
-    Check if the host can be resolved to a public IP address.
-    Internal/Private IPs are considered non-public.
+    Check if the host can be resolved to a public IP address using Google's DNS-over-HTTPS.
     """
-    try:
-        addr_info = socket.getaddrinfo(host, None)
-        for res in addr_info:
-            ip_str = res[4][0]
-            try:
-                ip = ipaddress.ip_address(ip_str)
-                # Check if the IP is global (not private, not loopback, not link-local, etc.)
-                if ip.is_global:
-                    return True
-            except ValueError:
-                continue
-        return False
-    except socket.gaierror:
-        return False
+    urls = [
+        f"https://dns.google/resolve?name={host}&type=A",
+        f"https://dns.google/resolve?name={host}&type=AAAA"
+    ]
+    
+    for url in urls:
+        try:
+            req = urllib.request.Request(url, headers={"Accept": "application/json"})
+            with urllib.request.urlopen(req, timeout=5) as response:
+                data = json.loads(response.read().decode())
+                answers = data.get("Answer", [])
+                for answer in answers:
+                    # Type 1 is A record, Type 28 is AAAA record
+                    if answer.get("type") in (1, 28):
+                        ip_str = answer.get("data")
+                        try:
+                            ip = ipaddress.ip_address(ip_str)
+                            if ip.is_global:
+                                return True
+                        except ValueError:
+                            continue
+        except Exception:
+            continue
+    return False
 
 def get_health_check_path(service_name, services, deployments):
     """
