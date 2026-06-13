@@ -12,28 +12,40 @@ CLOUDPUBLIC_REGISTRY_PREFIX = 'cloudpublic/'
 CLOUDPRIVATE_REGISTRY_SECRET_NAME = 'dockersecret-cloudprivate'
 
 module Kubectl
-  def self.get_secret_config(key)
+  def self.get_secret_config_deploy(key)
     BWWW.get_password "koishi.deploy.#{key}"
   end
 
+  def self.get_secret_config_domain(name)
+    BWWW.get_field("infra.domains", name)
+  end
+
+  def self.get_noindex_domains
+    @noindex_domains ||= [
+      get_secret_config_domain('x'),
+      get_secret_config_domain('d'),
+      get_secret_config_domain('y'),
+    ]
+  end
+
   def self.get_timezone
-    @timezone ||= get_secret_config 'timezone'
+    @timezone ||= get_secret_config_deploy 'timezone'
   end
 
   def self.get_cloudprivate_registry_id
-    @cloudprivate_registry_id ||= get_secret_config 'cloudprivate_registry_id'
+    @cloudprivate_registry_id ||= get_secret_config_deploy 'cloudprivate_registry_id'
   end
 
   def self.get_cloudprivate_registry_host
-    @cloudprivate_registry_host ||= get_secret_config 'cloudprivate_registry_host'
+    @cloudprivate_registry_host ||= get_secret_config_deploy 'cloudprivate_registry_host'
   end
 
   def self.get_cloudpublic_registry_id
-    @cloudpublic_registry_id ||= get_secret_config 'cloudpublic_registry_id'
+    @cloudpublic_registry_id ||= get_secret_config_deploy 'cloudpublic_registry_id'
   end
 
   def self.get_cloudpublic_registry_host
-    @cloudpublic_registry_host ||= get_secret_config 'cloudpublic_registry_host'
+    @cloudpublic_registry_host ||= get_secret_config_deploy 'cloudpublic_registry_host'
   end
 
   def self.gen_tmpdir
@@ -112,12 +124,51 @@ module Kubectl
         docs.concat config_add_predefinition_cronjob(doc)
       when 'Job'
         docs.concat config_add_predefinition_job(doc)
+      when 'Ingress'
+        docs << config_add_predefinition_ingress(doc)
       else
         docs << doc
       end
     end
 
     docs
+  end
+
+  def self.config_add_predefinition_ingress(doc)
+    spec = doc['spec']
+    return doc unless spec && spec['rules']
+
+    has_noindex_host = false
+    spec['rules'].each do |rule|
+      host = rule['host']
+      next unless host
+
+      if get_noindex_domains.any? { |domain| host == domain || host.end_with?(".#{domain}") }
+        has_noindex_host = true
+        break
+      end
+    end
+
+    if has_noindex_host
+      doc['metadata'] ||= {}
+      doc['metadata']['annotations'] ||= {}
+
+      middlewares_key = 'traefik.ingress.kubernetes.io/router.middlewares'
+      current_middlewares = doc['metadata']['annotations'][middlewares_key]
+
+      target_middleware = 'default-noindex@kubernetescrd'
+
+      if current_middlewares.nil? || current_middlewares.empty?
+        doc['metadata']['annotations'][middlewares_key] = target_middleware
+      else
+        middlewares_list = current_middlewares.split(',').map(&:strip)
+        middlewares_list.delete(target_middleware)
+        middlewares_list.unshift(target_middleware)
+        doc['metadata']['annotations'][middlewares_key] = middlewares_list.join(',')
+      end
+    end
+
+    doc
   end
 
   def self.config_add_predefinition_spec!(spec)
@@ -227,7 +278,7 @@ module Kubectl
 
   def self.create_doc_pullsecret_cloudprivate(namespace)
     key_file = bw_download_attachment 'gcp.files', 'pull-image.json'
-    email = get_secret_config "email"
+    email = get_secret_config_deploy "email"
     out = run_command %{#{CMD_KUBECTL} -n #{namespace} create secret docker-registry #{CLOUDPRIVATE_REGISTRY_SECRET_NAME} --docker-server #{get_cloudprivate_registry_host}  --docker-username _json_key --docker-email #{email} --docker-password="$(cat #{key_file})" --dry-run=client  -o yaml}
     YAML.safe_load out
   end

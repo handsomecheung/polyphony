@@ -81,12 +81,16 @@ def get_health_check_path(service_name, services, deployments):
                         return probe["httpGet"].get("path")
     return None
 
-def generate_qosmon_config(namespace, ingresses, services, deployments, service_host_override=None, sso_middlewares=None, reject_internal=False):
+def generate_qosmon_config(namespace, ingresses, services, deployments, service_host_override=None, sso_middlewares=None, reject_internal=False, noindex_middlewares=None):
     tasks = []
     
     if sso_middlewares is None:
         sso_middlewares = []
     sso_middlewares_set = set(sso_middlewares)
+
+    if noindex_middlewares is None:
+        noindex_middlewares = []
+    noindex_middlewares_set = set(noindex_middlewares)
 
     # Process Ingresses
     if ingresses:
@@ -100,6 +104,8 @@ def generate_qosmon_config(namespace, ingresses, services, deployments, service_
             
             has_sso = any(m in sso_middlewares_set for m in middlewares)
             expected_status = 307 if has_sso else 200
+            is_sso_first = len(middlewares) > 0 and middlewares[0] in sso_middlewares_set
+            has_noindex = any(m in noindex_middlewares_set for m in middlewares)
 
             spec = item.get("spec", {})
             rules = spec.get("rules", [])
@@ -120,10 +126,17 @@ def generate_qosmon_config(namespace, ingresses, services, deployments, service_
                         protocol = "https"
                         break
                 
-                # Try to find a health check path from backends
-                health_path = None
+                # Try to find a health check path from backends and consider ingress paths
+                ingress_path = ""
                 http_rule = rule.get("http", {})
-                for path_obj in http_rule.get("paths", []):
+                paths = http_rule.get("paths", [])
+                if paths:
+                    ingress_path = paths[0].get("path", "")
+                if ingress_path and not ingress_path.startswith("/"):
+                    ingress_path = "/" + ingress_path
+
+                health_path = None
+                for path_obj in paths:
                     backend = path_obj.get("backend", {})
                     # Support both old (serviceName) and new (service.name) Ingress API
                     svc = backend.get("service", {})
@@ -133,9 +146,14 @@ def generate_qosmon_config(namespace, ingresses, services, deployments, service_
                         if health_path:
                             break
                 
-                path_suffix = health_path if health_path else ""
-                if path_suffix and not path_suffix.startswith("/"):
-                    path_suffix = "/" + path_suffix
+                if health_path and not health_path.startswith("/"):
+                    health_path = "/" + health_path
+                
+                # Use health path if it prefix-matches the ingress path, otherwise use the ingress path
+                if health_path and health_path.startswith(ingress_path):
+                    path_suffix = health_path
+                else:
+                    path_suffix = ingress_path
                 
                 target = f"{protocol}://{host}{path_suffix}"
                 
@@ -153,13 +171,14 @@ def generate_qosmon_config(namespace, ingresses, services, deployments, service_
                 }
                 tasks.append(task)
 
-                # Add noindex check for each ingress host
-                noindex_task = {
-                    "name": f"{namespace}/noindex/{ingress_name}/{host}",
-                    "type": "noindex",
-                    "target": target
-                }
-                tasks.append(noindex_task)
+                # Add noindex check for each ingress host if noindex middleware is present and SSO is not the first middleware
+                if has_noindex and not is_sso_first:
+                    noindex_task = {
+                        "name": f"{namespace}/noindex/{ingress_name}/{host}",
+                        "type": "noindex",
+                        "target": target
+                    }
+                    tasks.append(noindex_task)
 
                 if protocol == "https":
                     ssl_task = {
@@ -237,6 +256,7 @@ def main():
     output_dir = gen_config.get("output_dir", "qosmon/configs/auto-generated")
     service_host = gen_config.get("service_host")
     sso_middlewares = gen_config.get("sso_middlewares", [])
+    noindex_middlewares = gen_config.get("noindex_middlewares", [])
     
     os.makedirs(output_dir, exist_ok=True)
     
@@ -246,7 +266,7 @@ def main():
         services = get_k8s_resources(ns, "service")
         deployments = get_k8s_resources(ns, "deployment")
         
-        config = generate_qosmon_config(ns, ingresses, services, deployments, service_host, sso_middlewares, args.reject_internal_ingress)
+        config = generate_qosmon_config(ns, ingresses, services, deployments, service_host, sso_middlewares, args.reject_internal_ingress, noindex_middlewares)
         if config:
             file_path = os.path.join(output_dir, f"{ns}.yaml")
             with open(file_path, "w") as f:
