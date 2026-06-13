@@ -17,4 +17,4 @@ WORKDIR /app
 COPY --from=builder /usr/src/qosmon/target/release/qosmon /app/qosmon
 COPY configs /app/configs
 
-ENTRYPOINT ["/app/qosmon", "--config-dir", "/app/configs/check", "--concurrency", "50"]
+ENTRYPOINT ["/app/qosmon", "--config-dir", "/app/configs/check", "--concurrency", "50", "--only-failures", "--format", "plain"]

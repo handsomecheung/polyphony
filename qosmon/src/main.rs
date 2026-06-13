@@ -1,4 +1,4 @@
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use std::fs;
 use std::net::SocketAddr;
 use std::time::{Duration, Instant};
@@ -14,6 +14,17 @@ use futures::future::join_all;
 use std::sync::Arc;
 use std::env;
 use regex::Regex;
+
+#[derive(Serialize)]
+struct TaskResult {
+    name: String,
+    #[serde(rename = "type")]
+    task_type: String,
+    status: String,
+    latency_ms: u128,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    error: Option<String>,
+}
 
 #[derive(Debug, Deserialize)]
 struct Config {
@@ -116,6 +127,8 @@ async fn main() -> Result<()> {
     let args: Vec<String> = env::args().collect();
     let mut config_files = Vec::new();
     let mut concurrency = 64;
+    let mut only_failures = false;
+    let mut format = "json".to_string();
     
     let mut i = 1;
     while i < args.len() {
@@ -140,12 +153,25 @@ async fn main() -> Result<()> {
                     .map_err(|_| anyhow!("Invalid concurrency value: {}", args[i + 1]))?;
                 i += 2;
             }
+            "--only-failures" => {
+                only_failures = true;
+                i += 1;
+            }
+            "--format" if i + 1 < args.len() => {
+                let fmt = args[i + 1].to_lowercase();
+                if fmt == "json" || fmt == "plain" {
+                    format = fmt;
+                } else {
+                    return Err(anyhow!("Invalid format value: {}. Allowed values: json, plain", args[i + 1]));
+                }
+                i += 2;
+            }
             _ => i += 1,
         }
     }
 
     if config_files.is_empty() {
-        eprintln!("Usage: {} --config-file <file.yaml> | --config-dir <dir> [--concurrency <n>]", args[0]);
+        eprintln!("Usage: {} --config-file <file.yaml> | --config-dir <dir> [--concurrency <n>] [--only-failures] [--format <json|plain>]", args[0]);
         std::process::exit(1);
     }
 
@@ -172,8 +198,8 @@ async fn main() -> Result<()> {
     let timeout_str = merged_timeout.unwrap_or_else(|| "5s".to_string());
     let global_timeout = parse_duration(&timeout_str);
 
-    println!("{:<30} {:<10} {:<10} {:<10}", "NAME", "TYPE", "STATUS", "LATENCY");
-    println!("{}", "-".repeat(65));
+    eprintln!("Starting execution of {} tasks...", all_tasks.len());
+    let start_time = Instant::now();
 
     let semaphore = Arc::new(Semaphore::new(concurrency));
     let mut handles = Vec::new();
@@ -193,19 +219,57 @@ async fn main() -> Result<()> {
             };
             let duration = start.elapsed();
 
-            match result {
-                Ok(_) => {
-                    println!("{:<30} {:<10} \x1b[32m{:<10}\x1b[0m {:<10?}", task.name, task.task_type, "OK", duration);
-                }
-                Err(e) => {
-                    println!("{:<30} {:<10} \x1b[31m{:<10}\x1b[0m {:<10?} Error: {}", task.name, task.task_type, "FAIL", duration, e);
-                }
+            let (status, error) = match result {
+                Ok(_) => ("OK".to_string(), None),
+                Err(e) => ("FAIL".to_string(), Some(e.to_string())),
+            };
+
+            TaskResult {
+                name: task.name,
+                task_type: task.task_type,
+                status,
+                latency_ms: duration.as_millis(),
+                error,
             }
         });
         handles.push(handle);
     }
 
-    join_all(handles).await;
+    let results = join_all(handles).await;
+    let elapsed = start_time.elapsed();
+    let mut task_results: Vec<TaskResult> = results.into_iter()
+        .filter_map(|r| r.ok())
+        .collect();
+
+    let total = task_results.len();
+    let succeeded = task_results.iter().filter(|r| r.status == "OK").count();
+    let failed = task_results.iter().filter(|r| r.status == "FAIL").count();
+
+    if only_failures {
+        task_results.retain(|r| r.status == "FAIL");
+    }
+
+    if format == "plain" {
+        for r in &task_results {
+            if let Some(err) = &r.error {
+                println!("[{}] {} ({}): {} ({}ms)", r.status, r.name, r.task_type, err, r.latency_ms);
+            } else {
+                println!("[{}] {} ({}): OK ({}ms)", r.status, r.name, r.task_type, r.latency_ms);
+            }
+        }
+    } else {
+        let json_output = serde_json::to_string_pretty(&task_results)?;
+        println!("{}", json_output);
+    }
+
+    eprintln!(
+        "Execution finished in {:.2?}. Total: {}, Succeeded: {}, Failed: {}",
+        elapsed, total, succeeded, failed
+    );
+
+    if failed > 0 {
+        std::process::exit(1);
+    }
 
     Ok(())
 }
