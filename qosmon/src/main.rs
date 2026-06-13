@@ -41,7 +41,7 @@ struct Globals {
 struct Task {
     name: String,
     #[serde(rename = "type")]
-    task_type: String,
+    task_type: Option<String>,
     target: Option<String>,
     host: Option<String>,
     port: Option<u16>,
@@ -63,6 +63,72 @@ struct Task {
     ports: Option<Vec<u16>>,
     expect_open: Option<Vec<u16>>,
     expect_closed: Option<Vec<u16>>,
+    disabled: Option<bool>,
+}
+
+impl Task {
+    fn merge(&mut self, other: Task) {
+        if other.task_type.is_some() {
+            self.task_type = other.task_type;
+        }
+        if other.target.is_some() {
+            self.target = other.target;
+        }
+        if other.host.is_some() {
+            self.host = other.host;
+        }
+        if other.port.is_some() {
+            self.port = other.port;
+        }
+        if other.method.is_some() {
+            self.method = other.method;
+        }
+        if other.headers.is_some() {
+            self.headers = other.headers;
+        }
+        if other.body.is_some() {
+            self.body = other.body;
+        }
+        if other.expect.is_some() {
+            self.expect = other.expect;
+        }
+        if other.sla.is_some() {
+            self.sla = other.sla;
+        }
+        if other.count.is_some() {
+            self.count = other.count;
+        }
+        if other.expected_records.is_some() {
+            self.expected_records = other.expected_records;
+        }
+        if other.unexpected_records.is_some() {
+            self.unexpected_records = other.unexpected_records;
+        }
+        if other.server.is_some() {
+            self.server = other.server;
+        }
+        if other.alert_days_before.is_some() {
+            self.alert_days_before = other.alert_days_before;
+        }
+        if other.timeout.is_some() {
+            self.timeout = other.timeout;
+        }
+        if other.range.is_some() {
+            self.range = other.range;
+        }
+        if other.ports.is_some() {
+            self.ports = other.ports;
+        }
+        if other.expect_open.is_some() {
+            self.expect_open = other.expect_open;
+        }
+        if other.expect_closed.is_some() {
+            self.expect_closed = other.expect_closed;
+        }
+        if other.disabled.is_some() {
+            self.disabled = other.disabled;
+        }
+    }
 }
 
 #[derive(Debug, Deserialize, Clone)]
@@ -175,7 +241,7 @@ async fn main() -> Result<()> {
         std::process::exit(1);
     }
 
-    let mut all_tasks = Vec::new();
+    let mut all_tasks: Vec<Task> = Vec::new();
     let mut merged_timeout = None;
 
     for path in config_files {
@@ -191,31 +257,48 @@ async fn main() -> Result<()> {
         }
         
         if let Some(tasks) = config.tasks {
-            all_tasks.extend(tasks);
+            for new_task in tasks {
+                if let Some(existing_task) = all_tasks.iter_mut().find(|t| t.name == new_task.name) {
+                    existing_task.merge(new_task);
+                } else {
+                    all_tasks.push(new_task);
+                }
+            }
+        }
+    }
+
+    let active_tasks: Vec<Task> = all_tasks.into_iter()
+        .filter(|t| !t.disabled.unwrap_or(false))
+        .collect();
+
+    for task in &active_tasks {
+        if task.task_type.is_none() {
+            return Err(anyhow!("Task '{}' is missing required field 'type'", task.name));
         }
     }
 
     let timeout_str = merged_timeout.unwrap_or_else(|| "5s".to_string());
     let global_timeout = parse_duration(&timeout_str);
 
-    eprintln!("Starting execution of {} tasks...", all_tasks.len());
+    eprintln!("Starting execution of {} tasks...", active_tasks.len());
     let start_time = Instant::now();
 
     let semaphore = Arc::new(Semaphore::new(concurrency));
     let mut handles = Vec::new();
 
-    for task in all_tasks {
+    for task in active_tasks {
         let sem = semaphore.clone();
         let handle = tokio::spawn(async move {
             let start = Instant::now();
-            let result = match task.task_type.as_str() {
+            let task_type_str = task.task_type.as_deref().unwrap_or("");
+            let result = match task_type_str {
                 "http" => check_http(&task, global_timeout, sem).await,
                 "tcp" => check_tcp(&task, global_timeout, sem).await,
                 "dns" => check_dns(&task, sem).await,
                 "ssl" => check_ssl(&task, global_timeout, sem).await,
                 "port_scan" => check_port_scan(&task, sem).await,
                 "noindex" => check_noindex(&task, global_timeout, sem).await,
-                _ => Err(anyhow!("Unknown task type: {}", task.task_type)),
+                _ => Err(anyhow!("Unknown task type: {}", task_type_str)),
             };
             let duration = start.elapsed();
 
@@ -226,7 +309,7 @@ async fn main() -> Result<()> {
 
             TaskResult {
                 name: task.name,
-                task_type: task.task_type,
+                task_type: task.task_type.unwrap_or_default(),
                 status,
                 latency_ms: duration.as_millis(),
                 error,

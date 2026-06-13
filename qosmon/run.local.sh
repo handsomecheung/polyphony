@@ -3,4 +3,4 @@ set -e
 
 cd "$(dirname "${BASH_SOURCE[0]}")"
 
-cargo run --quiet -- --config-dir configs/check --concurrency 50 --only-failures --format json
+cargo run --quiet -- --config-dir configs/check --concurrency 50 --only-failures --format plain
