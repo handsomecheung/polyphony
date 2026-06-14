@@ -81,16 +81,25 @@ def get_health_check_path(service_name, services, deployments):
                         return probe["httpGet"].get("path")
     return None
 
-def generate_qosmon_config(namespace, ingresses, services, deployments, service_host_override=None, sso_middlewares=None, reject_internal=False, noindex_middlewares=None):
+def generate_qosmon_config(namespace, ingresses, services, deployments, service_host_override=None, reject_internal=False, noindex_middlewares=None, middlewares_rules=None):
     tasks = []
     
-    if sso_middlewares is None:
-        sso_middlewares = []
-    sso_middlewares_set = set(sso_middlewares)
-
     if noindex_middlewares is None:
         noindex_middlewares = []
     noindex_middlewares_set = set(noindex_middlewares)
+
+    if middlewares_rules is None:
+        middlewares_rules = []
+
+    # Build sso_middlewares_set dynamically from middlewares_rules (rules that yield a 307 redirect status)
+    sso_middlewares_set = set()
+    for rule in middlewares_rules:
+        if rule.get("action") == "response_code" and rule.get("code") == 307:
+            sso_names = rule.get("names", [])
+            if "name" in rule:
+                sso_names = list(sso_names) + [rule.get("name")]
+            for name in sso_names:
+                sso_middlewares_set.add(name)
 
     # Process Ingresses
     if ingresses:
@@ -104,6 +113,49 @@ def generate_qosmon_config(namespace, ingresses, services, deployments, service_
             
             has_sso = any(m in sso_middlewares_set for m in middlewares)
             expected_status = 307 if has_sso else 200
+
+            skip_ingress = False
+            if middlewares_rules:
+                import re
+                for rule in middlewares_rules:
+                    ann_key = rule.get("annotation")
+                    if not ann_key:
+                        continue
+                    ann_key_clean = ann_key.rstrip(":")
+                    ann_val = annotations.get(ann_key_clean) or annotations.get(ann_key)
+                    if ann_val:
+                        ann_middlewares = [m.strip() for m in ann_val.split(",") if m.strip()]
+                        
+                        target_names = rule.get("names", [])
+                        if "name" in rule:
+                            target_names = list(target_names) + [rule.get("name")]
+                            
+                        target_regexps = rule.get("regexps", [])
+                        
+                        matched = False
+                        if any(name in ann_middlewares for name in target_names):
+                            matched = True
+                        elif target_regexps:
+                            for pattern in target_regexps:
+                                try:
+                                    compiled = re.compile(pattern)
+                                    if any(compiled.search(m) for m in ann_middlewares):
+                                        matched = True
+                                        break
+                                except re.error:
+                                    continue
+                                    
+                        if matched:
+                            if rule.get("action") == "skip":
+                                skip_ingress = True
+                                break
+                            elif rule.get("action") == "response_code":
+                                expected_status = rule.get("code", expected_status)
+
+            if skip_ingress:
+                print(f"Skipping ingress {ingress_name} due to skip rule")
+                continue
+
             is_sso_first = len(middlewares) > 0 and middlewares[0] in sso_middlewares_set
             has_noindex = any(m in noindex_middlewares_set for m in middlewares)
 
@@ -255,8 +307,8 @@ def main():
     namespaces = gen_config.get("namespaces", [])
     output_dir = gen_config.get("output_dir", "qosmon/configs/auto-generated")
     service_host = gen_config.get("service_host")
-    sso_middlewares = gen_config.get("sso_middlewares", [])
     noindex_middlewares = gen_config.get("noindex_middlewares", [])
+    middlewares_rules = gen_config.get("middlewares", [])
     
     os.makedirs(output_dir, exist_ok=True)
     
@@ -266,7 +318,7 @@ def main():
         services = get_k8s_resources(ns, "service")
         deployments = get_k8s_resources(ns, "deployment")
         
-        config = generate_qosmon_config(ns, ingresses, services, deployments, service_host, sso_middlewares, args.reject_internal_ingress, noindex_middlewares)
+        config = generate_qosmon_config(ns, ingresses, services, deployments, service_host, args.reject_internal_ingress, noindex_middlewares, middlewares_rules)
         if config:
             file_path = os.path.join(output_dir, f"{ns}.yaml")
             with open(file_path, "w") as f:
