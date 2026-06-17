@@ -16,7 +16,6 @@ data:
   DOMAIN_P: "__{{infra.domains:f:p}}__"
   DOMAIN_C: "__{{infra.domains:f:c}}__"
   DOMAIN_D: "__{{infra.domains:f:d}}__"
-  DOMAIN_T: "__{{infra.domains:f:t}}__"
   DOMAIN_U: "__{{infra.domains:f:u}}__"
   COMAPI_HOST_NUR: "http://__{{infra.machine.nur:f:ip}}__:__{{koishi.comapi.port}}__"
   COMAPI_HOST_NIPPON: "http://__{{infra.machine.nippon:f:ip}}__:__{{koishi.comapi.port}}__"

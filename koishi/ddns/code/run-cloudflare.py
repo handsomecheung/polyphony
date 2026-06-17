@@ -8,7 +8,6 @@ import common
 DOMAIN_X = common.get_os_env_force("DOMAIN_X")
 DOMAIN_Y = common.get_os_env_force("DOMAIN_Y")
 DOMAIN_P = common.get_os_env_force("DOMAIN_P")
-DOMAIN_T = common.get_os_env_force("DOMAIN_T")
 DOMAIN_C = common.get_os_env_force("DOMAIN_C")
 DOMAIN_D = common.get_os_env_force("DOMAIN_D")
 
@@ -23,10 +22,6 @@ DOMAINS_IPV4 = {
         ["*.nur.home.", False],
     ],
     DOMAIN_Y: [
-        ["", True],
-        ["*.", True],
-    ],
-    DOMAIN_T: [
         ["", True],
         ["*.", True],
     ],
