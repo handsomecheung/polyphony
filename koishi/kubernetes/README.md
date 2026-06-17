@@ -1,6 +1,6 @@
 # Kubernetes — Core Platform Layer
 
-The `kubernetes/` directory is the foundational control-plane layer for the Koishi home-lab cluster. It wires together the CNI network plugin (Calico), the TLS certificate authority (cert-manager + Cloudflare DNS-01), the ingress controller (Traefik), centralized Google OAuth2 SSO across six independent domains, custom IP/KV Traefik middlewares written in Go, the Sablier on-demand scale-to-zero controller, NFS and local-path persistent storage, a workflow engine (Argo), GCP registry lifecycle rules, and two self-healing CronJob operators (reschedule, restart). Every subdirectory is a discrete component; together they form the ingress → networking → TLS → auth → storage stack that all other Koishi services depend on.
+The `kubernetes/` directory is the foundational control-plane layer for the Koishi home-lab cluster. It wires together the CNI network plugin (Calico), the TLS certificate authority (cert-manager + Cloudflare DNS-01), the ingress controller (Traefik), centralized Google OAuth2 SSO across five independent domains, custom IP/KV Traefik middlewares written in Go, the Sablier on-demand scale-to-zero controller, NFS and local-path persistent storage, a workflow engine (Argo), GCP registry lifecycle rules, and two self-healing CronJob operators (reschedule, restart). Every subdirectory is a discrete component; together they form the ingress → networking → TLS → auth → storage stack that all other Koishi services depend on.
 
 ---
 
@@ -14,7 +14,7 @@ The `kubernetes/` directory is the foundational control-plane layer for the Kois
 | `reschedule/`   | CronJob that reschedules pods onto preferred nodes when they come back |
 | `restart/`      | CronJob that restarts stuck deployments with exponential backoff       |
 | `sablier/`      | Scale-to-zero controller (sablierapp/sablier 1.11.1)                   |
-| `sso/`          | Six independent Google OAuth2 forward-auth instances per DNS domain    |
+| `sso/`          | Five independent Google OAuth2 forward-auth instances per DNS domain    |
 | `traefik/`      | Traefik HelmChartConfig, dashboard Ingress, and NetworkPolicy          |
 | `argo/`         | Argo Workflows v3.5.4 pipeline engine                                  |
 
@@ -92,12 +92,11 @@ The service is exposed as `http://sablier.sablier` on port 80 (targeting contain
 
 ## sso
 
-Six independent Google OAuth2 forward-auth instances (using `thomseddon/traefik-forward-auth`) are deployed in the `sso` namespace, one per DNS domain:
+Five independent Google OAuth2 forward-auth instances (using `thomseddon/traefik-forward-auth`) are deployed in the `sso` namespace, one per DNS domain:
 
 | Manifest           | Domain variable     | Purpose                                                                  |
 |--------------------|---------------------|--------------------------------------------------------------------------|
 | `k8s.domainx.yaml` | `infra.domains:f:x` | Primary domain — protects 20+ services with per-service email whitelists |
-| `k8s.domaint.yaml` | `infra.domains:f:t` | T-domain services                                                        |
 | `k8s.domainy.yaml` | `infra.domains:f:y` | Y-domain services                                                        |
 | `k8s.domainp.yaml` | `infra.domains:f:p` | P-domain services                                                        |
 | `k8s.domainc.yaml` | `infra.domains:f:c` | C-domain services                                                        |
@@ -148,7 +147,7 @@ Traefik (3 replicas, spread across traefik-node=true hosts)
       │
       ├─► middleware-antimitm  (Go IP-filter → blocks DLP proxy CIDRs)
       ├─► middleware-playonjan (Go KV-filter → shared secret header gate)
-      ├─► sso-domainx / sso-domaint / …  (Google OAuth2 forward-auth per domain)
+      ├─► sso-domainx / sso-domainc / sso-domaind / …  (Google OAuth2 forward-auth per domain)
       └─► Sablier middleware   (scale-to-zero for idle workloads)
                 │
                 ▼
@@ -157,7 +156,7 @@ Traefik (3 replicas, spread across traefik-node=true hosts)
 
 - **cert-manager** issues all TLS certificates via Let's Encrypt DNS-01 (Cloudflare). No HTTP-01 challenge ports are needed.
 - **Calico** enforces NetworkPolicy across pods; the IPv6 IPPool is defined and ready to activate.
-- **SSO** is domain-scoped: each of the six DNS domains has independent Google OAuth2 credentials and per-route email whitelists. Cookie lifetime is 1 year, so repeat authentication is rare.
+- **SSO** is domain-scoped: each of the five DNS domains has independent Google OAuth2 credentials and per-route email whitelists. Cookie lifetime is 1 year, so repeat authentication is rare.
 - **Sablier** reduces idle resource consumption cluster-wide; the reschedule/restart CronJobs keep workloads healthy after node reboots or transient failures.
 - **NFS PVs** (`ReadWriteMany`) allow multiple pods on different nodes to share the same storage; the `local-path-retain` class handles node-local state that must survive pod restarts.
 

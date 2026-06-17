@@ -56,7 +56,7 @@ Key design decisions:
 - **Kaniko** for in-cluster container image builds — no privileged Docker daemon required.
 - **Calico** CNI for IPv6 and fine-grained `NetworkPolicy` isolation.
 - **Sablier** scale-to-zero middleware lets infrequently used services (JupyterLab, Coder, WebDAV, download stack, etc.) hibernate and wake on first HTTP request.
-- Six independent **Google OAuth2** SSO domains (domainx/t/y/p/c/d) each with their own email whitelist, protecting 20+ services.
+- Five independent **Google OAuth2** SSO domains (domainx/y/p/c/d) each with their own email whitelist, protecting 20+ services.
 - **Nix** package manager ensures reproducible dev tooling inside the `devbox` environment.
 
 Notable services: AI agent framework (`aiagent`), LiteLLM LLM gateway, Ollama local inference, RAG search (`prag`), Vaultwarden, media stack (Plex, Jellyfin, rclone cloud mounts), download stack (qBittorrent, Aria2, Jackett), WireGuard VPN, remote desktop (Guacamole), finance data service, dynamic DNS, CloudNativePG HA databases, and more.

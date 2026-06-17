@@ -209,7 +209,6 @@ sso_middlewares:
   - sso-domainx@kubernetescrd
   - sso-domaind@kubernetescrd
   - sso-domainc@kubernetescrd
-  - sso-domaint@kubernetescrd
   - sso-domainp@kubernetescrd
   - sso-domainy@kubernetescrd
 ```

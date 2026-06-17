@@ -40,10 +40,10 @@ Home Cluster (k3s)                                                      TLS term
 
 1. **Calico CNI**: The Traefik NetworkPolicy similarly notes *"IPv6 is not supported in Koishi yet"* and lists only IPv4 Cloudflare CIDR blocks — Cloudflare-proxied IPv6 connections are rejected by the NetworkPolicy as currently deployed. IPv6 end-to-end is planned but not yet active. NetworkPolicy is used at the workload level.
 2. **DNS**: Cloudflare resolves `*.domain` to the cluster's home IP, maintained by the DDNS service (one CronJob running every 5 minutes—one for Cloudflare).
-3. **Cloudflare NetworkPolicy**: Traefik pods accept ingress only from the 15 published Cloudflare IPv4 CIDR blocks plus private RFC-1918 ranges. IPv6 Cloudflare ranges are not yet included — the NetworkPolicy carries the explicit comment *"IPv6 is not supported in Koishi yet"*, so requests arriving via Cloudflare's IPv6 addresses are rejected. The Traefik management dashboard (port 9000) is further restricted to LAN-only by a separate NetworkPolicy rule.
+3. **Cloudflare NetworkPolicy**: Traefik pods accept ingress only from the 15 published Cloudflare IPv4 CIDR blocks plus private RFC-1918 ranges. IPv6 Cloudflare ranges are not yet included — the NetworkPolicy carries the explicit comment *"IPv6 is not supported in Koishi yet"*, so requests arriving via Cloudflare's IPv6 addresses are rejected. The Traefik management dashboard (port 8080) is further restricted to LAN-only by a separate NetworkPolicy rule.
 4. **TLS termination**: cert-manager uses the `cluster-letsencrypt-dns-cloudflare` ClusterIssuer (DNS-01 challenge via Cloudflare API token) to provision and auto-renew certificates. A global `noindex` middleware injects `X-Robots-Tag: noindex` on all responses.
-5. **Traefik**: The single HTTP(S) entrypoint. Deployed as a 3-replica Deployment using `HelmChartConfig`, spread with pod anti-affinity across `traefik-node`-labelled nodes. Ports: 80 → permanent redirect to 443; 443 HTTPS; 9000 dashboard; 7030/TCP and 7070/UDP for TCP/UDP passthrough entrypoints. Logs Cloudflare headers for tracing. In addition to LAN-only access on port 9000, the Traefik dashboard is exposed at `traefik.<domain>` via a dedicated public HTTPS Ingress (`k8s.traefik-dashboard.yaml`) routing paths `/dashboard` and `/api` to port 9000, protected by the full middleware chain. The raw port 9000 is reachable only from LAN; the public URL requires SSO authentication through Traefik itself.
-6. **SSO / forward-auth**: Six independent `traefik-forward-auth` deployments each backed by separate Google OAuth2 credentials and email whitelists.
+5. **Traefik**: The single HTTP(S) entrypoint. Deployed as a 3-replica Deployment using `HelmChartConfig`, spread with pod anti-affinity across `traefik-node`-labelled nodes. Ports: 80 → permanent redirect to 443; 443 HTTPS; 8080 dashboard; 7030/TCP and 7070/UDP for TCP/UDP passthrough entrypoints. Logs Cloudflare headers for tracing. In addition to LAN-only access on port 8080, the Traefik dashboard is exposed at `traefik.<domain>` via a dedicated public HTTPS Ingress (`k8s.traefik-dashboard.yaml`) routing paths `/dashboard` and `/api` to port 8080, protected by the full middleware chain. The raw port 8080 is reachable only from LAN; the public URL requires SSO authentication through Traefik itself.
+6. **SSO / forward-auth**: Five independent `traefik-forward-auth` deployments each backed by separate Google OAuth2 credentials and email whitelists.
 7. **Custom middleware**: A small Go service (`kubernetes/middleware`) exposes two Traefik `forwardAuth` middlewares. These are applied to the Traefik dashboard, download tools, and other sensitive routes.
 8. **Sablier**: An in-cluster scale-to-zero controller patches Deployment/StatefulSet replicas. Idle workloads are scaled to 0; the first HTTP request triggers a wake with a configurable session TTL. Used by: n8n, JupyterLab, WebDAV, Guacamole, download stack, Bliss, Ollama WebUI, and more.
 
@@ -65,11 +65,11 @@ Deployed via k3s `HelmChartConfig`. Three replicas with node affinity (`traefik-
 
 ### cert-manager
 
-`ClusterIssuer` `cluster-letsencrypt-dns-cloudflare` uses the Cloudflare API token (stored as a Kubernetes Secret rendered from Vaultwarden) for DNS-01 ACME. Covers wildcard and per-subdomain certificates for all six domains.
+`ClusterIssuer` `cluster-letsencrypt-dns-cloudflare` uses the Cloudflare API token (stored as a Kubernetes Secret rendered from Vaultwarden) for DNS-01 ACME. Covers wildcard and per-subdomain certificates for all five domains.
 
 ### SSO and Custom Middleware
 
-Six `traefik-forward-auth` instances in the `sso` namespace, one per domain group, each with isolated Google OAuth2 credentials. The custom Go middleware service in the `middleware` namespace implements IP filtering and KV filtering endpoints, wrapped as Traefik `forwardAuth` middlewares.
+Five `traefik-forward-auth` instances in the `sso` namespace, one per domain group, each with isolated Google OAuth2 credentials. The custom Go middleware service in the `middleware` namespace implements IP filtering and KV filtering endpoints, wrapped as Traefik `forwardAuth` middlewares.
 
 ### Sablier
 
