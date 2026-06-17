@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 set -e
 
+cd "$(dirname "${BASH_SOURCE[0]}")"
+
 PROJECT_ID=$(gcloud config get-value project 2>/dev/null)
 REGION=${REGION:-"asia-northeast1"}
 REPO_NAME=${REPO_NAME:-"cloudrun"}
@@ -23,6 +25,8 @@ echo " Image Name:       $IMAGE_NAME"
 echo " Job Name:         $JOB_NAME"
 echo " Scheduler Job:    $SCHEDULER_JOB_NAME"
 echo "============================================="
+
+./scripts/run.generate.sh
 
 echo "Enabling required APIs..."
 gcloud services enable \

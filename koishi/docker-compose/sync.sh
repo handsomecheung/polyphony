@@ -7,7 +7,7 @@ source_dir_wip="${source_dir_temp}"
 
 rsync -a "${source_dir_repo}" "${source_dir_wip}"
 
-my-secret render "${source_dir_wip}"
+bwww render-file "${source_dir_wip}"
 
 servers="nur nippon miniba"
 target_dir="${source_dir_repo}/current/"

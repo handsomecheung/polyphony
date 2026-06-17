@@ -33,7 +33,6 @@ data:
               {
                 "id": "__{{v2ray.uuids:f:sofmacpro}}__",
                 "alterId": 0
-                "alterId": 0
               },
               {
                 "id": "__{{v2ray.uuids:f:cupid}}__",

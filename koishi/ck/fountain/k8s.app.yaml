@@ -70,7 +70,7 @@ spec:
     - host: fountain.__{{infra.domains:f:c}}__
       http:
         paths:
-          - path: /scanner
+          - path: /scanner/
             pathType: Prefix
             backend:
               service:

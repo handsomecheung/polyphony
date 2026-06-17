@@ -254,12 +254,12 @@ spec:
       targetPort: default
 
 ---
-# dbgate-home handles the initial homepage access and triggers Sablier middleware to wake up the deployment.
+# dbgate-root handles the initial homepage access and triggers Sablier middleware to wake up the deployment.
 # It is separated from the main dbgate ingress because applying Sablier to all API/SSE traffic causes:
 # 1. Extreme latency (minutes of hang) due to synchronous Sablier API checks on every API request.
 # 2. Connection pool starvation (Head-of-line blocking) in the browser when multiple connections are held open.
 # 3. Potential data loss in SSE/chunked streams because the plugin's responseWriter discards data until it's ready.
-# dbgate-home has a higher priority ("100") than the direct dbgate ingress ("1") to handle the initial root requests.
+# dbgate-root has a higher priority ("100") than the direct dbgate ingress ("1") to handle the initial root requests.
 # use default-sablierdbgate@kubernetescrd
 apiVersion: networking.k8s.io/v1
 kind: Ingress

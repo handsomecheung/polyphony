@@ -1,8 +1,8 @@
 ---
 - hosts: localhost
   vars:
-    hostname: "{{ ansible_hostname }}"
-    home_dir: "{{ ansible_env.HOME }}"
+    hostname: "{{ ansible_facts.hostname }}"
+    home_dir: "{{ ansible_facts.env.HOME }}"
     scripts_dir: /mnt/coder-workspaces/private-workspace/repos/local/polyphony/koishi/scripts
   tasks:
     - name: Ensure directories exist

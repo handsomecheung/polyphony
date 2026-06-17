@@ -29,14 +29,14 @@ spec:
               service:
                 name: traefik
                 port:
-                  number: 9000
+                  number: 8080
           - path: /dashboard
             pathType: Prefix
             backend:
               service:
                 name: traefik
                 port:
-                  number: 9000
+                  number: 8080
   tls:
     - hosts:
         - traefik.__{{infra.domains:f:x}}__

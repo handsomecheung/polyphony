@@ -7,7 +7,7 @@ my-k8s-deploy --file=k8s.middleware.yaml
 
 dir=$(mktemp -d -t k8s-deploy-coder-XXXXXX)
 cp values.yaml "${dir}"
-my-secret render "${dir}"
+bwww render-file "${dir}"
 
 helm repo add coder-v2 https://helm.coder.com/v2
 helm repo update
