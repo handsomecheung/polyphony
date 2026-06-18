@@ -14,6 +14,9 @@ use futures::future::join_all;
 use std::sync::Arc;
 use std::env;
 use regex::Regex;
+use google_cloud_storage::client::Storage;
+
+
 
 #[derive(Serialize)]
 struct TaskResult {
@@ -32,9 +35,29 @@ struct Config {
     tasks: Option<Vec<Task>>,
 }
 
+#[derive(Debug, Deserialize, Clone)]
+struct RecentSummaryConfig {
+    entrypoint: String,
+    count: usize,
+    directory: Option<String>,
+    filename: String,
+}
+
+#[derive(Debug, Deserialize, Clone)]
+struct UploadConfig {
+    #[serde(rename = "type")]
+    upload_type: String,
+    bucket: String,
+    directory: Option<String>,
+    credential: Option<String>,
+    skip_empty: Option<bool>,
+    recent_summary: Option<RecentSummaryConfig>,
+}
+
 #[derive(Debug, Deserialize)]
 struct Globals {
     timeout: Option<String>,
+    upload: Option<UploadConfig>,
 }
 
 #[derive(Debug, Deserialize, Clone)]
@@ -190,6 +213,7 @@ fn collect_files_recursive(path: &std::path::Path, files: &mut Vec<std::path::Pa
 
 #[tokio::main]
 async fn main() -> Result<()> {
+    let _ = rustls::crypto::ring::default_provider().install_default();
     let args: Vec<String> = env::args().collect();
     let mut config_files = Vec::new();
     let mut concurrency = 64;
@@ -243,6 +267,7 @@ async fn main() -> Result<()> {
 
     let mut all_tasks: Vec<Task> = Vec::new();
     let mut merged_timeout = None;
+    let mut merged_upload = None;
 
     for path in config_files {
         let data = fs::read_to_string(&path)
@@ -253,6 +278,9 @@ async fn main() -> Result<()> {
         if let Some(globals) = config.globals {
             if let Some(timeout) = globals.timeout {
                 merged_timeout = Some(timeout);
+            }
+            if let Some(upload) = globals.upload {
+                merged_upload = Some(upload);
             }
         }
         
@@ -332,17 +360,108 @@ async fn main() -> Result<()> {
         task_results.retain(|r| r.status == "FAIL");
     }
 
-    if format == "plain" {
+    let (output_data, ext) = if format == "plain" {
+        let mut plain_text = String::new();
         for r in &task_results {
             if let Some(err) = &r.error {
-                println!("[{}] {} ({}): {} ({}ms)", r.status, r.name, r.task_type, err, r.latency_ms);
+                plain_text.push_str(&format!("[{}] {} ({}): {} ({}ms)\n", r.status, r.name, r.task_type, err, r.latency_ms));
             } else {
-                println!("[{}] {} ({}): OK ({}ms)", r.status, r.name, r.task_type, r.latency_ms);
+                plain_text.push_str(&format!("[{}] {} ({}): OK ({}ms)\n", r.status, r.name, r.task_type, r.latency_ms));
             }
         }
+        (plain_text, "txt")
     } else {
-        let json_output = serde_json::to_string_pretty(&task_results)?;
-        println!("{}", json_output);
+        (serde_json::to_string_pretty(&task_results)?, "json")
+    };
+
+    if format == "plain" {
+        print!("{}", output_data);
+    } else {
+        println!("{}", output_data);
+    }
+
+    if let Some(upload) = merged_upload {
+        if upload.upload_type == "gcs" {
+            let skip_empty = upload.skip_empty.unwrap_or(true);
+            let is_empty = task_results.is_empty();
+
+            if skip_empty && is_empty {
+                eprintln!("Test results are empty. Skipping GCS upload as configured.");
+            } else {
+                let timestamp = chrono::Utc::now().format("%Y%m%d_%H%M%S").to_string();
+                let object_name = if let Some(dir) = &upload.directory {
+                    format!("{}/results_{}.{}", dir.trim_end_matches('/'), timestamp, ext)
+                } else {
+                    format!("results_{}.{}", timestamp, ext)
+                };
+
+                eprintln!("Uploading results to GCS bucket '{}' as '{}'...", upload.bucket, object_name);
+                match upload_to_gcs(&upload.bucket, &object_name, output_data, upload.credential.as_deref()).await {
+                    Ok(_) => {
+                        eprintln!("Successfully uploaded test results to GCS.");
+                        
+                        if let Some(recent) = &upload.recent_summary {
+                            let new_url = format!(
+                                "{}/{}/{}",
+                                recent.entrypoint.trim_end_matches('/'),
+                                upload.bucket,
+                                object_name
+                            );
+                            
+                            let summary_object_name = if let Some(dir) = &recent.directory {
+                                format!("{}/{}", dir.trim_end_matches('/'), recent.filename)
+                            } else {
+                                recent.filename.clone()
+                            };
+
+                            eprintln!("Updating recent summary file '{}'...", summary_object_name);
+                            
+                            let existing = read_from_gcs(&upload.bucket, &summary_object_name, upload.credential.as_deref()).await
+                                .unwrap_or_else(|e| {
+                                    eprintln!("Warning: failed to read existing summary: {}", e);
+                                    String::new()
+                                });
+
+                            let re = Regex::new(r#"href="([^"]+)""#).unwrap();
+                            let mut urls: Vec<String> = re.captures_iter(&existing)
+                                .map(|cap| cap[1].to_string())
+                                .collect();
+
+                            urls.insert(0, new_url);
+                            urls.truncate(recent.count);
+
+                            let mut new_summary_content = String::new();
+                            new_summary_content.push_str("<!DOCTYPE html>\n<html>\n<head>\n");
+                            new_summary_content.push_str("  <meta charset=\"utf-8\">\n");
+                            new_summary_content.push_str("  <title>Recent Test Results</title>\n");
+                            new_summary_content.push_str("  <style>\n");
+                            new_summary_content.push_str("    body { font-family: -apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, Helvetica, Arial, sans-serif; max-width: 800px; margin: 40px auto; padding: 0 20px; line-height: 1.6; }\n");
+                            new_summary_content.push_str("    h1 { border-bottom: 2px solid #eaecef; padding-bottom: 0.3em; color: #24292e; }\n");
+                            new_summary_content.push_str("    ul { list-style-type: none; padding: 0; }\n");
+                            new_summary_content.push_str("    li { padding: 8px 12px; margin-bottom: 8px; background-color: #f6f8fa; border: 1px solid #e1e4e8; border-radius: 6px; }\n");
+                            new_summary_content.push_str("    a { color: #0366d6; text-decoration: none; font-weight: 600; font-family: monospace; }\n");
+                            new_summary_content.push_str("    a:hover { text-decoration: underline; }\n");
+                            new_summary_content.push_str("  </style>\n");
+                            new_summary_content.push_str("</head>\n<body>\n");
+                            new_summary_content.push_str("  <h1>Recent Test Results</h1>\n");
+                            new_summary_content.push_str("  <ul>\n");
+                            for url in &urls {
+                                let filename = url.split('/').last().unwrap_or(url);
+                                new_summary_content.push_str(&format!("    <li><a href=\"{}\">{}</a></li>\n", url, filename));
+                            }
+                            new_summary_content.push_str("  </ul>\n");
+                            new_summary_content.push_str("</body>\n</html>\n");
+
+                            match upload_to_gcs(&upload.bucket, &summary_object_name, new_summary_content, upload.credential.as_deref()).await {
+                                Ok(_) => eprintln!("Successfully updated recent summary in GCS."),
+                                Err(e) => eprintln!("Failed to update recent summary in GCS: {}", e),
+                            }
+                        }
+                    }
+                    Err(e) => eprintln!("Failed to upload test results to GCS: {}", e),
+                }
+            }
+        }
     }
 
     eprintln!(
@@ -611,3 +730,90 @@ async fn check_noindex(task: &Task, global_timeout: Duration, semaphore: Arc<Sem
         Err(anyhow!("No noindex tag found in headers or body"))
     }
 }
+
+async fn upload_to_gcs(
+    bucket: &str,
+    object_name: &str,
+    data: String,
+    credential_path: Option<&str>,
+) -> Result<()> {
+    let mut builder = Storage::builder();
+
+    if let Some(path) = credential_path {
+        let key_data = fs::read_to_string(path)
+            .map_err(|e| anyhow!("Failed to read credential file at {}: {}", path, e))?;
+        let key_json: serde_json::Value = serde_json::from_str(&key_data)
+            .map_err(|e| anyhow!("Failed to parse credential JSON from {}: {}", path, e))?;
+        
+        let credentials = google_cloud_auth::credentials::service_account::Builder::new(key_json)
+            .build()
+            .map_err(|e| anyhow!("Failed to build credentials: {}", e))?;
+
+        builder = builder.with_credentials(credentials);
+    }
+
+    let client = builder.build().await?;
+    let bucket_path = format!("projects/_/buckets/{}", bucket);
+
+    let content_type = if object_name.ends_with(".txt") {
+        "text/plain"
+    } else if object_name.ends_with(".json") {
+        "application/json"
+    } else if object_name.ends_with(".html") {
+        "text/html"
+    } else {
+        "application/octet-stream"
+    };
+
+    client
+        .write_object(&bucket_path, object_name, data)
+        .set_content_type(content_type)
+        .set_content_disposition("inline")
+        .send_buffered()
+        .await?;
+    Ok(())
+}
+
+async fn read_from_gcs(
+    bucket: &str,
+    object_name: &str,
+    credential_path: Option<&str>,
+) -> Result<String> {
+    let mut builder = Storage::builder();
+
+    if let Some(path) = credential_path {
+        let key_data = fs::read_to_string(path)
+            .map_err(|e| anyhow!("Failed to read credential file at {}: {}", path, e))?;
+        let key_json: serde_json::Value = serde_json::from_str(&key_data)
+            .map_err(|e| anyhow!("Failed to parse credential JSON from {}: {}", path, e))?;
+        
+        let credentials = google_cloud_auth::credentials::service_account::Builder::new(key_json)
+            .build()
+            .map_err(|e| anyhow!("Failed to build credentials: {}", e))?;
+
+        builder = builder.with_credentials(credentials);
+    }
+
+    let client = builder.build().await?;
+    let bucket_path = format!("projects/_/buckets/{}", bucket);
+
+    let mut resp = match client.read_object(&bucket_path, object_name).send().await {
+        Ok(r) => r,
+        Err(e) => {
+            eprintln!("Info: could not read existing summary (might not exist yet): {}", e);
+            return Ok(String::new());
+        }
+    };
+
+    let mut contents = Vec::new();
+    while let Some(chunk) = resp.next().await {
+        match chunk {
+            Ok(bytes) => contents.extend_from_slice(&bytes),
+            Err(e) => return Err(anyhow!("Failed reading chunk: {}", e)),
+        }
+    }
+
+    Ok(String::from_utf8(contents)?)
+}
+
+

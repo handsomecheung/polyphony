@@ -55,7 +55,29 @@ Place global defaults in `configs/check/global.yaml`:
 ```yaml
 globals:
   timeout: "5s"  # Default timeout for all tasks
+  upload:
+    type: gcs
+    bucket: koishi-common
+    directory: qosmon/results
+    skip_empty: true
+    credential: /tmp/qosmon-gcs-upload.json
+    recent_summary:
+      entrypoint: https://storage.cloud.google.com
+      count: 50
+      directory: qosmon/results
+      filename: recent-50.html
 ```
+
+**Upload parameters:**
+- `type`: Upload protocol (currently supports `gcs`).
+- `bucket`: Target GCS bucket name.
+- `directory`: GCS bucket prefix (subdirectory path).
+- `skip_empty`: (Default `true`) Skips GCS upload if the test results list is empty (e.g. all checks pass and `--only-failures` is set).
+- `credential`: Local file path to the service account JSON key.
+- `recent_summary`: Automatically aggregates the history of uploaded test result links into a styled HTML page.
+  - `entrypoint`: Base URL for the HTML links (e.g. `https://storage.cloud.google.com`).
+  - `count`: Maximum number of entries to keep in the summary.
+  - `directory`/`filename`: GCS path for the summary file.
 
 All YAML files in `configs/check/` are merged at startup, with task-specific settings overriding globals.
 
@@ -292,6 +314,20 @@ configs/
 └── generate/
     └── config.yaml                  # Generator configuration
 ```
+
+## GCS Credentials & Deployment
+
+### Local Execution
+When executing locally using `run.local.sh`, the GCS client reads the credentials from `/tmp/qosmon-gcs-upload.json` as specified in the `global.yaml` configuration.
+
+### Cloud Run Jobs Deployment
+The `deploy.sh` script automatically deploys the health checker as a Cloud Run Job.
+To manage the service account credentials securely without baking them into the Docker image, `deploy.sh` utilizes **GCP Secret Manager**:
+1. Checks and uploads your local `/tmp/qosmon-gcs-upload.json` to GCP Secret Manager under the name `qosmon-gcs-upload-key`.
+2. Automatically grants the default Compute Engine service account (`roles/secretmanager.secretAccessor`) read permissions on the secret.
+3. Automatically mounts the secret from Secret Manager into the Cloud Run Job container at the runtime path `/tmp/qosmon-gcs-upload.json`.
+
+This ensures the container runs securely and dynamically reads the credentials from the same path as configured in `global.yaml`.
 
 ## Concurrency and Resource Management
 
