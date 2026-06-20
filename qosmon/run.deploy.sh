@@ -3,6 +3,9 @@ set -e
 
 cd "$(dirname "${BASH_SOURCE[0]}")"
 
+source run.env.sh
+bash run.common.sh
+
 PROJECT_ID=$(gcloud config get-value project 2>/dev/null)
 REGION=${REGION:-"asia-northeast1"}
 REPO_NAME=${REPO_NAME:-"cloudrun"}
@@ -54,11 +57,6 @@ echo "Building and pushing Docker image to $IMAGE_URI..."
 gcloud builds submit --tag "$IMAGE_URI" --project="$PROJECT_ID" .
 
 SECRET_NAME="qosmon-gcs-upload-key"
-LOCAL_CRED_FILE="/tmp/qosmon-gcs-upload.json"
-
-if [[ ! -f "${LOCAL_CRED_FILE}" ]]; then
-  bwww get-attachment koishi-qosmon qosmon-gcs-upload.json >"${LOCAL_CRED_FILE}"
-fi
 
 echo "Checking Secret Manager for $SECRET_NAME..."
 if ! gcloud secrets describe "$SECRET_NAME" --project="$PROJECT_ID" >/dev/null 2>&1; then
@@ -66,7 +64,7 @@ if ! gcloud secrets describe "$SECRET_NAME" --project="$PROJECT_ID" >/dev/null 2
   gcloud secrets create "$SECRET_NAME" --replication-policy="automatic" --project="$PROJECT_ID"
 fi
 echo "Uploading credential to Secret Manager..."
-gcloud secrets versions add "$SECRET_NAME" --data-file="$LOCAL_CRED_FILE" --project="$PROJECT_ID"
+gcloud secrets versions add "$SECRET_NAME" --data-file="${QOSMON_GCS_CRED_FILE}" --project="$PROJECT_ID"
 
 echo "Granting Secret Accessor role to default Compute Engine service account..."
 PROJECT_NUMBER=$(gcloud projects describe "$PROJECT_ID" --format="value(projectNumber)")
@@ -83,7 +81,7 @@ gcloud run jobs deploy "$JOB_NAME" \
   --project="$PROJECT_ID" \
   --max-retries=0 \
   --task-timeout="5m" \
-  --set-secrets="/tmp/qosmon-gcs-upload.json=qosmon-gcs-upload-key:latest"
+  --set-secrets="/mnt/coder-sharepoint/qosmon-gcs-upload.json=qosmon-gcs-upload-key:latest"
 
 SA_EMAIL="${SERVICE_ACCOUNT_NAME}@${PROJECT_ID}.iam.gserviceaccount.com"
 echo "Setting up Service Account: $SA_EMAIL..."

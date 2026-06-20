@@ -6,4 +6,4 @@ cd "$(dirname "${BASH_SOURCE[0]}")"
 source run.env.sh
 bash run.common.sh
 
-cargo run --quiet -- --config-dir configs/check --concurrency 50 --only-failures --format plain
+sudo docker run --rm -v "${QOSMON_GCS_CRED_FILE}:${QOSMON_GCS_CRED_FILE}" qosmon:latest
