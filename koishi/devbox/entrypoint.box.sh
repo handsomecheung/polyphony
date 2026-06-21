@@ -38,3 +38,9 @@ NIXPKGS_ALLOW_UNFREE=1 /home/box/.nix-profile/bin/nix-env -if /home/box/default.
 echo "run code-server"
 /tmp/code-server/bin/code-server --user-data-dir /home/box/.config/code-server --install-extension vscodevim.vim --install-extension kahole.magit || true
 /tmp/code-server/bin/code-server --user-data-dir /home/box/.config/code-server /mnt/coder-workspaces/private-workspace/repos/local/home-service >/dev/null 2>&1 &
+
+if [ -f /home/box/.nix-profile/etc/profile.d/nix.sh ]; then
+    echo "load Nix profile ..."
+    . /home/box/.nix-profile/etc/profile.d/nix.sh
+    (cd /mnt/coder-workspaces/private-workspace/repos/local/polyphony/itero && npm run build && npm run start) >/tmp/itero.prod.log 2>&1 &
+fi
