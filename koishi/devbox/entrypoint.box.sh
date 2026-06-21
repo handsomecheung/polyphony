@@ -42,5 +42,5 @@ echo "run code-server"
 if [ -f /home/box/.nix-profile/etc/profile.d/nix.sh ]; then
     echo "load Nix profile ..."
     . /home/box/.nix-profile/etc/profile.d/nix.sh
-    (cd /mnt/coder-workspaces/private-workspace/repos/local/polyphony/itero && npm run build && npm run start) >/tmp/itero.prod.log 2>&1 &
+    bash /mnt/coder-workspaces/private-workspace/repos/local/polyphony/itero/scripts/run.prod.sh
 fi
