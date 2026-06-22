@@ -234,7 +234,7 @@ metadata:
     gethomepage.dev/icon: https://openclaw.ai/apple-touch-icon.png
     gethomepage.dev/href: https://openclaw.__{{infra.domains:f:x}}__
     gethomepage.dev/siteMonitor: https://openclaw.__{{infra.domains:f:x}}__
-    gethomepage.dev/weight: "3"
+    gethomepage.dev/weight: "10"
 spec:
   ingressClassName: traefik
   rules:

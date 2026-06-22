@@ -18,10 +18,10 @@ pkgs.mkShell {
     pkgs.imagemagick
     # pkgs.util-linux
 
-    pkgs.gh
     pkgs.zenith
     pkgs.git-lfs
     pkgs.lazygit
+    pkgs.git-filter-repo
 
     pkgs.kubectl
     pkgs.kubectx
@@ -69,13 +69,15 @@ pkgs.mkShell {
 
     # pkgs.go
     # pkgs.ruby
-    pkgs.python311Packages.python
 
     pkgs.google-cloud-sdk
 
     pkgs.ruff
     pkgs.nodePackages.prettier
     pkgs.pandoc
+
+    pkgs.ranger
+    pkgs.libsixel # image preview in ranger
 
     # for cp.jsf
     # pkgs.awscli2

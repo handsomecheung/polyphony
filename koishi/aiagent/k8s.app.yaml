@@ -105,7 +105,7 @@ metadata:
     traefik.ingress.kubernetes.io/router.middlewares: middleware-playonjan@kubernetescrd,middleware-antimitm@kubernetescrd,sso-domainx@kubernetescrd
     gethomepage.dev/enabled: "true"
     gethomepage.dev/group: AI
-    gethomepage.dev/name: AiAgent
+    gethomepage.dev/name: AIAgent
     gethomepage.dev/href: https://aiagent.__{{infra.domains:f:x}}__/
     gethomepage.dev/weight: "30"
 spec:

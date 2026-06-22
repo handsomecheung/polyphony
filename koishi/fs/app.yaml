@@ -42,6 +42,23 @@ spec:
               containerPort: 80
             - name: notfound
               containerPort: 8404
+          startupProbe:
+            httpGet:
+              path: /ping
+              port: default
+            failureThreshold: 60
+            periodSeconds: 10
+            timeoutSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /ping
+              port: default
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /ping
+              port: default
+            periodSeconds: 10
           resources:
             requests:
               cpu: 50m

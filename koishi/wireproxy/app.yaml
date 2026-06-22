@@ -61,30 +61,3 @@ spec:
       port: 1080
       protocol: TCP
       targetPort: socks5
-
----
-# only for szdc in docker container
-apiVersion: v1
-kind: Service
-metadata:
-  name: wireproxy-host
-  namespace: default
-  labels:
-    app.kubernetes.io/name: wireproxy-host
-  finalizers:
-    - service.kubernetes.io/load-balancer-cleanup
-spec:
-  type: LoadBalancer
-  selector:
-    app.kubernetes.io/name: wireproxy
-  allocateLoadBalancerNodePorts: true
-  externalTrafficPolicy: Cluster
-  internalTrafficPolicy: Cluster
-  ipFamilies:
-    - IPv4
-  ipFamilyPolicy: SingleStack
-  ports:
-    - name: http
-      port: 37180
-      protocol: TCP
-      targetPort: 8080

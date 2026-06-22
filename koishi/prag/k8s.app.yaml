@@ -36,6 +36,8 @@ spec:
               value: "0"
             - name: OLLAMA_API_BASE
               value: "http://ollama/v1"
+            - name: EMBEDDING_MODEL
+              value: "bge-m3"
             - name: NOTES_PATH
               value: "/data/notebook"
           ports:
@@ -43,8 +45,8 @@ spec:
               containerPort: 8000
           volumeMounts:
             - name: data-notebook
-              subPath: binlder
-              mountPath: /data/notebook/binlder
+              subPath: binder
+              mountPath: /data/notebook/binder
               readOnly: true
             - name: data-notebook
               subPath: paperback
