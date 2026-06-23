@@ -42,5 +42,5 @@ echo "run code-server"
 if [ -f /home/box/.nix-profile/etc/profile.d/nix.sh ]; then
     echo "load Nix profile ..."
     . /home/box/.nix-profile/etc/profile.d/nix.sh
-    bash /mnt/coder-workspaces/private-workspace/repos/local/polyphony/itero/scripts/run.prod.sh
+    bash /mnt/coder-sharepoint/itero/polyphony/itero/scripts/run.prod.runner.sh
 fi
