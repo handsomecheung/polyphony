@@ -23,10 +23,6 @@ spec:
           hostPath:
             path: /mnt/coder-sharepoint/arondo/data
             type: DirectoryOrCreate
-        - name: coder-workspaces
-          hostPath:
-            path: /mnt/coder-workspaces
-            type: Directory
       containers:
         - name: app
           image: cloudpublic/default/arondo:latest

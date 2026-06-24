@@ -1,10 +1,11 @@
 FROM node:20 AS builder
 WORKDIR /app
 
-COPY data/package*.json ./
-RUN npm ci
+RUN apt-get update && apt-get install -y git && rm -rf /var/lib/apt/lists/*
 
-COPY data/ ./
+RUN git clone https://github.com/handsomecheung/Arondo.git .
+
+RUN npm ci
 RUN npm run build
 
 FROM node:20 AS runner

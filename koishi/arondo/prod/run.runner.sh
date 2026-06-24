@@ -16,4 +16,5 @@ if [ -n "$pids" ]; then
   done
 fi
 
-nohup bash -c "../runner/build.sh && ../runner/runner --server wss://${ARONDO_HOST_SERVER_PROD}/runner --name devbox-nur" >/tmp/arondo.runner.prod.log 2>&1 &
+cd /mnt/coder-sharepoint/arondo/Arondo/runner
+nohup bash -c "./build.sh && ./runner --server wss://${ARONDO_HOST_SERVER_PROD}/runner --name devbox-nur" >/tmp/arondo.runner.prod.log 2>&1 &
