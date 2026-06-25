@@ -4,7 +4,6 @@ set -ex
 cd "$(dirname "${BASH_SOURCE[0]}")/"
 source .env
 
-# Stop previous process if it exists
 pids=$(pgrep -f "runner --server wss://${ARONDO_HOST_SERVER_PROD}/runner --name devbox-nur" || true)
 if [ -n "$pids" ]; then
   echo "Stopping previous runner processes: $pids"
@@ -16,5 +15,10 @@ if [ -n "$pids" ]; then
   done
 fi
 
-cd /mnt/coder-sharepoint/arondo/Arondo/runner
-nohup bash -c "./build.sh && ./runner --server wss://${ARONDO_HOST_SERVER_PROD}/runner --name devbox-nur" >/tmp/arondo.runner.prod.log 2>&1 &
+file_bin=/tmp/arondo.prod.runner
+file_log=/tmp/arondo.prod.runner.log
+
+wget https://github.com/handsomecheung/Arondo/releases/latest/download/runner-linux-amd64 -O "${file_bin}"
+chmod +x "${file_bin}"
+nohup bash -c "/tmp/arondo.prod.runner --server wss://${ARONDO_HOST_SERVER_PROD}/runner --name devbox-nur" >"${file_log}" 2>&1 &
+tail -f "${file_log}"
