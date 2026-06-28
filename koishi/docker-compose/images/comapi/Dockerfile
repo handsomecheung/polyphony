@@ -11,5 +11,7 @@ RUN cd /data && \
 
 FROM alpine:3.19
 
+RUN apk add --no-cache lm-sensors lm-sensors-sensord lm-sensors-detect
+
 COPY --chmod=755 --from=builder /data/target/x86_64-unknown-linux-musl/release/comapi /comapi
 ENTRYPOINT [ "/comapi" ]

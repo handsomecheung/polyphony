@@ -88,7 +88,36 @@ fn get_top() -> String {
     return format!("{},{},{}", cpu, mem, temp);
 }
 
-fn get_cpu_temp() -> String {
+fn parse_sensors_output(stdout: &str) -> Option<String> {
+    for line in stdout.lines() {
+        if line.contains("Tctl:") {
+            if let Some(pos) = line.find(':') {
+                let temp_val = line[pos + 1..].trim();
+                if let Some(first_word) = temp_val.split_whitespace().next() {
+                    let clean_temp: String = first_word.chars()
+                        .filter(|c| c.is_ascii_digit() || *c == '.' || *c == '-' || *c == '+')
+                        .collect();
+                    if let Ok(val) = clean_temp.parse::<f64>() {
+                        return Some(format!("{}°C", val.round() as i32));
+                    }
+                }
+            }
+        }
+    }
+    None
+}
+
+fn get_cpu_temp_miniba() -> String {
+    if let Ok(output) = Command::new("sensors").output() {
+        let stdout = String::from_utf8_lossy(&output.stdout);
+        if let Some(temp) = parse_sensors_output(&stdout) {
+            return temp;
+        }
+    }
+    "N/A".to_string()
+}
+
+fn get_cpu_temp_common() -> String {
     // Try to read from thermal zone 0 first
     let temp_path = "/sys/class/thermal/thermal_zone0/temp";
     match fs::read_to_string(temp_path) {
@@ -117,6 +146,15 @@ fn get_cpu_temp() -> String {
     "N/A".to_string()
 }
 
+fn get_cpu_temp() -> String {
+    if let Ok(hostname) = fs::read_to_string("/proc/sys/kernel/hostname") {
+        if hostname.trim() == "miniba" {
+            return get_cpu_temp_miniba();
+        }
+    }
+    get_cpu_temp_common()
+}
+
 #[tokio::main]
 async fn main() {
     if env::var("KOISHI_IPV4_PREFIX").is_err() {
@@ -138,4 +176,45 @@ async fn main() {
     println!("Starting comapi ...");
 
     warp::serve(routes).run(([0, 0, 0, 0], 37900)).await;
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_parse_sensors_output() {
+        let sample_output = r#"
+amdgpu-pci-0700
+Adapter: PCI adapter
+vddgfx:        1.29 V
+vddnb:       849.00 mV
+edge:         +47.0°C
+PPT:          25.14 W
+
+k10temp-pci-00c3
+Adapter: PCI adapter
+Tctl:         +52.4°C
+Tccd1:        +44.4°C
+
+nvme-pci-0100
+Adapter: PCI adapter
+Composite:    +38.9°C  (low  = -273.1°C, high = +89.8°C)
+                       (crit = +94.8°C)
+Sensor 1:     +38.9°C  (low  = -273.1°C, high = +65261.8°C)
+Sensor 2:     +37.9°C  (low  = -273.1°C, high = +65261.8°C)
+
+iwlwifi_1-virtual-0
+Adapter: Virtual device
+temp1:            N/A
+
+nvme-pci-0300
+Adapter: PCI adapter
+Composite:    +33.9°C  (low  = -273.1°C, high = +89.8°C)
+                       (crit = +94.8°C)
+Sensor 1:     +33.9°C  (low  = -273.1°C, high = +65261.8°C)
+Sensor 2:     +33.9°C  (low  = -273.1°C, high = +65261.8°C)
+"#;
+        assert_eq!(parse_sensors_output(sample_output), Some("52°C".to_string()));
+    }
 }
