@@ -19,22 +19,20 @@ spec:
       nodeSelector:
         kubernetes.io/hostname: nur
       volumes:
-        - name: data
+        - name: config
           hostPath:
-            path: /mnt/coder-sharepoint/arondo/data
+            path: /mnt/coder-sharepoint/arondo/config
             type: DirectoryOrCreate
       containers:
         - name: app
           image: cloudpublic/default/arondo:latest
           imagePullPolicy: Always
           volumeMounts:
-            - name: data
-              mountPath: /data
+            - name: config
+              mountPath: /home/node/.arondo
           env:
             - name: ALLOWED_DEV_ORIGINS
               value: arondo.__{{infra.domains:f:x}}__
-            - name: DATA_DIR
-              value: /data
           ports:
             - name: default
               containerPort: 3250
