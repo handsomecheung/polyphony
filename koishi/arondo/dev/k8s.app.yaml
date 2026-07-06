@@ -24,16 +24,16 @@ metadata:
   namespace: default
   annotations:
     cert-manager.io/cluster-issuer: cluster-letsencrypt-dns-cloudflare
-    traefik.ingress.kubernetes.io/router.middlewares: middleware-playonjan@kubernetescrd,middleware-antimitm@kubernetescrd,sso-domainx@kubernetescrd
+    traefik.ingress.kubernetes.io/router.middlewares: middleware-playonjan@kubernetescrd,middleware-antimitm@kubernetescrd,sso-domaind@kubernetescrd
     gethomepage.dev/enabled: "true"
     gethomepage.dev/group: AI
     gethomepage.dev/name: Arondo Dev
-    gethomepage.dev/href: https://arondo-dev.__{{infra.domains:f:x}}__/
+    gethomepage.dev/href: https://arondo.__{{infra.domains:f:d}}__/
     gethomepage.dev/weight: "80"
 spec:
   ingressClassName: traefik
   rules:
-    - host: arondo-dev.__{{infra.domains:f:x}}__
+    - host: arondo.__{{infra.domains:f:d}}__
       http:
         paths:
           - path: /
@@ -45,5 +45,5 @@ spec:
                   name: default
   tls:
     - hosts:
-        - arondo-dev.__{{infra.domains:f:x}}__
-      secretName: arondo-dev-domainx
+        - arondo.__{{infra.domains:f:d}}__
+      secretName: arondo-domaind

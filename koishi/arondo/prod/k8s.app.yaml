@@ -109,7 +109,7 @@ spec:
                 name: arondo-prod
                 port:
                   name: default
-          - path: /runner
+          - path: /Exact
             pathType: Prefix
             backend:
               service:
