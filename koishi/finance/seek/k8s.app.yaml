@@ -61,6 +61,7 @@ metadata:
   namespace: finance
   annotations:
     cert-manager.io/cluster-issuer: cluster-letsencrypt-dns-cloudflare
+    traefik.ingress.kubernetes.io/router.middlewares: default-lanonly@kubernetescrd
 spec:
   ingressClassName: traefik
   rules:
