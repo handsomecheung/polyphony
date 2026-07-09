@@ -20,11 +20,39 @@ spec:
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
+  name: arondo-dev-runner
+  namespace: default
+  annotations:
+    traefik.ingress.kubernetes.io/router.priority: "20"
+    cert-manager.io/cluster-issuer: cluster-letsencrypt-dns-cloudflare
+spec:
+  ingressClassName: traefik
+  rules:
+    - host: arondo.__{{infra.domains:f:d}}__
+      http:
+        paths:
+          - path: /runner
+            pathType: Exact
+            backend:
+              service:
+                name: devbox-nur-arondo-dev
+                port:
+                  name: default
+  tls:
+    - hosts:
+        - arondo.__{{infra.domains:f:d}}__
+      secretName: arondo-domainx
+
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
   name: arondo-dev
   namespace: default
   annotations:
-    cert-manager.io/cluster-issuer: cluster-letsencrypt-dns-cloudflare
+    traefik.ingress.kubernetes.io/router.priority: "10"
     traefik.ingress.kubernetes.io/router.middlewares: middleware-playonjan@kubernetescrd,middleware-antimitm@kubernetescrd,sso-domaind@kubernetescrd
+    cert-manager.io/cluster-issuer: cluster-letsencrypt-dns-cloudflare
     gethomepage.dev/enabled: "true"
     gethomepage.dev/group: AI
     gethomepage.dev/name: Arondo Dev
