@@ -83,14 +83,6 @@ spec:
         - name: config
           configMap:
             name: caddy-config
-        - name: user-data-music
-          hostPath:
-            path: /mnt/user-data-music
-            type: DirectoryOrCreate
-        - name: user-data-others
-          hostPath:
-            path: /mnt/user-data-others
-            type: DirectoryOrCreate
         - name: user-data-slight
           hostPath:
             path: /mnt/user-data-slight
@@ -116,13 +108,6 @@ spec:
           volumeMounts:
             - name: config
               mountPath: /etc/caddy
-
-            - name: user-data-music
-              subPath: upload
-              mountPath: /data/__{{infra.common-users:f:hh}}__/user-data-music/upload
-            - name: user-data-others
-              subPath: upload
-              mountPath: /data/__{{infra.common-users:f:hh}}__/user-data-others/upload
             - name: user-data-slight
               subPath: upload
               mountPath: /data/__{{infra.common-users:f:hh}}__/user-data-slight/upload
@@ -157,11 +142,6 @@ spec:
             - name: user-data-slight
               subPath: share-point
               mountPath: /data/__{{infra.common-users:f:hz73}}__/share-point
-
-            - name: user-data-music
-              mountPath: /data/hifi
-              subPath: export
-              readOnly: true
 
             - name: user-data-slight
               subPath: share-point

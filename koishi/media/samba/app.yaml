@@ -37,9 +37,6 @@ spec:
         - name: user-data-others
           persistentVolumeClaim:
             claimName: nfs-disk-user-data-others
-        - name: nfs-data-download
-          persistentVolumeClaim:
-            claimName: nfs-data-download
         - name: user-data-slight
           persistentVolumeClaim:
             claimName: nfs-disk-user-data-slight
@@ -125,8 +122,6 @@ spec:
               mountPath: /mnt/webdav
             - name: decrypted
               mountPath: /mnt/decrypted
-            - name: nfs-data-download
-              mountPath: /mnt/nfs-data/download
           ports:
             - containerPort: 137
             - containerPort: 138

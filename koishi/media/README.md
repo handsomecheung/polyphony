@@ -87,7 +87,6 @@ All media pods draw from a common set of persistent volumes and hostPath mounts:
 | `nfs-disk-user-data-music`           | NFS PVC         | `music/warehouse` (local music library), `upload/`                         |
 | `nfs-disk-user-data-others`          | NFS PVC         | `data/` (read-only media), `upload/`, `ebackup/`, `backup/`, `workspace/`  |
 | `nfs-disk-user-data-slight`          | NFS PVC         | `private-data/hero`, `private-data/hero-pending`, `share-point`, `upload/` |
-| `nfs-data-download`                  | NFS PVC         | Download staging area (Samba only)                                         |
 | `/mnt/webdav/pikpak-readonly`        | hostPath (FUSE) | PikPak WebDAV tree; subPaths expose pikpak library paths                   |
 | `/mnt/remote/pikpak`                 | hostPath (FUSE) | PikPak native rclone remote                                                |
 | `/mnt/remote/gdrive`                 | hostPath (FUSE) | Google Drive rclone remote                                                 |

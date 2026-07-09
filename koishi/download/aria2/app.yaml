@@ -25,9 +25,9 @@ spec:
           hostPath:
             path: /mnt/runtime-data-app/commondata
             type: Directory
-        - name: nfs-data-download
+        - name: nfs-disk-coder-sharepoint
           persistentVolumeClaim:
-            claimName: nfs-data-download
+            claimName: nfs-disk-coder-sharepoint
       containers:
         - name: app
           image: cloudpublic/default/aria2:latest
@@ -36,9 +36,9 @@ spec:
             - name: default-common-encrypted
               mountPath: /aria2/data
               subPath: aria2/config
-            - name: nfs-data-download
-              mountPath: /aria2/downloads
-              subPath: aria2/data
+            - name: nfs-disk-coder-sharepoint
+              subPath: downloads/aria2/data
+              mountPath: aria2/downloads
           ports:
             - name: default
               containerPort: 6800

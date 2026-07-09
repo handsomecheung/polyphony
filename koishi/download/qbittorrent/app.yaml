@@ -25,9 +25,9 @@ spec:
           hostPath:
             path: /mnt/runtime-data-app/commondata
             type: Directory
-        - name: nfs-data-download
+        - name: nfs-disk-coder-sharepoint
           persistentVolumeClaim:
-            claimName: nfs-data-download
+            claimName: nfs-disk-coder-sharepoint
       containers:
         - name: app
           image: linuxserver/qbittorrent
@@ -45,9 +45,9 @@ spec:
             - name: default-common-encrypted
               mountPath: /config
               subPath: qbittorrent/config
-            - name: nfs-data-download
+            - name: nfs-disk-coder-sharepoint
+              subPath: downloads/qbittorrent/data
               mountPath: /downloads
-              subPath: qbittorrent/data
           ports:
             # - containerPort: 6881/udp
             - containerPort: 6881
