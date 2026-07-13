@@ -33,6 +33,8 @@ spec:
           env:
             - name: ALLOWED_DEV_ORIGINS
               value: arondo.__{{infra.domains:f:x}}__
+            - name: ARONDO_SESSION_ARCHIVE_DAYS_DEFAULT
+              value: "7"
           ports:
             - name: default
               containerPort: 3250
