@@ -1,0 +1,23 @@
+#!/bin/bash
+set -e
+
+name=$1
+if [ "${name}" == "" ]; then
+    eco "name must be present"
+    exit 1
+fi
+
+cmd="tmux new -A -s ${name}"
+if [ "${name}" == "emacs" ]; then
+    cmd="${cmd} 'LC_CTYPE=zh_CN.UTF-8 emacs -nw'"
+fi
+
+if [ "${name}" == "coding" ]; then
+    cmd="${cmd} 'LC_CTYPE=zh_CN.UTF-8 emacs -nw'"
+fi
+
+if command -v nix-shell &>/dev/null; then
+    nix-shell $HOME/default.nix --run "mkdir -p \$TEMPDIR && ${cmd}"
+else
+    ${cmd}
+fi

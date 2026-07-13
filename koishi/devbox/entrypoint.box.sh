@@ -6,9 +6,9 @@ if [ -f /mnt/coder-workspaces/public-workspace/init.yaml ]; then
     ansible-playbook /mnt/coder-workspaces/public-workspace/init.yaml
 fi
 
-if [ -f /mnt/coder-workspaces/public-workspace/dev-config/init.sh ]; then
-    echo "init dev-config ..."
-    bash /mnt/coder-workspaces/public-workspace/dev-config/init.sh
+if [ -f /mnt/coder-workspaces/private-workspace/repos/local/polyphony/devconfigs/init.sh ]; then
+    echo "init devconfigs ..."
+    bash /mnt/coder-workspaces/private-workspace/repos/local/polyphony/devconfigs/init.sh
 fi
 
 if [ -f /mnt/coder-workspaces/private-workspace/init.yaml ]; then

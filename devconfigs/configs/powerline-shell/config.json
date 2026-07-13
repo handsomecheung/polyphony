@@ -1,0 +1,28 @@
+{
+  "segments": [
+    "virtual_env",
+    "ssh",
+    "hostname",
+    "cwd",
+    "git",
+    "git_stash",
+    "jobs",
+    "set_term_title",
+    "svn",
+    "time",
+    "newline",
+    "root"
+  ],
+  "mode": "flat",
+  "cwd": {
+    "mode": "plain"
+
+  },
+  "hostname": {
+    "colorize": true
+  },
+  "time": {
+    "format": "%H:%M:%S"
+  },
+  "theme": "gruvbox"
+}

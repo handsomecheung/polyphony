@@ -1,0 +1,25 @@
+[user]
+	name  = CHoU
+	email = handsomecheung@gmail.com
+
+[credential]
+	helper = store
+
+[color]
+	ui = true
+
+[mergetool]
+	keepBackup = true
+
+[core]
+	pager = diff-so-fancy | less --tabs=4 -RFX
+	quotepath = false
+
+[filter "lfs"]
+	clean = git-lfs clean -- %f
+	smudge = git-lfs smudge -- %f
+	process = git-lfs filter-process
+	required = true
+
+[pull]
+	rebase = false
