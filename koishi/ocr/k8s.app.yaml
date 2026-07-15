@@ -1,0 +1,121 @@
+---
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: sablierocr
+  namespace: default
+spec:
+  plugin:
+    sablier:
+      sablierUrl: "http://sablier.sablier"
+      group: "ocr"
+      sessionDuration: "30m"
+      blocking:
+        timeout: 5m
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ocr
+  namespace: default
+  labels:
+    app.kubernetes.io/name: ocr
+    sablier.enable: "true"
+    sablier.group: "ocr"
+spec:
+  replicas: 0
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: ocr
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: ocr
+    spec:
+      containers:
+        - name: app
+          image: cloudpublic/default/ocr:latest
+          imagePullPolicy: Always
+          ports:
+            - name: default
+              containerPort: 8000
+              protocol: TCP
+          startupProbe:
+            httpGet:
+              path: /ping
+              port: default
+            failureThreshold: 60
+            periodSeconds: 10
+            timeoutSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /ping
+              port: default
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /ping
+              port: default
+            periodSeconds: 10
+          resources:
+            requests:
+              cpu: 2000m
+              memory: 1Gi
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ocr
+  namespace: default
+  labels:
+    app.kubernetes.io/name: ocr
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: ocr
+  ports:
+    - name: default
+      port: 80
+      targetPort: default
+      protocol: TCP
+
+---
+# Sets the maximum request body to 100M
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: ocrsizelimit
+  namespace: default
+spec:
+  buffering:
+    maxRequestBodyBytes: 100000000
+    maxResponseBodyBytes: 100000000
+
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: ocr
+  namespace: default
+  annotations:
+    cert-manager.io/cluster-issuer: cluster-letsencrypt-dns-cloudflare
+    traefik.ingress.kubernetes.io/router.middlewares: default-lanonly@kubernetescrd,default-ocrsizelimit@kubernetescrd,default-sablierocr@kubernetescrd
+spec:
+  ingressClassName: traefik
+  rules:
+    - host: ocr.home4p.__{{infra.domains:f:x}}__
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: ocr
+                port:
+                  name: default
+  tls:
+    - hosts:
+        - ocr.home4p.__{{infra.domains:f:x}}__
+      secretName: ocr-home4p-tls
