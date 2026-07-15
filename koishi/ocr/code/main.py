@@ -26,8 +26,7 @@ def perform_ocr(
     file: UploadFile = File(...),
     lang: str = Form("jpn+eng"),
     force_ocr: bool = Form(False),
-    redo_ocr: bool = Form(False),
-    skip_text: bool = Form(False)
+    redo_ocr: bool = Form(False)
 ):
     if not file.filename.lower().endswith(".pdf"):
         raise HTTPException(status_code=400, detail="Only PDF files are supported.")
@@ -65,19 +64,10 @@ def perform_ocr(
 
         if not run_ocr:
             logger.info("PDF already contains text. Skipping OCR.")
-            try:
-                with open(input_path, "rb") as f:
-                    pdf_bytes = f.read()
-                pdf_base64 = base64.b64encode(pdf_bytes).decode("utf-8")
-            except Exception as e:
-                logger.error(f"Failed to read input PDF: {e}")
-                raise HTTPException(status_code=500, detail=f"Failed to read input: {str(e)}")
-
             text_base64 = base64.b64encode(digital_text.encode("utf-8")).decode("utf-8")
 
             return {
                 "text_base64": text_base64,
-                "pdf_base64": pdf_base64,
                 "ocr_performed": False
             }
 
@@ -87,9 +77,7 @@ def perform_ocr(
             cmd.append("--force-ocr")
         if redo_ocr:
             cmd.append("--redo-ocr")
-        if skip_text:
-            cmd.append("--skip-text")
-        
+
         cmd.extend([input_path, output_path])
 
         logger.info(f"Running command: {' '.join(cmd)}")
@@ -116,18 +104,8 @@ def perform_ocr(
 
         text_base64 = base64.b64encode(extracted_text.encode("utf-8")).decode("utf-8")
 
-        # Read the output PDF and encode to base64
-        try:
-            with open(output_path, "rb") as f:
-                pdf_bytes = f.read()
-            pdf_base64 = base64.b64encode(pdf_bytes).decode("utf-8")
-        except Exception as e:
-            logger.error(f"Failed to read output PDF: {e}")
-            raise HTTPException(status_code=500, detail=f"Failed to read OCR output: {str(e)}")
-
         return {
             "text_base64": text_base64,
-            "pdf_base64": pdf_base64,
             "ocr_performed": True
         }
 

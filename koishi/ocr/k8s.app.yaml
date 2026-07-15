@@ -91,7 +91,6 @@ metadata:
 spec:
   buffering:
     maxRequestBodyBytes: 100000000
-    maxResponseBodyBytes: 100000000
 
 ---
 apiVersion: networking.k8s.io/v1
