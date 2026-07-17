@@ -24,7 +24,7 @@ This file provides context and rules for working within the `koishi` directory, 
 | Ollama     | `ollama/`    | Local inference on `miniba` (GPU node); OLLAMA_NUM_PARALLEL=4; 12 CPU / 8 Gi limit                                                                                                             |
 | Open WebUI | `ollama/`    | Browser chat UI for Ollama; Sablier scale-to-zero                                                                                                                                              |
 | prag       | `prag/`      | RAG service: indexes markdown notes, embeds via Ollama bge-m3, stores in Redis HNSW, serves `/query` via FastAPI                                                                               |
-| aiagent    | `aiagent/`   | Generic AI agent framework using `pydantic-ai-skills`; dynamically loads skills (Python/Node); WebUI + REST + WebSocket; routes through LiteLLM — see [`aiagent/README.md`](aiagent/README.md) |
+| gen        | `gen/`       | Generic AI agent framework using `pydantic-ai-skills`; dynamically loads skills (Python/Node); WebUI + REST + WebSocket; routes through LiteLLM — see [`gen/README.md`](gen/README.md) |
 
 ### Media
 

@@ -2,19 +2,19 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: aiagent
+  name: gen
   namespace: default
   labels:
-    app: aiagent
+    app.kubernetes.io/name: gen
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: aiagent
+      app.kubernetes.io/name: gen
   template:
     metadata:
       labels:
-        app: aiagent
+        app.kubernetes.io/name: gen
     spec:
       nodeSelector:
         kubernetes.io/hostname: nur
@@ -25,7 +25,7 @@ spec:
             type: Directory
       containers:
         - name: app
-          image: cloudpublic/default/aiagent:latest
+          image: cloudpublic/default/gen:latest
           imagePullPolicy: Always
           volumeMounts:
             - name: coder-workspaces
@@ -33,7 +33,7 @@ spec:
               mountPath: /data/skills
               readOnly: true
             - name: coder-workspaces
-              subPath: private-workspace/repos/local/polyphony/koishi/aiagent/output
+              subPath: private-workspace/repos/local/polyphony/koishi/gen/output
               mountPath: /data/output
           env:
             - name: AI_MODEL
@@ -80,48 +80,48 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: aiagent
+  name: gen
   namespace: default
   labels:
-    app: aiagent
+    app.kubernetes.io/name: gen
 spec:
   type: ClusterIP
+  selector:
+    app.kubernetes.io/name: gen
   ports:
     - name: default
       port: 80
       protocol: TCP
       targetPort: default
-  selector:
-    app: aiagent
 
 ---
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: aiagent
+  name: gen
   namespace: default
   annotations:
     cert-manager.io/cluster-issuer: cluster-letsencrypt-dns-cloudflare
     traefik.ingress.kubernetes.io/router.middlewares: middleware-playonjan@kubernetescrd,middleware-antimitm@kubernetescrd,sso-domainx@kubernetescrd
     gethomepage.dev/enabled: "true"
     gethomepage.dev/group: AI
-    gethomepage.dev/name: AIAgent
-    gethomepage.dev/href: https://aiagent.__{{infra.domains:f:x}}__/
-    gethomepage.dev/weight: "30"
+    gethomepage.dev/name: Gen
+    gethomepage.dev/href: https://gen.__{{infra.domains:f:x}}__/
+    gethomepage.dev/weight: "10"
 spec:
   ingressClassName: traefik
   rules:
-    - host: aiagent.__{{infra.domains:f:x}}__
+    - host: gen.__{{infra.domains:f:x}}__
       http:
         paths:
           - path: /
             pathType: Prefix
             backend:
               service:
-                name: aiagent
+                name: gen
                 port:
                   name: default
   tls:
     - hosts:
-        - aiagent.__{{infra.domains:f:x}}__
-      secretName: aiagent-domainx
+        - gen.__{{infra.domains:f:x}}__
+      secretName: gen-domainx

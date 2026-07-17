@@ -6,7 +6,7 @@ source ../.env
 
 export AI_MODEL_TIMEOUT_SECONDS=45
 export AI_AGENT_HEARTBEAT_SECONDS=5
-export AI_OUTPUT_DIR="/mnt/coder-workspaces/private-workspace/repos/local/polyphony/koishi/aiagent/output"
+export AI_OUTPUT_DIR="/mnt/coder-workspaces/private-workspace/repos/local/polyphony/koishi/gen/output"
 export SKILLS_ROOT="/mnt/coder-workspaces/private-workspace/repos/local/notebook/hardback/AI/Skills"
 
 # python3.12 main.py --serve

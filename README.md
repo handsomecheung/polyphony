@@ -59,7 +59,7 @@ Key design decisions:
 - Five independent **Google OAuth2** SSO domains (domainx/y/p/c/d) each with their own email whitelist, protecting 20+ services.
 - **Nix** package manager ensures reproducible dev tooling inside the `devbox` environment.
 
-Notable services: AI agent framework (`aiagent`), LiteLLM LLM gateway, Ollama local inference, RAG search (`prag`), Vaultwarden, media stack (Plex, Jellyfin, rclone cloud mounts), download stack (qBittorrent, Aria2, Jackett), WireGuard VPN, remote desktop (Guacamole), finance data service, dynamic DNS, CloudNativePG HA databases, and more.
+Notable services: AI agent framework (`gen`), LiteLLM LLM gateway, Ollama local inference, RAG search (`prag`), Vaultwarden, media stack (Plex, Jellyfin, rclone cloud mounts), download stack (qBittorrent, Aria2, Jackett), WireGuard VPN, remote desktop (Guacamole), finance data service, dynamic DNS, CloudNativePG HA databases, and more.
 
 ---
 

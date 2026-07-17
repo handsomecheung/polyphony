@@ -102,7 +102,7 @@ When a skill needs to create output files, it must call `allocate_artifact_path`
 ### Local Development
 
 ```bash
-cd aiagent/code
+cd gen/code
 python3.12 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
@@ -114,7 +114,7 @@ pip install -r requirements.txt
 ./build.sh
 ```
 
-Builds `cloudpublic/default/aiagent:latest` using in-cluster Kaniko.
+Builds `cloudpublic/default/gen:latest` using in-cluster Kaniko.
 
 ## Configuration
 
@@ -124,7 +124,7 @@ Builds `cloudpublic/default/aiagent:latest` using in-cluster Kaniko.
 export LITELLM_API_BASE=http://127.0.0.1:4000       # or http://litellm.default in Kubernetes
 export LITELLM_API_KEY=sk-your-litellm-key
 export AI_MODEL=balanced-model                        # or anthropic/claude-sonnet-4-5
-export AI_OUTPUT_DIR=/abs/path/to/aiagent-output
+export AI_OUTPUT_DIR=/abs/path/to/gen-output
 export SKILLS_ROOT=/path/to/skills/directory
 ```
 
@@ -256,7 +256,7 @@ This calls `my-k8s-deploy --file=k8s.app.yaml`.
 **Key deployment config** (`k8s.app.yaml`):
 
 - **Deployment**: 1 replica on node `nur` (nodeSelector)
-- **Image**: `cloudpublic/default/aiagent:latest` with `Always` pull policy
+- **Image**: `cloudpublic/default/gen:latest` with `Always` pull policy
 - **Mounts**:
   - `/data/skills` → external skills directory (read-only)
   - `/data/output` → artifact output directory (read-write)
