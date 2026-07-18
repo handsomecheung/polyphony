@@ -1,20 +1,4 @@
 ---
-apiVersion: traefik.io/v1alpha1
-kind: Middleware
-metadata:
-  name: sabliergen
-  namespace: default
-spec:
-  plugin:
-    sablier:
-      sablierUrl: "http://sablier.sablier"
-      group: "gen"
-      sessionDuration: "1h"
-      dynamic:
-        theme: "ghost"
-        showDetails: true
-
----
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -22,10 +6,8 @@ metadata:
   namespace: default
   labels:
     app.kubernetes.io/name: gen
-    sablier.enable: "true"
-    sablier.group: "gen"
 spec:
-  replicas: 0
+  replicas: 1
   selector:
     matchLabels:
       app.kubernetes.io/name: gen
@@ -120,7 +102,7 @@ metadata:
   namespace: default
   annotations:
     cert-manager.io/cluster-issuer: cluster-letsencrypt-dns-cloudflare
-    traefik.ingress.kubernetes.io/router.middlewares: middleware-playonjan@kubernetescrd,middleware-antimitm@kubernetescrd,sso-domainx@kubernetescrd,default-sabliergen@kubernetescrd
+    traefik.ingress.kubernetes.io/router.middlewares: middleware-playonjan@kubernetescrd,middleware-antimitm@kubernetescrd,sso-domainx@kubernetescrd
     gethomepage.dev/enabled: "true"
     gethomepage.dev/group: AI
     gethomepage.dev/name: Gen
