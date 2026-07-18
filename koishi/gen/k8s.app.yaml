@@ -23,6 +23,10 @@ spec:
           hostPath:
             path: /mnt/coder-workspaces
             type: Directory
+        - name: coder-sharepoint
+          hostPath:
+            path: /mnt/coder-sharepoint
+            type: Directory
       containers:
         - name: app
           image: cloudpublic/default/gen:latest
@@ -32,24 +36,31 @@ spec:
               subPath: private-workspace/repos/local/notebook/hardback/AI/Skills
               mountPath: /data/skills
               readOnly: true
+            - name: coder-sharepoint
+              subPath: gen
+              mountPath: /data/input
             - name: coder-workspaces
               subPath: private-workspace/repos/local/polyphony/koishi/gen/output
               mountPath: /data/output
           env:
-            - name: AI_MODEL
+            - name: LITELLM_MODEL
               value: balanced-model
             - name: LITELLM_API_BASE
               value: http://litellm.default
             - name: LITELLM_API_KEY
               value: "__{{koishi.litellm}}__"
 
-            - name: AI_MODEL_TIMEOUT_SECONDS
+            - name: GEN_MODEL_TIMEOUT_SECONDS
               value: "120"
-            - name: AI_AGENT_HEARTBEAT_SECONDS
+            - name: GEN_MODEL_MAX_RETRIES
+              value: "0"
+            - name: GEN_AGENT_HEARTBEAT_SECONDS
               value: "10"
-            - name: AI_OUTPUT_DIR
+            - name: GEN_OUTPUT_DIR
               value: /data/output
-            - name: SKILLS_ROOT
+            - name: GEN_DIR_INPUT
+              value: /data/input
+            - name: GEN_SKILLS_ROOT
               value: /data/skills
           ports:
             - name: default

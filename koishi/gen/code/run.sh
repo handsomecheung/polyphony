@@ -13,6 +13,4 @@ export SKILLS_ROOT="/mnt/coder-workspaces/private-workspace/repos/local/notebook
 
 # python3.12 main.py "What is CPU of machine miniba?"
 
-# python3.12 main.py "Query CPU information of machine miniba by SKILL prag"
-
-python3.12 main.py "Please create a 15-slide presentation on generative AI implementation strategies."
+python3.12 main.py "Query CPU information of machine miniba by SKILL prag"

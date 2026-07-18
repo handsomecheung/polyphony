@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import contextvars
 import json
 import os
 import re
@@ -10,6 +11,8 @@ import sys
 import threading
 import time
 import traceback
+import uuid
+from contextlib import asynccontextmanager
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
@@ -23,6 +26,13 @@ from pydantic_ai.exceptions import ModelHTTPError
 from pydantic_ai.models.openai import OpenAIChatModel
 from pydantic_ai.providers.litellm import LiteLLMProvider
 from pydantic_ai_skills import SkillsToolset
+
+
+def get_required_env(name: str) -> str:
+    value = os.environ.get(name)
+    if not value:
+        raise RuntimeError(f"Required environment variable {name} is not set.")
+    return value
 
 
 class RunRequest(BaseModel):
@@ -45,6 +55,7 @@ class FileExtractionResult(BaseModel):
 class RunResult(BaseModel):
     response: str
     files: list[str] = Field(default_factory=list)
+    log_file: str | None = Field(default=None, description="Path to the detailed log file for this execution")
 
 
 class SkillsResult(BaseModel):
@@ -57,14 +68,26 @@ class AgentDeps:
 
 
 WEBUI_DIR = Path(__file__).resolve().parent / "webui"
-DEFAULT_MODEL_TIMEOUT_SECONDS = float(os.environ.get("AI_MODEL_TIMEOUT_SECONDS", "90"))
-DEFAULT_MODEL_MAX_RETRIES = int(os.environ.get("AI_MODEL_MAX_RETRIES", "0"))
-DEFAULT_HEARTBEAT_SECONDS = int(os.environ.get("AI_AGENT_HEARTBEAT_SECONDS", "10"))
+DEFAULT_MODEL_TIMEOUT_SECONDS = float(get_required_env("GEN_MODEL_TIMEOUT_SECONDS"))
+DEFAULT_MODEL_MAX_RETRIES = int(get_required_env("GEN_MODEL_MAX_RETRIES"))
+DEFAULT_HEARTBEAT_SECONDS = int(get_required_env("GEN_AGENT_HEARTBEAT_SECONDS"))
+
+
+current_task_log_path = contextvars.ContextVar("current_task_log_path", default=None)
 
 
 def log(message: str) -> None:
     timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    print(f"[{timestamp}] {message}", file=sys.stderr, flush=True)
+    formatted_msg = f"[{timestamp}] {message}"
+    print(formatted_msg, file=sys.stderr, flush=True)
+
+    log_path = current_task_log_path.get()
+    if log_path:
+        try:
+            with open(log_path, "a", encoding="utf-8") as f:
+                f.write(formatted_msg + "\n")
+        except Exception as e:
+            print(f"[{timestamp}] Failed to write to task log: {e}", file=sys.stderr, flush=True)
 
 
 def log_exception(context: str, exc: Exception) -> None:
@@ -74,30 +97,24 @@ def log_exception(context: str, exc: Exception) -> None:
         log(formatted)
 
 
-def get_required_env(name: str) -> str:
-    value = os.environ.get(name)
-    if not value:
-        raise RuntimeError(f"Required environment variable {name} is not set.")
-    return value
-
-
-SKILLS_ROOT = Path(get_required_env("SKILLS_ROOT")).resolve()
+GEN_SKILLS_ROOT = Path(get_required_env("GEN_SKILLS_ROOT")).resolve()
 
 
 def get_required_path_env(name: str) -> Path:
     return Path(get_required_env(name)).expanduser().resolve()
 
 
-OUTPUT_DIR = get_required_path_env("AI_OUTPUT_DIR")
+OUTPUT_DIR = get_required_path_env("GEN_OUTPUT_DIR")
+GEN_DIR_INPUT = get_required_path_env("GEN_DIR_INPUT")
 
 
 def build_model() -> OpenAIChatModel:
-    model_name = get_required_env("AI_MODEL")
+    model_name = get_required_env("LITELLM_MODEL")
     api_base = get_required_env("LITELLM_API_BASE")
     api_key = get_required_env("LITELLM_API_KEY")
     log(
         "Building LiteLLM model client "
-        f"(AI_MODEL={model_name}, LITELLM_API_BASE={api_base}, "
+        f"(LITELLM_MODEL={model_name}, LITELLM_API_BASE={api_base}, "
         f"timeout={DEFAULT_MODEL_TIMEOUT_SECONDS}s, max_retries={DEFAULT_MODEL_MAX_RETRIES})"
     )
     openai_client = AsyncOpenAI(
@@ -128,7 +145,7 @@ def make_output_stem(filename_hint: str | None = None) -> str:
 
 def get_skill_directories() -> list[str]:
     extra_dirs = os.environ.get("AI_SKILLS_DIRS", "")
-    directories = [str(SKILLS_ROOT)]
+    directories = [str(GEN_SKILLS_ROOT)]
     if extra_dirs:
         directories.extend(path for path in extra_dirs.split(os.pathsep) if path)
 
@@ -157,7 +174,7 @@ def build_skills_toolset() -> SkillsToolset:
 def format_model_error(exc: Exception) -> str:
     if isinstance(exc, ModelHTTPError):
         return (
-            f"Model request failed for AI_MODEL={exc.model_name} via LiteLLM.\n"
+            f"Model request failed for LITELLM_MODEL={exc.model_name} via LiteLLM.\n"
             f"LITELLM_API_BASE={os.environ.get('LITELLM_API_BASE', '')}\n"
             f"Provider response: {exc.body}\n"
             "Check whether the mapped backend model is available, requires payment/subscription, "
@@ -210,6 +227,8 @@ def build_agent() -> Agent[AgentDeps, str]:
     agent.tool(allocate_artifact_path)
     agent.tool(read_artifact)
     agent.tool(list_artifacts)
+    agent.tool(copy_file)
+    agent.tool(move_file)
     return agent
 
 
@@ -249,8 +268,15 @@ def allocate_artifact_path(
 def read_artifact(_: RunContext[AgentDeps], path: str) -> str:
     artifact_path = Path(path)
     if not artifact_path.exists():
-        raise RuntimeError(f"Artifact does not exist: {artifact_path}")
-    content = artifact_path.read_text(encoding="utf-8")
+        return f"Error: Artifact does not exist: {artifact_path}"
+    try:
+        content = artifact_path.read_text(encoding="utf-8")
+    except UnicodeDecodeError as e:
+        return (
+            f"Error: Failed to decode artifact '{artifact_path}' as UTF-8 text. "
+            "The file might be a binary format (e.g., PDF or image) and cannot be read as text directly. "
+            f"Original error: {e}"
+        )
     log(f"read_artifact loaded file: {artifact_path} ({len(content)} chars)")
     return content
 
@@ -260,6 +286,48 @@ def list_artifacts(ctx: RunContext[AgentDeps]) -> list[str]:
     artifacts = sorted(str(path) for path in ctx.deps.output_dir.iterdir() if path.is_file())
     log(f"list_artifacts found {len(artifacts)} files")
     return artifacts
+
+
+def copy_file(
+    _: RunContext[AgentDeps],
+    src_path: str,
+    dest_path: str,
+) -> str:
+    """Copy a file (including binary files like PDFs) from src_path to dest_path."""
+    import shutil
+    src = Path(src_path)
+    dest = Path(dest_path)
+    if not src.exists():
+        return f"Error: Source file does not exist: {src}"
+    try:
+        dest.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(src, dest)
+        log(f"copy_file successfully copied {src} to {dest}")
+        return f"Success: Copied file to {dest}"
+    except Exception as e:
+        log(f"copy_file failed: {e}")
+        return f"Error: Failed to copy file: {e}"
+
+
+def move_file(
+    _: RunContext[AgentDeps],
+    src_path: str,
+    dest_path: str,
+) -> str:
+    """Move a file (including binary files like PDFs) from src_path to dest_path."""
+    import shutil
+    src = Path(src_path)
+    dest = Path(dest_path)
+    if not src.exists():
+        return f"Error: Source file does not exist: {src}"
+    try:
+        dest.parent.mkdir(parents=True, exist_ok=True)
+        shutil.move(str(src), str(dest))
+        log(f"move_file successfully moved {src} to {dest}")
+        return f"Success: Moved file to {dest}"
+    except Exception as e:
+        log(f"move_file failed: {e}")
+        return f"Error: Failed to move file: {e}"
 
 
 def get_output_files(output_dir: Path) -> list[str]:
@@ -368,28 +436,113 @@ def start_run_heartbeat() -> tuple[threading.Event, threading.Thread]:
 
 
 def run_agent(request: RunRequest) -> RunResult:
-    log(
-        "Starting agent request "
-        f"(prompt={request.prompt})"
-    )
-    deps = AgentDeps(output_dir=OUTPUT_DIR)
-    log(f"Using output directory: {deps.output_dir}")
-    log("Invoking agent.run_sync; waiting for model + skill workflow to complete")
-    agent = build_agent()
-    heartbeat_stop, heartbeat_thread = start_run_heartbeat()
+    task_id = f"{datetime.now().strftime('%Y%m%d-%H%M%S')}-{uuid.uuid4().hex[:8]}"
+    logs_dir = OUTPUT_DIR / "logs"
+    logs_dir.mkdir(parents=True, exist_ok=True)
+    log_file = logs_dir / f"{task_id}.log"
+
+    token = current_task_log_path.set(str(log_file))
+
     try:
-        result = agent.run_sync(request.prompt, deps=deps)
+        log(f"--- Task Started: {task_id} ---")
+        log(f"Prompt: {request.prompt}")
+        deps = AgentDeps(output_dir=OUTPUT_DIR)
+        log(f"Using output directory: {deps.output_dir}")
+        log("Invoking agent.run_sync; waiting for model + skill workflow to complete")
+        agent = build_agent()
+        heartbeat_stop, heartbeat_thread = start_run_heartbeat()
+        try:
+            result = agent.run_sync(request.prompt, deps=deps)
+        finally:
+            heartbeat_stop.set()
+            heartbeat_thread.join(timeout=1)
+        existing_files = extract_files_from_response(result.output)
+        log(
+            f"Agent completed request (response_chars={len(result.output)}, files={len(existing_files)})"
+        )
+        log(f"Response: {result.output}")
+        log(f"--- Task Finished Successfully ---")
+        return RunResult(response=result.output, files=existing_files, log_file=str(log_file))
+    except Exception as exc:
+        log_exception("Task failed with exception", exc)
+        log(f"--- Task Failed ---")
+        raise
     finally:
-        heartbeat_stop.set()
-        heartbeat_thread.join(timeout=1)
-    existing_files = extract_files_from_response(result.output)
-    log(
-        f"Agent completed request (response_chars={len(result.output)}, files={len(existing_files)})"
-    )
-    return RunResult(response=result.output, files=existing_files)
+        current_task_log_path.reset(token)
 
 
-app = FastAPI(title="PydanticAI Skills Agent Demo")
+is_organizing = False
+task_handled_files: dict[str, str] = {}
+
+
+async def task_monitor_loop() -> None:
+    global is_organizing
+
+    pdf_organizer_dir = GEN_DIR_INPUT / "pdf-organizer"
+    pdf_organizer_dir.mkdir(parents=True, exist_ok=True)
+
+    log(f"Starting background PDF organizer monitor on {pdf_organizer_dir}")
+    while True:
+        try:
+            if is_organizing:
+                log("PDF organizer is already running, skipping this check.")
+            else:
+                pdf_files = sorted(
+                    [p for p in pdf_organizer_dir.iterdir() if p.is_file() and p.suffix.lower() == ".pdf"]
+                )
+
+                # Filter out files that have already been handled
+                files_to_process = []
+                for p in pdf_files:
+                    path_str = str(p.resolve())
+                    if path_str in task_handled_files:
+                        log(f"Skipping already handled file: {p.name}. Reason: {task_handled_files[path_str]}")
+                    else:
+                        files_to_process.append(p)
+
+                if files_to_process:
+                    log(f"Found {len(files_to_process)} PDF files to organize: {[p.name for p in files_to_process]}")
+                    is_organizing = True
+                    try:
+                        file_paths = [str(p) for p in files_to_process]
+                        prompt = (
+                            "Do not attempt to read the PDF files directly using read_artifact (which only supports plain text). "
+                            "Instead, immediately list and load the 'pdf-organizer' skill and run its scripts "
+                            f"to organize these PDF files: {', '.join(file_paths)}"
+                        )
+                        result = await asyncio.to_thread(run_agent, RunRequest(prompt=prompt))
+                        log(f"PDF organizer completed: {result.response[:100]}...")
+
+                        # Record the successful result
+                        for p in files_to_process:
+                            path_str = str(p.resolve())
+                            task_handled_files[path_str] = f"Successfully processed: {result.response[:200]}"
+                    except Exception as agent_exc:
+                        log_exception("PDF organizer agent failed", agent_exc)
+                        # Record the failure result
+                        for p in files_to_process:
+                            path_str = str(p.resolve())
+                            task_handled_files[path_str] = f"Failed to process: {agent_exc}"
+                    finally:
+                        is_organizing = False
+        except Exception as exc:
+            log_exception("Error in task monitor loop", exc)
+
+        await asyncio.sleep(60)
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    monitor_task = asyncio.create_task(task_monitor_loop())
+    yield
+    monitor_task.cancel()
+    try:
+        await monitor_task
+    except asyncio.CancelledError:
+        pass
+
+
+app = FastAPI(title="PydanticAI Skills Agent Demo", lifespan=lifespan)
 
 
 @app.get("/ok")

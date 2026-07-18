@@ -6,7 +6,7 @@ Generic AI agent framework that dynamically discovers, loads, and orchestrates r
 
 `main.py` implements a FastAPI server that:
 
-- auto-discovers skills from a configurable root directory (`SKILLS_ROOT`)
+- auto-discovers skills from a configurable root directory (`GEN_SKILLS_ROOT`)
 - routes all model requests through LiteLLM (OpenAI-compatible abstraction)
 - provides multiple interfaces: CLI (sync), REST POST /run, WebSocket /ws (async streaming), and GET / (browser-based WebUI)
 - includes built-in tools for skills to manage intermediate and output artifacts
@@ -30,7 +30,7 @@ openai_client = AsyncOpenAI(
 )
 ```
 
-Model selection is controlled by `AI_MODEL` environment variable:
+Model selection is controlled by `LITELLM_MODEL` environment variable:
 
 - `balanced-model`: routed by LiteLLM to its default model
 - `anthropic/claude-sonnet-4-5`: explicit provider/model routing
@@ -50,7 +50,7 @@ Each skill owns its own dependencies. The agent core stays minimal:
 
 ### Skills Discovery & Loading
 
-The agent scans `SKILLS_ROOT` at startup (recursively, max depth 4) via `pydantic-ai-skills.SkillsToolset`. Additional directories can be added via `AI_SKILLS_DIRS` (colon-separated on Linux/macOS).
+The agent scans `GEN_SKILLS_ROOT` at startup (recursively, max depth 4) via `pydantic-ai-skills.SkillsToolset`. Additional directories can be added via `AI_SKILLS_DIRS` (colon-separated on Linux/macOS).
 
 Recommended skill layout:
 
@@ -86,7 +86,7 @@ The agent provides the following built-in tools for skills:
 
 | Tool                     | Purpose                                                                    |
 |--------------------------|----------------------------------------------------------------------------|
-| `allocate_artifact_path` | Reserve an absolute path under `AI_OUTPUT_DIR` for output (before writing) |
+| `allocate_artifact_path` | Reserve an absolute path under `GEN_OUTPUT_DIR` for output (before writing) |
 | `write_artifact`         | Write text content to a file and return its path                           |
 | `read_artifact`          | Read content from a file by path                                           |
 | `list_artifacts`         | List all files in the output directory                                     |
@@ -123,18 +123,19 @@ Builds `cloudpublic/default/gen:latest` using in-cluster Kaniko.
 ```bash
 export LITELLM_API_BASE=http://127.0.0.1:4000       # or http://litellm.default in Kubernetes
 export LITELLM_API_KEY=sk-your-litellm-key
-export AI_MODEL=balanced-model                        # or anthropic/claude-sonnet-4-5
-export AI_OUTPUT_DIR=/abs/path/to/gen-output
-export SKILLS_ROOT=/path/to/skills/directory
+export LITELLM_MODEL=balanced-model                   # or anthropic/claude-sonnet-4-5
+export GEN_OUTPUT_DIR=/abs/path/to/gen-output
+export GEN_SKILLS_ROOT=/path/to/skills/directory
+export GEN_MODEL_TIMEOUT_SECONDS=90
+export GEN_MODEL_MAX_RETRIES=0
+export GEN_AGENT_HEARTBEAT_SECONDS=10
+export GEN_DIR_INPUT=/path/to/input
 ```
 
 ### Optional Environment Variables
 
 ```bash
 export AI_SKILLS_DIRS=/path/a:/path/b                # Additional skill directories
-export AI_MODEL_TIMEOUT_SECONDS=90                    # Default: 90
-export AI_MODEL_MAX_RETRIES=0                         # Default: 0
-export AI_AGENT_HEARTBEAT_SECONDS=10                  # Heartbeat interval for long-running requests
 ```
 
 The program exits with an error at startup if any required variable is missing.
@@ -271,11 +272,15 @@ This calls `my-k8s-deploy --file=k8s.app.yaml`.
 Environment variables in pod (note `__{{koishi.litellm}}__` is a template placeholder injected at deploy time):
 
 ```yaml
-AI_MODEL: balanced-model
+LITELLM_MODEL: balanced-model
 LITELLM_API_BASE: http://litellm.default
 LITELLM_API_KEY: __{{koishi.litellm}}__
-AI_OUTPUT_DIR: /data/output
-SKILLS_ROOT: /data/skills
+GEN_OUTPUT_DIR: /data/output
+GEN_SKILLS_ROOT: /data/skills
+GEN_MODEL_TIMEOUT_SECONDS: 120
+GEN_MODEL_MAX_RETRIES: 0
+GEN_AGENT_HEARTBEAT_SECONDS: 10
+GEN_DIR_INPUT: /data/input
 ```
 
 ### Local Development
@@ -364,7 +369,7 @@ Commit `package-lock.json` or `pnpm-lock.yaml`.
 
 **Check**:
 - `LITELLM_API_BASE` points to correct LiteLLM instance
-- `AI_MODEL` matches available models (e.g., list via LiteLLM admin)
+- `LITELLM_MODEL` matches available models (e.g., list via LiteLLM admin)
 - API key has correct permissions
 
 ### Skill Not Found
@@ -384,7 +389,7 @@ If the agent generates files but they don't appear in the `files` list:
 
 - Ensure skill calls `allocate_artifact_path` before writing
 - Verify paths are absolute and exist on disk
-- Check `AI_OUTPUT_DIR` permissions
+- Check `GEN_OUTPUT_DIR` permissions
 
 ## Related
 
