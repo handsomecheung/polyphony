@@ -1,4 +1,4 @@
-# OCR
+# KOCR
 
 A lightweight PDF OCR microservice built with FastAPI and `ocrmypdf`. It is designed to act as a low-level base service that abstracts the complex system dependencies required for OCR (such as `tesseract-ocr`, ghostscript, and language packs), allowing client applications/skills to perform OCR via a simple HTTP API.
 

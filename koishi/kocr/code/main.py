@@ -13,9 +13,9 @@ class EndpointFilter(logging.Filter):
 logging.getLogger("uvicorn.access").addFilter(EndpointFilter())
 
 logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger("ocr")
+logger = logging.getLogger("kocr")
 
-app = FastAPI(title="OCR API")
+app = FastAPI(title="KOCR API")
 
 @app.get("/ping")
 async def ping():
