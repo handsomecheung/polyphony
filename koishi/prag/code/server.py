@@ -1,7 +1,17 @@
 import os
 import asyncio
+import logging
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, Query
+
+class EndpointFilter(logging.Filter):
+    def filter(self, record: logging.LogRecord) -> bool:
+        if record.args and len(record.args) >= 3:
+            return record.args[2] != "/ping"
+        return "/ping" not in record.getMessage()
+
+# Filter out /ping access logs from uvicorn
+logging.getLogger("uvicorn.access").addFilter(EndpointFilter())
 from apscheduler.schedulers.background import BackgroundScheduler
 from indexer import create_index, index_notes
 from search import search_notes
@@ -47,9 +57,9 @@ def query_rag(q: str = Query(..., description="The query string"), top_k: int = 
     results = search_notes(q, top_k=top_k)
     return results
 
-@app.get("/ok")
-def ok():
-    return {"status": "ok"}
+@app.get("/ping")
+def ping():
+    return "pong"
 
 @app.post("/index")
 def trigger_index():

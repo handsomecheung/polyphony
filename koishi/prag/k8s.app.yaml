@@ -45,24 +45,25 @@ spec:
               containerPort: 8000
           volumeMounts:
             - name: data-notebook
-              subPath: binder
-              mountPath: /data/notebook/binder
+              subPath: binder/Default
+              mountPath: /data/notebook/binder/Default
               readOnly: true
-            - name: data-notebook
-              subPath: paperback
-              mountPath: /data/notebook/paperback
-              readOnly: true
+          startupProbe:
+            httpGet:
+              path: /ping
+              port: default
+            failureThreshold: 60
+            periodSeconds: 10
+            timeoutSeconds: 5
           livenessProbe:
             httpGet:
-              path: /ok
+              path: /ping
               port: default
-            initialDelaySeconds: 10
-            periodSeconds: 30
+            periodSeconds: 10
           readinessProbe:
             httpGet:
-              path: /ok
+              path: /ping
               port: default
-            initialDelaySeconds: 5
             periodSeconds: 10
           resources:
             requests:
