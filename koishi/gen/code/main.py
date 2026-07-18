@@ -504,25 +504,24 @@ async def task_monitor_loop() -> None:
                     log(f"Found {len(files_to_process)} PDF files to organize: {[p.name for p in files_to_process]}")
                     is_organizing = True
                     try:
-                        file_paths = [str(p) for p in files_to_process]
-                        prompt = (
-                            "Do not attempt to read the PDF files directly using read_artifact (which only supports plain text). "
-                            "Instead, immediately list and load the 'pdf-organizer' skill and run its scripts "
-                            f"to organize these PDF files: {', '.join(file_paths)}"
-                        )
-                        result = await asyncio.to_thread(run_agent, RunRequest(prompt=prompt))
-                        log(f"PDF organizer completed: {result.response[:100]}...")
-
-                        # Record the successful result
+                        # Process files one by one to avoid exceeding token/context limits and to handle errors gracefully
                         for p in files_to_process:
                             path_str = str(p.resolve())
-                            task_handled_files[path_str] = f"Successfully processed: {result.response[:200]}"
-                    except Exception as agent_exc:
-                        log_exception("PDF organizer agent failed", agent_exc)
-                        # Record the failure result
-                        for p in files_to_process:
-                            path_str = str(p.resolve())
-                            task_handled_files[path_str] = f"Failed to process: {agent_exc}"
+                            log(f"Starting to organize PDF file: {p.name}")
+                            prompt = (
+                                "Do not attempt to read the PDF files directly using read_artifact (which only supports plain text). "
+                                "Instead, immediately list and load the 'pdf-organizer' skill and run its scripts "
+                                f"to organize this PDF file: {path_str}"
+                            )
+                            try:
+                                result = await asyncio.to_thread(run_agent, RunRequest(prompt=prompt))
+                                log(f"PDF organizer completed for {p.name}: {result.response[:100]}...")
+                                # Record the successful result
+                                task_handled_files[path_str] = f"Successfully processed: {result.response[:200]}"
+                            except Exception as agent_exc:
+                                log_exception(f"PDF organizer agent failed for {p.name}", agent_exc)
+                                # Record the failure result
+                                task_handled_files[path_str] = f"Failed to process: {agent_exc}"
                     finally:
                         is_organizing = False
         except Exception as exc:
