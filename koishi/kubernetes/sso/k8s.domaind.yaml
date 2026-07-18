@@ -34,7 +34,6 @@ spec:
         - name: app
           image: thomseddon/traefik-forward-auth:latest
           imagePullPolicy: Always
-          args: []
           env:
             - name: PROVIDERS_GOOGLE_CLIENT_ID
               valueFrom:

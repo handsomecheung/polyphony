@@ -33,6 +33,13 @@ spec:
           volumeMounts:
             - name: ollama
               mountPath: /root/.ollama
+          resources:
+            requests:
+              cpu: 2000m
+              memory: 4Gi
+            limits:
+              cpu: 4000m
+              memory: 8Gi
 
 ---
 apiVersion: v1

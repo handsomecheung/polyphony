@@ -5,16 +5,16 @@ metadata:
   name: arondo-prod
   namespace: default
   labels:
-    app: arondo-prod
+    app.kubernetes.io/name: arondo-prod
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: arondo-prod
+      app.kubernetes.io/name: arondo-prod
   template:
     metadata:
       labels:
-        app: arondo-prod
+        app.kubernetes.io/name: arondo-prod
     spec:
       nodeSelector:
         kubernetes.io/hostname: nur
@@ -67,11 +67,11 @@ metadata:
   name: arondo-prod
   namespace: default
   labels:
-    app: arondo-prod
+    app.kubernetes.io/name: arondo-prod
 spec:
   type: ClusterIP
   selector:
-    app: arondo-prod
+    app.kubernetes.io/name: arondo-prod
   ports:
     - name: default
       port: 80
