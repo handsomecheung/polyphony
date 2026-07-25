@@ -86,7 +86,7 @@ metadata:
   namespace: default
   annotations:
     cert-manager.io/cluster-issuer: cluster-letsencrypt-dns-cloudflare
-    traefik.ingress.kubernetes.io/router.middlewares: middleware-playonjan@kubernetescrd,middleware-antimitm@kubernetescrd,sso-domainx@kubernetescrd,default-sablierdownload@kubernetescrd
+    traefik.ingress.kubernetes.io/router.middlewares: middleware-antimitm@kubernetescrd,sso-domainx@kubernetescrd,default-sablierdownload@kubernetescrd
     gethomepage.dev/enabled: "true"
     gethomepage.dev/group: Media
     gethomepage.dev/name: qBittorrent

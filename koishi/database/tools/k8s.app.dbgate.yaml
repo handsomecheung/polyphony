@@ -268,7 +268,7 @@ metadata:
   namespace: default
   annotations:
     cert-manager.io/cluster-issuer: cluster-letsencrypt-dns-cloudflare
-    traefik.ingress.kubernetes.io/router.middlewares: middleware-playonjan@kubernetescrd,middleware-antimitm@kubernetescrd,sso-domainx@kubernetescrd,default-sablierdbgate@kubernetescrd
+    traefik.ingress.kubernetes.io/router.middlewares: middleware-antimitm@kubernetescrd,sso-domainx@kubernetescrd,default-sablierdbgate@kubernetescrd
     traefik.ingress.kubernetes.io/router.priority: "100"
     gethomepage.dev/enabled: "true"
     gethomepage.dev/group: Development
@@ -302,7 +302,7 @@ metadata:
   namespace: default
   annotations:
     cert-manager.io/cluster-issuer: cluster-letsencrypt-dns-cloudflare
-    traefik.ingress.kubernetes.io/router.middlewares: middleware-playonjan@kubernetescrd,middleware-antimitm@kubernetescrd,sso-domainx@kubernetescrd
+    traefik.ingress.kubernetes.io/router.middlewares: middleware-antimitm@kubernetescrd,sso-domainx@kubernetescrd
     traefik.ingress.kubernetes.io/router.priority: "1"
 spec:
   ingressClassName: traefik
@@ -487,7 +487,7 @@ metadata:
   namespace: default
   annotations:
     cert-manager.io/cluster-issuer: cluster-letsencrypt-dns-cloudflare
-    traefik.ingress.kubernetes.io/router.middlewares: middleware-playonjan@kubernetescrd,middleware-antimitm@kubernetescrd,sso-domainx@kubernetescrd,default-sablierdbgatelite@kubernetescrd
+    traefik.ingress.kubernetes.io/router.middlewares: middleware-antimitm@kubernetescrd,sso-domainx@kubernetescrd,default-sablierdbgatelite@kubernetescrd
     traefik.ingress.kubernetes.io/router.priority: "100"
     gethomepage.dev/enabled: "true"
     gethomepage.dev/group: Development
@@ -521,7 +521,7 @@ metadata:
   namespace: default
   annotations:
     cert-manager.io/cluster-issuer: cluster-letsencrypt-dns-cloudflare
-    traefik.ingress.kubernetes.io/router.middlewares: middleware-playonjan@kubernetescrd,middleware-antimitm@kubernetescrd,sso-domainx@kubernetescrd
+    traefik.ingress.kubernetes.io/router.middlewares: middleware-antimitm@kubernetescrd,sso-domainx@kubernetescrd
     traefik.ingress.kubernetes.io/router.priority: "1"
 spec:
   ingressClassName: traefik

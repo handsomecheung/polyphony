@@ -42,7 +42,7 @@ metadata:
   namespace: external-shutdown
   annotations:
     cert-manager.io/cluster-issuer: cluster-letsencrypt-dns-cloudflare
-    traefik.ingress.kubernetes.io/router.middlewares: middleware-playonjan@kubernetescrd,middleware-antimitm@kubernetescrd,sso-domainx@kubernetescrd
+    traefik.ingress.kubernetes.io/router.middlewares: middleware-antimitm@kubernetescrd,sso-domainx@kubernetescrd
 spec:
   ingressClassName: traefik
   rules:
@@ -69,7 +69,7 @@ metadata:
   namespace: external-shutdown
   annotations:
     cert-manager.io/cluster-issuer: cluster-letsencrypt-dns-cloudflare
-    traefik.ingress.kubernetes.io/router.middlewares: middleware-playonjan@kubernetescrd,middleware-antimitm@kubernetescrd,sso-domainx@kubernetescrd
+    traefik.ingress.kubernetes.io/router.middlewares: middleware-antimitm@kubernetescrd,sso-domainx@kubernetescrd
     gethomepage.dev/enabled: "true"
     gethomepage.dev/group: System
     gethomepage.dev/name: Shutdown nur
@@ -159,7 +159,7 @@ metadata:
   namespace: external-shutdown
   annotations:
     cert-manager.io/cluster-issuer: cluster-letsencrypt-dns-cloudflare
-    traefik.ingress.kubernetes.io/router.middlewares: middleware-playonjan@kubernetescrd,middleware-antimitm@kubernetescrd,sso-domainx@kubernetescrd
+    traefik.ingress.kubernetes.io/router.middlewares: middleware-antimitm@kubernetescrd,sso-domainx@kubernetescrd
 spec:
   ingressClassName: traefik
   rules:
@@ -186,7 +186,7 @@ metadata:
   namespace: external-shutdown
   annotations:
     cert-manager.io/cluster-issuer: cluster-letsencrypt-dns-cloudflare
-    traefik.ingress.kubernetes.io/router.middlewares: middleware-playonjan@kubernetescrd,middleware-antimitm@kubernetescrd,sso-domainx@kubernetescrd
+    traefik.ingress.kubernetes.io/router.middlewares: middleware-antimitm@kubernetescrd,sso-domainx@kubernetescrd
     gethomepage.dev/enabled: "true"
     gethomepage.dev/group: System
     gethomepage.dev/name: Shutdown miniba

@@ -51,7 +51,7 @@ metadata:
   namespace: default
   annotations:
     traefik.ingress.kubernetes.io/router.priority: "10"
-    traefik.ingress.kubernetes.io/router.middlewares: middleware-playonjan@kubernetescrd,middleware-antimitm@kubernetescrd,sso-domaind@kubernetescrd
+    traefik.ingress.kubernetes.io/router.middlewares: middleware-antimitm@kubernetescrd,sso-domaind@kubernetescrd
     cert-manager.io/cluster-issuer: cluster-letsencrypt-dns-cloudflare
     gethomepage.dev/enabled: "true"
     gethomepage.dev/group: AI

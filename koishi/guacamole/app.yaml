@@ -149,7 +149,7 @@ metadata:
   namespace: default
   annotations:
     cert-manager.io/cluster-issuer: cluster-letsencrypt-dns-cloudflare
-    traefik.ingress.kubernetes.io/router.middlewares: middleware-playonjan@kubernetescrd,middleware-antimitm@kubernetescrd,sso-domainx@kubernetescrd,default-sablierguacamole@kubernetescrd
+    traefik.ingress.kubernetes.io/router.middlewares: middleware-antimitm@kubernetescrd,sso-domainx@kubernetescrd,default-sablierguacamole@kubernetescrd
     gethomepage.dev/enabled: "true"
     gethomepage.dev/group: Development
     gethomepage.dev/name: guacamole

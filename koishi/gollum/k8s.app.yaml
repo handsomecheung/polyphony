@@ -88,7 +88,7 @@ metadata:
   namespace: default
   annotations:
     cert-manager.io/cluster-issuer: cluster-letsencrypt-dns-cloudflare
-    traefik.ingress.kubernetes.io/router.middlewares: middleware-playonjan@kubernetescrd,middleware-antimitm@kubernetescrd,sso-domainx@kubernetescrd,default-sabliergollum@kubernetescrd
+    traefik.ingress.kubernetes.io/router.middlewares: middleware-antimitm@kubernetescrd,sso-domainx@kubernetescrd,default-sabliergollum@kubernetescrd
     gethomepage.dev/enabled: "true"
     gethomepage.dev/group: Tool
     gethomepage.dev/href: https://gollum.__{{infra.domains:f:x}}__
