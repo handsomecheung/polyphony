@@ -35,6 +35,8 @@ spec:
               value: arondo.__{{infra.domains:f:x}}__
             - name: ARONDO_SESSION_ARCHIVE_DAYS_DEFAULT
               value: "7"
+            - name: ARONDO_FILE_SHOW_HIDDEN_DEFAULT
+              value: "true"
           ports:
             - name: default
               containerPort: 3250

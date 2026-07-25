@@ -57,6 +57,18 @@ data:
           memory: true
           # Shows the label, which is always the node name
           showLabel: true
+    - openmeteo:
+        label: Tokyo
+        latitude: 35.6895
+        longitude: 139.6917
+        timezone: Asia/Tokyo
+        # or imperial
+        units: metric
+        # Time in minutes to cache API responses, to stay within limits
+        cache: 5
+        # optional, Intl.NumberFormat options
+        format:
+          maximumFractionDigits: 1
   docker.yaml: ""
 
 ---
