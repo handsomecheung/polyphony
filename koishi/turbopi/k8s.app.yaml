@@ -1,4 +1,20 @@
 ---
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: sablierturbopi
+  namespace: default
+spec:
+  plugin:
+    sablier:
+      sablierUrl: "http://sablier.sablier"
+      group: "turbopi"
+      sessionDuration: "1h"
+      dynamic:
+        theme: "ghost"
+        showDetails: true
+
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -6,8 +22,10 @@ metadata:
   namespace: default
   labels:
     app.kubernetes.io/name: turbopi
+    sablier.enable: "true"
+    sablier.group: "turbopi"
 spec:
-  replicas: 1
+  replicas: 0
   selector:
     matchLabels:
       app.kubernetes.io/name: turbopi
@@ -61,7 +79,7 @@ metadata:
   namespace: default
   annotations:
     cert-manager.io/cluster-issuer: cluster-letsencrypt-dns-cloudflare
-    traefik.ingress.kubernetes.io/router.middlewares: middleware-antimitm@kubernetescrd,sso-domainx@kubernetescrd
+    traefik.ingress.kubernetes.io/router.middlewares: middleware-antimitm@kubernetescrd,sso-domainx@kubernetescrd,default-sablierturbopi@kubernetescrd
     gethomepage.dev/enabled: "true"
     gethomepage.dev/group: Tool
     gethomepage.dev/name: TurboPi
