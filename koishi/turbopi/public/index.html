@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TurboPi Camera Dashboard</title>
+  <link rel="stylesheet" href="style.css">
+  <!-- Modern Google Font -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <!-- Lucide Icons for premium feel -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body>
+  <div class="glass-container">
+    <!-- Header -->
+    <header class="app-header">
+      <div class="logo-area">
+        <i data-lucide="cpu" class="logo-icon"></i>
+        <h1>TurboPi <span>Camera Control</span></h1>
+      </div>
+      <div class="status-panel">
+        <div class="status-indicator" id="connection-status">
+          <span class="status-dot pinging"></span>
+          <span class="status-text">Connecting...</span>
+        </div>
+        <div class="toggle-container">
+          <label class="switch">
+            <input type="checkbox" id="simulation-toggle">
+            <span class="slider round"></span>
+          </label>
+          <span class="toggle-label">Simulation Mode</span>
+        </div>
+      </div>
+    </header>
+
+    <!-- Main Content Grid -->
+    <main class="dashboard-grid">
+      <!-- Left: Video Stream -->
+      <section class="card video-card">
+        <div class="card-header">
+          <div class="card-title">
+            <i data-lucide="video"></i>
+            <h2>Live Feed</h2>
+          </div>
+          <div class="video-controls">
+            <button id="refresh-stream-btn" class="icon-btn" title="Refresh Feed">
+              <i data-lucide="refresh-cw"></i>
+            </button>
+            <button id="fullscreen-btn" class="icon-btn" title="Fullscreen">
+              <i data-lucide="maximize-2"></i>
+            </button>
+          </div>
+        </div>
+        <div class="video-wrapper">
+          <!-- Live MJPEG Stream -->
+          <img id="camera-stream" src="/api/stream" alt="TurboPi Camera Stream" class="hidden">
+          
+          <!-- Simulation canvas or fallback -->
+          <canvas id="simulation-canvas" class="fallback-canvas"></canvas>
+          
+          <div id="stream-overlay-error" class="stream-overlay error-overlay hidden">
+            <i data-lucide="wifi-off" class="overlay-icon"></i>
+            <p>Camera Stream Offline</p>
+            <button id="reconnect-btn" class="btn btn-primary">Try Reconnecting</button>
+          </div>
+        </div>
+        <div class="video-info">
+          <span class="info-item"><i data-lucide="activity"></i> Stream: <span id="stream-type-label">Proxy</span></span>
+          <span class="info-item"><i data-lucide="link"></i> Source: <span id="stream-source-label">/api/stream</span></span>
+        </div>
+      </section>
+
+      <!-- Right Column: Controls & Log -->
+      <div class="right-column">
+        <!-- Right: Controls -->
+        <section class="card control-card">
+        <div class="card-header">
+          <div class="card-title">
+            <i data-lucide="sliders"></i>
+            <h2>Camera Position</h2>
+          </div>
+          <button id="reset-btn" class="btn btn-secondary btn-sm">
+            <i data-lucide="rotate-ccw"></i> Reset to Center
+          </button>
+        </div>
+
+        <div class="control-sections">
+          <!-- Coordinates & Step Configuration -->
+          <div class="config-row">
+            <div class="coord-display">
+              <div class="coord-val">
+                <span class="label">PITCH (X):</span>
+                <span class="value" id="val-x">10</span>°
+              </div>
+              <div class="coord-val">
+                <span class="label">YAW (Y):</span>
+                <span class="value" id="val-y">10</span>°
+              </div>
+            </div>
+            <div class="step-config">
+              <label for="step-size">Step Size: </label>
+              <select id="step-size" class="select-input">
+                <option value="1">1° (Fine)</option>
+                <option value="5" selected>5° (Normal)</option>
+                <option value="10">10° (Coarse)</option>
+                <option value="20">20° (Fast)</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Interactive Joystick / D-Pad Area -->
+          <div class="interactive-control-area">
+            <!-- D-Pad (Buttons) -->
+            <div class="dpad-container">
+              <button id="btn-up" class="dpad-btn up" title="Tilt Up (Arrow Up)"><i data-lucide="chevron-up"></i></button>
+              <button id="btn-left" class="dpad-btn left" title="Pan Left (Arrow Left)"><i data-lucide="chevron-left"></i></button>
+              <button id="btn-center" class="dpad-btn center" title="Reset (Space)"><i data-lucide="circle"></i></button>
+              <button id="btn-right" class="dpad-btn right" title="Pan Right (Arrow Right)"><i data-lucide="chevron-right"></i></button>
+              <button id="btn-down" class="dpad-btn down" title="Tilt Down (Arrow Down)"><i data-lucide="chevron-down"></i></button>
+            </div>
+
+            <!-- Virtual Joystick -->
+            <div class="joystick-container">
+              <div class="joystick-title">Interactive Virtual Joystick</div>
+              <div class="joystick-pad" id="joystick-pad">
+                <div class="joystick-handle" id="joystick-handle"></div>
+              </div>
+              <div class="joystick-hint">Drag handle to control camera position in real-time</div>
+            </div>
+          </div>
+
+          <!-- Fine Tuning Sliders -->
+          <div class="sliders-container">
+            <div class="slider-group">
+              <div class="slider-header">
+                <span class="slider-label"><i data-lucide="arrow-up-down"></i> Pitch (Servo 1)</span>
+                <span class="slider-value" id="slider-val-x">10°</span>
+              </div>
+              <input type="range" id="slider-x" min="0" max="180" value="10" class="range-slider">
+            </div>
+
+            <div class="slider-group">
+              <div class="slider-header">
+                <span class="slider-label"><i data-lucide="arrow-left-right"></i> Yaw (Servo 2)</span>
+                <span class="slider-value" id="slider-val-y">10°</span>
+              </div>
+              <input type="range" id="slider-y" min="0" max="180" value="10" class="range-slider">
+            </div>
+          </div>
+
+          <!-- Shortcut Guide -->
+          <div class="keyboard-guide">
+            <h3>Keyboard Controls</h3>
+            <div class="keys-grid">
+              <div class="key-item"><kbd>▲</kbd> / <kbd>▼</kbd> <span>Tilt Up / Down</span></div>
+              <div class="key-item"><kbd>◀</kbd> / <kbd>▶</kbd> <span>Pan Left / Right</span></div>
+              <div class="key-item"><kbd>Space</kbd> <span>Reset Center</span></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Terminal/Log Panel -->
+      <section class="card log-card">
+        <div class="card-header">
+          <div class="card-title">
+            <i data-lucide="terminal"></i>
+            <h2>RPC Execution Log</h2>
+          </div>
+          <button id="clear-log-btn" class="btn btn-secondary btn-sm">
+            <i data-lucide="trash-2"></i> Clear
+          </button>
+        </div>
+        <div class="terminal-body" id="log-terminal">
+          <div class="log-line system-line">[SYSTEM] Terminal initialized. Dashboard ready.</div>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
