@@ -37,7 +37,7 @@ spec:
             secretName: letsencrypt-refresh--aliyun-credentials
         - name: certs-output
           hostPath:
-            path: /mnt/coder-workspaces/private-workspace/repos/local/home-service/static/letsencrypt
+            path: /mnt/coder-workspaces/private-workspace/repos/local/polyphony/static/letsencrypt
             type: DirectoryOrCreate
       initContainers:
         - name: generate
