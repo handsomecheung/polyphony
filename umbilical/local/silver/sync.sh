@@ -11,7 +11,7 @@ source_dir_wip="${source_dir_temp}/compose"
 mkdir -p "${source_dir_wip}/umbilical/local"
 rsync -a "${source_dir_repo}/umbilical/local/silver" "${source_dir_wip}/umbilical/local"
 
-my-secret render "${source_dir_wip}"
+bwww render-file "${source_dir_wip}"
 
 ssh "${server}" mkdir -p "${target_dir}"
 rsync -rvh --delete --progress "${source_dir_wip}" "${server}":"${target_dir}"

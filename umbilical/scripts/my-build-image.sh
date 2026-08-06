@@ -32,7 +32,7 @@ if [ -z "$NAME" ]; then
 fi
 
 if [[ "${NAME}" == "cloudpublic/"* ]]; then
-    host_cloudpublic=$(my-secret getpassword --key=umbilical.deploy.cloudpublic_registry_host 2>/dev/null)
+    host_cloudpublic=$(bwww get-password umbilical.deploy.cloudpublic_registry_host 2>/dev/null)
 
     IMAGE="${NAME/cloudpublic/${host_cloudpublic}}"
 else
