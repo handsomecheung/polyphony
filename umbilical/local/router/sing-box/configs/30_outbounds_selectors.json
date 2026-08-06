@@ -6,7 +6,35 @@
             "url": "https://www.gstatic.com/generate_204",
             "interval": "1m",
             "tolerance": 50,
-            "outbounds": []
+            "outbounds": [
+                "🇯🇵 Japan 01",
+                "🇯🇵 Japan 02",
+                "🇯🇵 Japan 03",
+                "🇯🇵 Japan 04",
+                "🇯🇵 Japan 05",
+                "🇯🇵 Japan 06",
+                "🇯🇵 Japan 07",
+                "🇯🇵 Japan 08",
+                "🇯🇵 Japan 09",
+                "🇯🇵 Japan 10",
+                "🇯🇵 Japan 11",
+                "🇯🇵 Japan 12",
+                "🇯🇵 Japan 13",
+                "🇯🇵 Japan 14",
+                "🇯🇵 Japan 15",
+                "🇯🇵 Japan 16",
+                "🇯🇵 Japan 17",
+                "🇯🇵 Japan 18",
+                "🇯🇵 Japan 19",
+                "🇯🇵 Japan 20",
+                "🇯🇵 Japan 21",
+                "🇯🇵 Japan 22 [Premium]",
+                "🇯🇵 Japan 23 [Premium]",
+                "🇯🇵 Japan 24",
+                "🇯🇵 Japan 25",
+                "🇯🇵 Japan 26",
+                "🇯🇵 Japan 27"
+            ]
         }
     ]
 }
