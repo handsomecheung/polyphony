@@ -148,6 +148,22 @@ body {
   gap: 8px;
 }
 
+.color-control {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.color-control input {
+  width: 32px;
+  height: 24px;
+  padding: 2px;
+  cursor: pointer;
+  background: transparent;
+  border: 1px solid var(--panel-border);
+  border-radius: 6px;
+}
+
 .toggle-label {
   font-size: 14px;
   color: var(--text-muted);
@@ -865,7 +881,7 @@ kbd {
     gap: 8px;
   }
 
-  .status-indicator, .toggle-container {
+  .status-indicator, .toggle-container, .color-control {
     width: 100%;
     justify-content: space-between;
   }
@@ -900,4 +916,3 @@ kbd {
     align-self: flex-end;
   }
 }
-

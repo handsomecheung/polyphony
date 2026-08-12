@@ -15,6 +15,8 @@ let state = {
   stepSize: 5,
   isSimulation: false,
   isConnecting: true,
+  isLedOn: false,
+  ledColor: '#ff0000',
   lastSentX: DEFAULT_X,
   lastSentY: DEFAULT_Y
 };
@@ -23,6 +25,8 @@ let state = {
 const elements = {
   connectionStatus: document.getElementById('connection-status'),
   simulationToggle: document.getElementById('simulation-toggle'),
+  ledToggle: document.getElementById('led-toggle'),
+  ledColor: document.getElementById('led-color'),
   cameraStream: document.getElementById('camera-stream'),
   simulationCanvas: document.getElementById('simulation-canvas'),
   streamOverlayError: document.getElementById('stream-overlay-error'),
@@ -99,6 +103,14 @@ function updateUI() {
   // Update coordinate displays
   elements.valX.textContent = state.x;
   elements.valY.textContent = state.y;
+  
+  // Update LED Toggle state
+  if (elements.ledToggle) {
+    elements.ledToggle.checked = state.isLedOn;
+  }
+  if (elements.ledColor) {
+    elements.ledColor.value = state.ledColor;
+  }
   
   // Update slider positions
   elements.sliderX.value = state.x;
@@ -247,6 +259,44 @@ async function sendSingleServoPosition(servoId, angle) {
     }
   } catch (error) {
     logToTerminal(`Network Error: ${error.message}`, 'error');
+  }
+}
+
+// Send LED state (Sonar RGB lights)
+function hexToRgb(hex) {
+  const color = Number.parseInt(hex.slice(1), 16);
+  return [(color >> 16) & 255, (color >> 8) & 255, color & 255];
+}
+
+async function sendLedState(isOn) {
+  const method = 'SetSonarRGB';
+  const params = isOn ? [0, ...hexToRgb(state.ledColor)] : [0, 0, 0, 0]; // index 0 = all LEDs, R, G, B
+  
+  if (state.isSimulation) {
+    logToTerminal(`SIMULATED SetSonarRGB: index=0, R=${params[1]}, G=${params[2]}, B=${params[3]}`, 'sent');
+    return;
+  }
+  
+  logToTerminal(`Call: ${method}(${params.join(', ')})`, 'sent');
+  
+  try {
+    const response = await fetch('/api/rpc', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ method, params })
+    });
+    
+    const result = await response.json();
+    if (response.ok && !result.error) {
+      logToTerminal(`Response: ${JSON.stringify(result.result)}`, 'received');
+      updateConnectionStatusUI('online');
+    } else {
+      const errorMsg = result.error ? result.error.message || JSON.stringify(result.error) : 'Unknown error';
+      logToTerminal(`RPC Error: ${errorMsg}`, 'error');
+    }
+  } catch (error) {
+    logToTerminal(`Network Error: ${error.message}`, 'error');
+    updateConnectionStatusUI('offline');
   }
 }
 
@@ -529,6 +579,22 @@ function startSimulationLoop() {
     ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
     ctx.fillText(`SIMULATED FEED`, 24, 35);
     
+    // LED Status display
+    if (state.isLedOn) {
+      const [red, green, blue] = hexToRgb(state.ledColor);
+      ctx.fillStyle = state.ledColor;
+      ctx.fillText(`LED LIGHT: ON`, 24, 55);
+      
+      // Flashlight beam glow effect
+      ctx.fillStyle = `rgba(${red}, ${green}, ${blue}, 0.12)`;
+      ctx.beginPath();
+      ctx.arc(targetX, targetY, 120, 0, Math.PI * 2);
+      ctx.fill();
+    } else {
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
+      ctx.fillText(`LED LIGHT: OFF`, 24, 55);
+    }
+    
     ctx.fillStyle = '#10b981';
     ctx.fillText(`PITCH (SERVO 1): ${state.x}°`, 24, 430);
     ctx.fillText(`YAW   (SERVO 2): ${state.y}°`, 24, 450);
@@ -569,6 +635,23 @@ function startSimulationLoop() {
 function setupEventListeners() {
   // Keypress event listener
   window.addEventListener('keydown', handleKeyDown);
+
+  // LED Light Toggle
+  elements.ledToggle.addEventListener('change', (e) => {
+    state.isLedOn = e.target.checked;
+    logToTerminal(`LED Light changed to ${state.isLedOn ? 'ON' : 'OFF'}`);
+    sendLedState(state.isLedOn);
+    updateUI();
+  });
+
+  elements.ledColor.addEventListener('change', (e) => {
+    state.ledColor = e.target.value;
+    logToTerminal(`LED Light color changed to ${state.ledColor}`);
+    if (state.isLedOn) {
+      sendLedState(true);
+    }
+    updateUI();
+  });
 
   // Simulation Mode Toggle
   elements.simulationToggle.addEventListener('change', (e) => {
