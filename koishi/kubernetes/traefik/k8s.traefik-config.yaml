@@ -1,4 +1,4 @@
-# nippon backup: manifests/traefik-config.yaml
+---
 apiVersion: helm.cattle.io/v1
 kind: HelmChartConfig
 metadata:
