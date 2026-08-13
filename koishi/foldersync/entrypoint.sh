@@ -1,16 +1,16 @@
 #!/usr/bin/env bash
 set -e
 
-mkdir -p /mnt/user-data-slight/gphotosync/hh/camera
-mkdir -p /mnt/user-data-slight/gphotosync/hh/screenshot
-mkdir -p /mnt/user-data-slight/gphotosync/hh/others
-chown -R 1000:1000 /mnt/user-data-slight/gphotosync/hh || true
+mkdir -p /data/gphoto/hh/camera
+mkdir -p /data/gphoto/hh/screenshot
+mkdir -p /data/gphoto/hh/others
+chown -R 1000:1000 /data/gphoto/hh || true
 
-mkdir -p /mnt/user-data-slight/gphotosync/cc/sync
-chown -R 1001:1001 /mnt/user-data-slight/gphotosync/cc || true
+mkdir -p /data/gphoto/cc/sync
+chown -R 1001:1001 /data/gphoto/cc || true
 
-mkdir -p /mnt/user-data-slight/gphotosync/001/sync
-chown -R 1002:1002 /mnt/user-data-slight/gphotosync/001 || true
+mkdir -p /data/gphoto/001/sync
+chown -R 1002:1002 /data/gphoto/001 || true
 
 cp -va /tmp/foldersync-sshkeys-system/. /etc/ssh/
 chown -R root:root /etc/ssh/*

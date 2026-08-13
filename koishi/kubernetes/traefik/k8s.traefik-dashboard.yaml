@@ -7,7 +7,7 @@ metadata:
   annotations:
     cert-manager.io/cluster-issuer: cluster-letsencrypt-dns-cloudflare
     traefik.ingress.kubernetes.io/router.entrypoints: websecure
-    traefik.ingress.kubernetes.io/router.middlewares: middleware-playonjan@kubernetescrd,middleware-antimitm@kubernetescrd,sso-domainx@kubernetescrd
+    traefik.ingress.kubernetes.io/router.middlewares: middleware-antimitm@kubernetescrd,sso-domainx@kubernetescrd
     gethomepage.dev/enabled: "true"
     gethomepage.dev/group: Kubernetes
     gethomepage.dev/name: traefik

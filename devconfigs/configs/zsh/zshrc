@@ -344,7 +344,7 @@ alias lg='lazygit'
 alias claude='SHELL=/bin/bash claude'
 alias c='bash ~/.kube/get-token.devbox-user.sh session >/dev/null && SHELL=/bin/bash claude'
 alias a='bash ~/.kube/get-token.devbox-user.sh session >/dev/null && agy'
-alias g='bash ~/.kube/get-token.devbox-user.sh session >/dev/null && gemini'
+alias codex='codex --dangerously-bypass-approvals-and-sandbox'
 alias 9='bash ~/.kube/get-token.devbox-user.sh session >/dev/null && k9s'
 
 # do not use python3 in nix
