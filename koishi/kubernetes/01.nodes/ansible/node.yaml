@@ -1,0 +1,306 @@
+---
+- name: Configure node
+  hosts: all
+  tasks:
+    - name: Create directories with root privileges
+      file:
+        path: "{{ item }}"
+        state: directory
+        owner: box
+        group: box
+        mode: "0755"
+      become: yes
+      loop:
+        - /mnt/coder-sharepoint
+        - /mnt/coder-workspaces/private-workspace
+        - /mnt/coder-workspaces/public-workspace
+
+    - name: Ensure .ssh directory exists on remote node
+      file:
+        path: /home/box/.ssh
+        state: directory
+        owner: box
+        group: box
+        mode: "0700"
+
+    - name: Copy GitHub SSH private key to remote node
+      copy:
+        src: /home/box/.ssh/default.github.id_rsa
+        dest: /home/box/.ssh/default.github.id_rsa
+        owner: box
+        group: box
+        mode: "0600"
+
+    - name: Copy private workspace init.yaml to remote node
+      copy:
+        src: /mnt/coder-workspaces/private-workspace/init.yaml
+        dest: /mnt/coder-workspaces/private-workspace/init.yaml
+        owner: box
+        group: box
+        mode: "0644"
+
+    - name: Copy public workspace init.yaml to remote node
+      copy:
+        src: /mnt/coder-workspaces/public-workspace/init.yaml
+        dest: /mnt/coder-workspaces/public-workspace/init.yaml
+        owner: box
+        group: box
+        mode: "0644"
+
+    - name: Clone dev-config repository
+      git:
+        repo: git@github.com:handsomecheung/dev-config.git
+        dest: /mnt/coder-workspaces/public-workspace/dev-config
+        accept_hostkey: yes
+        key_file: "/home/box/.ssh/default.github.id_rsa"
+        update: no
+      become: no
+
+    - name: Copy corrected dev-config init.yaml to remote node
+      copy:
+        src: /mnt/coder-workspaces/public-workspace/dev-config/init.yaml
+        dest: /mnt/coder-workspaces/public-workspace/dev-config/init.yaml
+        owner: box
+        group: box
+        mode: "0644"
+
+    - name: Clone workspace repository
+      git:
+        repo: git@github.com:handsomecheung/workspace.git
+        dest: /mnt/coder-workspaces/private-workspace/workspace
+        accept_hostkey: yes
+        key_file: "/home/box/.ssh/default.github.id_rsa"
+        update: no
+      become: no
+
+    - name: Clone polyphony repository
+      git:
+        repo: git@github.com:handsomecheung/polyphony.git
+        dest: /mnt/coder-workspaces/private-workspace/repos/local/polyphony
+        accept_hostkey: yes
+        key_file: "/home/box/.ssh/default.github.id_rsa"
+        update: no
+      become: no
+
+    - name: Clone polyphony repository
+      git:
+        repo: git@github.com:handsomecheung/kickstart.nvim.git
+        dest: /mnt/coder-workspaces/private-workspace/repos/local/kickstart.nvim
+        accept_hostkey: yes
+        key_file: "/home/box/.ssh/default.github.id_rsa"
+        update: no
+      become: no
+
+    - name: Copy corrected workspace init.yaml to remote node
+      copy:
+        src: /mnt/coder-workspaces/private-workspace/workspace/init.yaml
+        dest: /mnt/coder-workspaces/private-workspace/workspace/init.yaml
+        owner: box
+        group: box
+        mode: "0644"
+
+    - name: Configure git-crypt settings for workspace repository
+      git_config:
+        name: "{{ item.name }}"
+        value: "{{ item.value }}"
+        repo: /mnt/coder-workspaces/private-workspace/workspace
+        scope: local
+      loop:
+        - { name: "filter.git-crypt.smudge", value: '"git-crypt" smudge' }
+        - { name: "filter.git-crypt.clean", value: '"git-crypt" clean' }
+        - { name: "filter.git-crypt.required", value: "true" }
+        - { name: "diff.git-crypt.textconv", value: '"git-crypt" diff' }
+      become: no
+
+    - name: Ensure git-crypt keys directory exists on remote node
+      file:
+        path: /mnt/coder-workspaces/private-workspace/workspace/.git/git-crypt/keys
+        state: directory
+        owner: box
+        group: box
+        mode: "0700"
+
+    - name: Copy git-crypt default key to remote node
+      copy:
+        src: /mnt/coder-workspaces/private-workspace/workspace/.git/git-crypt/keys/default
+        dest: /mnt/coder-workspaces/private-workspace/workspace/.git/git-crypt/keys/default
+        owner: box
+        group: box
+        mode: "0600"
+
+    - name: Check if workspace repository is already unlocked
+      shell: git-crypt status | grep 'encrypted-configs' | grep 'not encrypted'
+      args:
+        chdir: /mnt/coder-workspaces/private-workspace/workspace
+      become: no
+      register: git_crypt_status
+      failed_when: false
+      changed_when: false
+
+    - name: Unlock workspace repository using git-crypt
+      command: git-crypt unlock .git/git-crypt/keys/default
+      args:
+        chdir: /mnt/coder-workspaces/private-workspace/workspace
+      become: no
+      when: git_crypt_status.rc == 0
+
+    - name: Install required apt packages
+      apt:
+        name:
+          - ranger
+          - htop
+          - tmux
+          - ansible
+          - zsh
+          - git-crypt
+          - net-tools
+          - ca-certificates
+          - curl
+        state: present
+        update_cache: yes
+      become: yes
+
+    - name: Create directory for Apt keyrings
+      file:
+        path: /etc/apt/keyrings
+        state: directory
+        mode: "0755"
+      become: yes
+
+    - name: Download Docker Apt GPG key
+      get_url:
+        url: https://download.docker.com/linux/ubuntu/gpg
+        dest: /etc/apt/keyrings/docker.asc
+        mode: "0644"
+      become: yes
+
+    - name: Get Ubuntu codename
+      command: lsb_release -cs
+      register: ubuntu_codename
+      changed_when: false
+
+    - name: Add Docker Repository
+      apt_repository:
+        repo: "deb [arch=amd64 signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu {{ ubuntu_codename.stdout }} stable"
+        state: present
+        filename: docker
+      become: yes
+
+    - name: Install Docker and its plugins
+      apt:
+        name:
+          - docker-ce
+          - docker-ce-cli
+          - containerd.io
+          - docker-buildx-plugin
+          - docker-compose-plugin
+        state: present
+        update_cache: yes
+      become: yes
+
+    - name: Add user box to docker group
+      user:
+        name: box
+        groups: docker
+        append: yes
+      become: yes
+
+    - name: Change default shell to zsh for user box
+      user:
+        name: box
+        shell: /usr/bin/zsh
+      become: yes
+
+    - name: Configure SSH to listen on port 22
+      lineinfile:
+        path: /etc/ssh/sshd_config
+        regexp: "^#?Port 22$"
+        line: "Port 22"
+      become: yes
+      register: sshd_config_22
+
+    - name: Configure SSH to listen on custom port
+      lineinfile:
+        path: /etc/ssh/sshd_config
+        regexp: "^#?Port {{ ssh_custom_port }}$"
+        line: "Port {{ ssh_custom_port }}"
+        insertafter: "^Port 22$"
+      become: yes
+      register: sshd_config_custom_port
+
+    - name: Allow custom port in UFW firewall
+      ufw:
+        rule: allow
+        port: "{{ ssh_custom_port }}"
+        proto: tcp
+      become: yes
+      ignore_errors: yes
+
+    - name: Restart sshd service
+      systemd:
+        name: ssh
+        state: restarted
+      become: yes
+      when: sshd_config_22.changed or sshd_config_custom_port.changed
+
+    - name: Disable systemd-resolved Stub Listener to free port 53
+      lineinfile:
+        path: /etc/systemd/resolved.conf
+        regexp: "^#?DNSStubListener="
+        line: "DNSStubListener=no"
+      become: yes
+      register: resolved_conf
+
+    - name: Symlink static resolv.conf to /etc/resolv.conf
+      file:
+        src: /run/systemd/resolve/resolv.conf
+        dest: /etc/resolv.conf
+        state: link
+        force: yes
+      become: yes
+
+    - name: Restart systemd-resolved service
+      systemd:
+        name: systemd-resolved
+        state: restarted
+      become: yes
+      when: resolved_conf.changed
+
+    - name: Extend Logical Volume to use all remaining space in Volume Group
+      command: lvextend -l +100%FREE -r /dev/mapper/ubuntu--vg-ubuntu--lv
+      become: yes
+      register: lvextend_result
+      changed_when: "'successfully resized' in lvextend_result.stdout"
+      failed_when:
+        - lvextend_result.rc != 0
+        - "'matches existing size' not in lvextend_result.stderr and 'matches existing size' not in lvextend_result.stdout"
+
+    - name: Run workspace init.yaml playbooks on the remote node
+      command: ansible-playbook init.yaml
+      args:
+        chdir: "{{ item }}"
+      loop:
+        - /mnt/coder-workspaces/private-workspace
+        - /mnt/coder-workspaces/public-workspace
+        - /mnt/coder-workspaces/public-workspace/dev-config
+        - /mnt/coder-workspaces/private-workspace/workspace
+      become: no
+
+    - name: Configure Netplan to use MAC address as DHCP client ID dynamically
+      shell: |
+        for f in /etc/netplan/*.yaml; do
+          if [ -f "$f" ] && ! grep -q "dhcp-identifier: mac" "$f"; then
+            sed -i '/dhcp4: true/{p;s/\( *\)dhcp4: true/\1dhcp-identifier: mac/;}' "$f"
+            echo "changed"
+          fi
+        done
+      become: yes
+      register: netplan_config
+      changed_when: "'changed' in netplan_config.stdout"
+
+    - name: Apply Netplan configuration asynchronously (in case of IP change)
+      shell: sleep 2 && netplan apply
+      async: 10
+      poll: 0
+      become: yes
+      when: netplan_config.changed

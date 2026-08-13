@@ -1,0 +1,4 @@
+# Ansible Inventory File
+
+[nodes]
+node ansible_user=box
