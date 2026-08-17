@@ -85,14 +85,14 @@ spec:
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: fs-downserver-cksns
+  name: fs-downserver-cksns-home4p
   namespace: default
   annotations:
     cert-manager.io/cluster-issuer: cluster-letsencrypt-dns-cloudflare
 spec:
   ingressClassName: traefik
   rules:
-    - host: downserver.__{{infra.domains:f:x}}__
+    - host: downserver.home4p.__{{infra.domains:f:x}}__
       http:
         paths:
           - path: /cksns/
@@ -104,5 +104,5 @@ spec:
                   name: default
   tls:
     - hosts:
-        - downserver.__{{infra.domains:f:x}}__
-      secretName: downserver-domainx
+        - downserver.home4p.__{{infra.domains:f:x}}__
+      secretName: downserver-home4p-domainx
