@@ -1,0 +1,108 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: fs-downserver-cksns
+  namespace: default
+  labels:
+    app: fs-downserver-cksns
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: fs-downserver-cksns
+  template:
+    metadata:
+      labels:
+        app: fs-downserver-cksns
+    spec:
+      nodeSelector:
+        kubernetes.io/hostname: nur
+      volumes:
+        - name: data-downserver-cksns
+          hostPath:
+            path: /mnt/runtime-data-app/commondata/downserver/cksns
+            type: Directory
+      containers:
+        - name: app
+          image: cloudpublic/default/fs-downserver:latest
+          imagePullPolicy: Always
+          env:
+            - name: DOWNSERVER_DIR_ROOT
+              value: /data
+            - name: DOWNSERVER_ENABLE_LIST
+              value: "true"
+          volumeMounts:
+            - name: data-downserver-cksns
+              mountPath: /data/cksns
+          ports:
+            - name: default
+              containerPort: 80
+          startupProbe:
+            httpGet:
+              path: /ping
+              port: default
+            failureThreshold: 60
+            periodSeconds: 10
+            timeoutSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /ping
+              port: default
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /ping
+              port: default
+            periodSeconds: 10
+          resources:
+            requests:
+              cpu: 10m
+              memory: 10Mi
+            limits:
+              cpu: 100m
+              memory: 80Mi
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: fs-downserver-cksns
+  namespace: default
+  labels:
+    app: fs-downserver-cksns
+spec:
+  type: ClusterIP
+  selector:
+    app: fs-downserver-cksns
+  ports:
+    - name: default
+      port: 80
+      protocol: TCP
+      targetPort: default
+
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: fs-downserver-cksns
+  namespace: default
+  annotations:
+    cert-manager.io/cluster-issuer: cluster-letsencrypt-dns-cloudflare
+spec:
+  ingressClassName: traefik
+  rules:
+    - host: downserver.__{{infra.domains:f:x}}__
+      http:
+        paths:
+          - path: /cksns/
+            pathType: Prefix
+            backend:
+              service:
+                name: fs-downserver-cksns
+                port:
+                  name: default
+  tls:
+    - hosts:
+        - downserver.__{{infra.domains:f:x}}__
+      secretName: downserver-domainx

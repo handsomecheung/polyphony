@@ -16,6 +16,7 @@ import (
 const (
 	maxListEntries = 10_000
 	maxListDepth   = 20
+	listSuffix     = "/__api__/list"
 )
 
 var (
@@ -47,9 +48,6 @@ func main() {
 
 	public := http.NewServeMux()
 	public.HandleFunc("/ping", ok)
-	if listEnabled {
-		public.HandleFunc("/api/list", list)
-	}
 	public.HandleFunc("/", serveFile)
 
 	log.Printf("serving files on %s (list enabled: %t)", publicAddr, listEnabled)
@@ -88,14 +86,14 @@ func ok(w http.ResponseWriter, _ *http.Request) {
 	_, _ = w.Write([]byte("OK\n"))
 }
 
-func list(w http.ResponseWriter, r *http.Request) {
+func list(w http.ResponseWriter, r *http.Request, requestedPath string) {
 	if r.Method != http.MethodGet {
 		w.Header().Set("Allow", http.MethodGet)
 		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
 
-	requestedPath, directory, err := listDirectory(r.URL.Query().Get("path"))
+	requestedPath, directory, err := listDirectory(requestedPath)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
@@ -164,6 +162,15 @@ func list(w http.ResponseWriter, r *http.Request) {
 
 func serveFile(w http.ResponseWriter, r *http.Request) {
 	cleanedPath := strings.TrimPrefix(path.Clean("/"+r.URL.Path), "/")
+	if directoryPath, isListRequest := listPath(cleanedPath); isListRequest {
+		if !listEnabled {
+			http.NotFound(w, r)
+			return
+		}
+		list(w, r, directoryPath)
+		return
+	}
+
 	filePath := filepath.Join(rootDir, filepath.FromSlash(cleanedPath))
 	relativePath, err := filepath.Rel(rootDir, filePath)
 	if err != nil || relativePath == ".." || strings.HasPrefix(relativePath, ".."+string(filepath.Separator)) {
@@ -181,6 +188,16 @@ func serveFile(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	http.ServeFile(w, r, filePath)
+}
+
+func listPath(requestPath string) (string, bool) {
+	if requestPath == strings.TrimPrefix(listSuffix, "/") {
+		return "", true
+	}
+	if !strings.HasSuffix(requestPath, listSuffix) {
+		return "", false
+	}
+	return strings.TrimSuffix(requestPath, listSuffix), true
 }
 
 func listDirectory(requested string) (string, string, error) {

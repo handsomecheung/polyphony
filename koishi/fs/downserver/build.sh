@@ -4,3 +4,4 @@ set -e
 cd "$(dirname "${BASH_SOURCE[0]}")"
 my-k8s-build-image "cloudpublic/default/fs-downserver:latest" default fs-downserver
 kubectl -n default rollout restart deployment fs-downserver-private
+kubectl -n default rollout restart deployment fs-downserver-cksns
