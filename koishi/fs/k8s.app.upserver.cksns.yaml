@@ -2,26 +2,26 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: fs-upserver-downcc
+  name: fs-upserver-cksns
   namespace: default
   labels:
-    app: fs-upserver-downcc
+    app: fs-upserver-cksns
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: fs-upserver-downcc
+      app: fs-upserver-cksns
   template:
     metadata:
       labels:
-        app: fs-upserver-downcc
+        app: fs-upserver-cksns
     spec:
       nodeSelector:
         kubernetes.io/hostname: nur
       volumes:
-        - name: filesdowncc
+        - name: filescksns
           hostPath:
-            path: /mnt/runtime-data-app/commondata/downserver/cc
+            path: /mnt/runtime-data-app/commondata/downserver/cksns
             type: DirectoryOrCreate
       containers:
         - name: app
@@ -31,9 +31,9 @@ spec:
             - name: SHOW_URL
               value: "true"
             - name: ROOT_URL
-              value: "https://downserver.__{{infra.domains:f:x}}__/cc"
+              value: "https://downserver.__{{infra.domains:f:x}}__/cksns"
           volumeMounts:
-            - name: filesdowncc
+            - name: filescksns
               mountPath: /files
           ports:
             - name: default
@@ -59,10 +59,10 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: fs-upserver-downcc
+  name: fs-upserver-cksns
   namespace: default
   labels:
-    app: fs-upserver-downcc
+    app: fs-upserver-cksns
 spec:
   type: ClusterIP
   ports:
@@ -71,36 +71,63 @@ spec:
       protocol: TCP
       targetPort: default
   selector:
-    app: fs-upserver-downcc
+    app: fs-upserver-cksns
 
 ---
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: fs-upserver-downcc
+  name: fs-upserver-cksns
   namespace: default
   annotations:
     cert-manager.io/cluster-issuer: cluster-letsencrypt-dns-cloudflare
     traefik.ingress.kubernetes.io/router.middlewares: middleware-antimitm@kubernetescrd,sso-domainx@kubernetescrd,default-fsupserversizelimit@kubernetescrd
     gethomepage.dev/enabled: "true"
     gethomepage.dev/group: CK Misc
-    gethomepage.dev/name: Upload to Daily Paw
-    gethomepage.dev/href: https://upserver-downcc.__{{infra.domains:f:x}}__/
+    gethomepage.dev/name: Upload to SNS
+    gethomepage.dev/href: https://upserver-cksns.__{{infra.domains:f:x}}__/
     gethomepage.dev/weight: "50"
 spec:
   ingressClassName: traefik
   rules:
-    - host: upserver-downcc.__{{infra.domains:f:x}}__
+    - host: upserver-cksns.__{{infra.domains:f:x}}__
       http:
         paths:
           - path: /
             pathType: Prefix
             backend:
               service:
-                name: fs-upserver-downcc
+                name: fs-upserver-cksns
                 port:
                   name: default
   tls:
     - hosts:
-        - upserver-downcc.__{{infra.domains:f:x}}__
-      secretName: upserver-downcc-domainx
+        - upserver-cksns.__{{infra.domains:f:x}}__
+      secretName: upserver-cksns-domainx
+
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: fs-upserver-cksns-home4p
+  namespace: default
+  annotations:
+    cert-manager.io/cluster-issuer: cluster-letsencrypt-dns-cloudflare
+    traefik.ingress.kubernetes.io/router.middlewares: middleware-antimitm@kubernetescrd,default-fsupserversizelimit@kubernetescrd
+spec:
+  ingressClassName: traefik
+  rules:
+    - host: upserver-cksns.home4p.__{{infra.domains:f:x}}__
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: fs-upserver-cksns
+                port:
+                  name: default
+  tls:
+    - hosts:
+        - upserver-cksns.home4p.__{{infra.domains:f:x}}__
+      secretName: upserver-cksns-home4p-domainx

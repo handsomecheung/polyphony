@@ -2,7 +2,8 @@
 
 import os
 
-from flask import Flask, request, render_template, make_response, send_file
+from flask import Flask, request, render_template, make_response, send_file, jsonify
+from werkzeug.utils import secure_filename
 
 
 app = Flask(__name__)
@@ -35,7 +36,7 @@ def upload():
 @app.route("/", methods=["POST"])
 def upload_files():
     if "file" not in request.files:
-        return "Failed: No file part", 400
+        return jsonify({"status": "failed", "message": "No file part"}), 400
 
     files = request.files.getlist("file")
     saved_files = []
@@ -43,22 +44,23 @@ def upload_files():
     try:
         for file in files:
             if file.filename:
-                print(f"Uploading file: {file.filename}")
-                file.save(os.path.join(UPLOAD_DIR, file.filename))
-                saved_files.append(file.filename)
+                filename = secure_filename(file.filename)
+                if filename:
+                    print(f"Uploading file: {filename}")
+                    file.save(os.path.join(UPLOAD_DIR, filename))
+                    saved_files.append(filename)
 
-        response_text = "Success<br>\n"
+        response_data = {"status": "success", "files": saved_files}
         if SHOW_URL and saved_files:
             base_url = ROOT_URL
             if base_url and not base_url.endswith("/"):
                 base_url += "/"
             
-            links = [f'<a href="{base_url}{filename}" target="_blank">{base_url}{filename}</a>' for filename in saved_files]
-            response_text += "<br>\n<br>\n".join(links) + "<br>\n"
+            response_data["urls"] = [f"{base_url}{filename}" for filename in saved_files]
 
-        return response_text
+        return jsonify(response_data)
     except IOError:
-        return "Failed: Can't upload files\n", 500
+        return jsonify({"status": "failed", "message": "Can't upload files"}), 500
 
 
 def main():
