@@ -27,7 +27,7 @@ spec:
           imagePullPolicy: Always
           env:
             - name: URL_PASS
-              value: http://fs-downserver.default.svc.cluster.local/private/thepassbase
+              value: http://fs-downserver-private.default.svc.cluster.local/private/thepassbase
           volumeMounts:
             - name: vaultwarden-encrypted
               mountPath: /data/vaultwarden

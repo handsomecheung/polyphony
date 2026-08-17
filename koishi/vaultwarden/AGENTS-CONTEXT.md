@@ -15,7 +15,7 @@ This document complements [README.md](file:///mnt/coder-workspaces/private-works
   - **Storage**: Mounts `/mnt/runtime-data-app/vaultwarden` on node `nur` for database persistence.
   - **Resource requests**: 100m CPU, 50Mi memory.
   - **Network Policy**: Strict egress deny-all.
-  - **Ingress routes**: 
+  - **Ingress routes**:
     - Public: `vaultwarden.__{{infra.domains:f:x}}__/` (no authentication, weight 30).
     - Admin: `vaultwarden.__{{infra.domains:f:x}}__/admin` (protected by `sso-domainx` middleware, weight 40).
   - **TLS**: Auto-managed by cert-manager with DNS-01 Cloudflare challenge.
@@ -60,7 +60,7 @@ Runs nightly logical backups.
 - **Workflow (`entrypoint.sh`)**:
   1. Login and unlock `bw` CLI using API credentials.
   2. Export raw vault JSON via Portwarden format.
-  3. Retrieve pass from `URL_PASS` (`http://fs-downserver.default.svc.cluster.local/private/thepassbase`).
+  3. Retrieve pass from `URL_PASS` (`http://fs-downserver-private.default.svc.cluster.local/private/thepassbase`).
   4. Derive GPG key: `sha256sum(passphrase)` in hex.
   5. Encrypt: `gpg --batch --passphrase <key> -c <file>.zip`.
   6. Save to `/data/export/` with `0700` permissions.
@@ -143,7 +143,7 @@ To decrypt either logical (portwarden) or physical (datadir) backups:
 
 ```bash
 # 1. Fetch passphrase from security service
-curl http://fs-downserver.default.svc.cluster.local/private/thepassbase > /tmp/pass
+curl http://fs-downserver-private.default.svc.cluster.local/private/thepassbase > /tmp/pass
 
 # 2. Derive key (hex SHA256)
 key=$(sha256sum /tmp/pass | awk '{print $1}')

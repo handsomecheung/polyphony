@@ -206,7 +206,7 @@ spec:
                 - name: URL_VW
                   value: https://vaultwarden.__{{infra.domains:f:x}}__
                 - name: URL_PASS
-                  value: http://fs-downserver.default.svc.cluster.local/private/thepassbase
+                  value: http://fs-downserver-private.default.svc.cluster.local/private/thepassbase
               volumeMounts:
                 - name: dns-config
                   mountPath: /etc/hosts

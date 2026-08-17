@@ -1,0 +1,90 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: fs-codeserver
+  namespace: default
+  labels:
+    app: fs-codeserver
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: fs-codeserver
+  template:
+    metadata:
+      labels:
+        app: fs-codeserver
+    spec:
+      nodeSelector:
+        kubernetes.io/hostname: nur
+      volumes:
+        - name: workspace
+          hostPath:
+            path: /mnt/coder-sharepoint/upserver
+            type: DirectoryOrCreate
+      containers:
+        - name: app
+          image: cloudpublic/default/fs-codeserver:latest
+          imagePullPolicy: Always
+          volumeMounts:
+            - name: workspace
+              mountPath: /workspace
+          ports:
+            - name: default
+              containerPort: 8000
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: fs-codeserver
+  namespace: default
+  labels:
+    app: fs-codeserver
+spec:
+  type: ClusterIP
+  ports:
+    - name: default
+      port: 80
+      protocol: TCP
+      targetPort: default
+  selector:
+    app: fs-codeserver
+
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: fs-codeserver
+  namespace: default
+  annotations:
+    cert-manager.io/cluster-issuer: cluster-letsencrypt-dns-cloudflare
+    traefik.ingress.kubernetes.io/router.middlewares: default-fsbasicauth@kubernetescrd
+    gethomepage.dev/enabled: "true"
+    gethomepage.dev/group: Network
+    gethomepage.dev/name: fs-codeserver
+    gethomepage.dev/href: https://fs-codeserver.__{{infra.domains:f:x}}__/
+    gethomepage.dev/siteMonitor: https://fs-codeserver.__{{infra.domains:f:x}}__/
+    gethomepage.dev/weight: "6"
+spec:
+  ingressClassName: traefik
+  rules:
+    - host: fs-codeserver.__{{infra.domains:f:x}}__
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: fs-codeserver
+                port:
+                  name: default
+  tls:
+    - hosts:
+        - fs-codeserver.__{{infra.domains:f:x}}__
+      secretName: fs-codeserver-domainx

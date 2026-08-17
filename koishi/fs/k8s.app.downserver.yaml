@@ -1,0 +1,109 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: fs-downserver
+  namespace: default
+  labels:
+    app: fs-downserver
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: fs-downserver
+  template:
+    metadata:
+      labels:
+        app: fs-downserver
+    spec:
+      nodeSelector:
+        kubernetes.io/hostname: nur
+      volumes:
+        - name: data-downserver-default
+          hostPath:
+            path: /mnt/runtime-data-app/commondata/downserver/__default__
+            type: Directory
+      containers:
+        - name: app
+          image: cloudpublic/default/fs-downserver:latest
+          imagePullPolicy: Always
+          env:
+            - name: DOWNSERVER_DIR_ROOT
+              value: /data/default
+            - name: DOWNSERVER_ENABLE_LIST
+              value: "false"
+          volumeMounts:
+            - name: data-downserver-default
+              mountPath: /data/default
+          ports:
+            - name: default
+              containerPort: 80
+          startupProbe:
+            httpGet:
+              path: /ping
+              port: default
+            failureThreshold: 60
+            periodSeconds: 10
+            timeoutSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /ping
+              port: default
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /ping
+              port: default
+            periodSeconds: 10
+          resources:
+            requests:
+              cpu: 10m
+              memory: 10Mi
+            limits:
+              cpu: 100m
+              memory: 80Mi
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: fs-downserver
+  namespace: default
+  labels:
+    app: fs-downserver
+spec:
+  type: ClusterIP
+  selector:
+    app: fs-downserver
+  ports:
+    - name: default
+      port: 80
+      protocol: TCP
+      targetPort: default
+
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: fs-downserver
+  namespace: default
+  annotations:
+    cert-manager.io/cluster-issuer: cluster-letsencrypt-dns-cloudflare
+spec:
+  ingressClassName: traefik
+  rules:
+    - host: downserver.__{{infra.domains:f:x}}__
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: fs-downserver
+                port:
+                  name: default
+  tls:
+    - hosts:
+        - downserver.__{{infra.domains:f:x}}__
+      secretName: downserver-domainx
+

@@ -1,0 +1,82 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: fs-downserver-private
+  namespace: default
+  labels:
+    app: fs-downserver-private
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: fs-downserver-private
+  template:
+    metadata:
+      labels:
+        app: fs-downserver-private
+    spec:
+      nodeSelector:
+        kubernetes.io/hostname: nur
+      volumes:
+        - name: data-downserver-private
+          hostPath:
+            path: /mnt/runtime-data-app/commondata/downserver/private
+            type: Directory
+      containers:
+        - name: app
+          image: cloudpublic/default/fs-downserver:latest
+          imagePullPolicy: Always
+          env:
+            - name: DOWNSERVER_DIR_ROOT
+              value: /data
+            - name: DOWNSERVER_ENABLE_LIST
+              value: "false"
+          volumeMounts:
+            - name: data-downserver-private
+              mountPath: /data/private
+          ports:
+            - name: default
+              containerPort: 80
+          startupProbe:
+            httpGet:
+              path: /ping
+              port: default
+            failureThreshold: 60
+            periodSeconds: 10
+            timeoutSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /ping
+              port: default
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /ping
+              port: default
+            periodSeconds: 10
+          resources:
+            requests:
+              cpu: 10m
+              memory: 10Mi
+            limits:
+              cpu: 100m
+              memory: 80Mi
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: fs-downserver-private
+  namespace: default
+  labels:
+    app: fs-downserver-private
+spec:
+  type: ClusterIP
+  selector:
+    app: fs-downserver-private
+  ports:
+    - name: default
+      port: 80
+      protocol: TCP
+      targetPort: default
