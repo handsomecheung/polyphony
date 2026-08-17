@@ -14,16 +14,14 @@ import (
 )
 
 const (
-	maxListEntries = 10_000
-	maxListDepth   = 20
-	listSuffix     = "/__api__/list"
+	maxListDepth = 20
+	listSuffix   = "/__api__/list"
 )
 
 var (
-	errListLimit = errors.New("list result limit reached")
-	rootDir      string
-	listEnabled  bool
-	publicAddr   = envOrDefault("DOWNSERVER_PUBLIC_ADDR", ":80")
+	rootDir     string
+	listEnabled bool
+	publicAddr  = envOrDefault("DOWNSERVER_PUBLIC_ADDR", ":80")
 )
 
 type listEntry struct {
@@ -34,9 +32,8 @@ type listEntry struct {
 }
 
 type listResponse struct {
-	Path      string      `json:"path"`
-	Entries   []listEntry `json:"entries"`
-	Truncated bool        `json:"truncated"`
+	Path    string      `json:"path"`
+	Entries []listEntry `json:"entries"`
 }
 
 func main() {
@@ -127,11 +124,6 @@ func list(w http.ResponseWriter, r *http.Request, requestedPath string) {
 			}
 			return nil
 		}
-		if len(response.Entries) >= maxListEntries {
-			response.Truncated = true
-			return errListLimit
-		}
-
 		info, err := entry.Info()
 		if err != nil {
 			return err
@@ -148,7 +140,7 @@ func list(w http.ResponseWriter, r *http.Request, requestedPath string) {
 		})
 		return nil
 	})
-	if err != nil && !errors.Is(err, errListLimit) {
+	if err != nil {
 		log.Printf("list %q: %v", requestedPath, err)
 		http.Error(w, "unable to list directory", http.StatusInternalServerError)
 		return
