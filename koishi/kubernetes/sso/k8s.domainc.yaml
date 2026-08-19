@@ -60,7 +60,7 @@ spec:
             - name: URL_PATH
               value: /_oauth
             - name: WHITELIST
-              value: __{{infra-emails:f:hh}}__,__{{infra-emails:f:hz}}__,__{{infra-emails:f:cq}}__,__{{infra-emails:f:ck}}__
+              value: __{{infra-emails:f:hh}}__,__{{infra-emails:f:hz}}__,__{{infra-emails:f:cq}}__,__{{infra-emails:f:ck}}__,__{{infra-emails:f:ckwkk}}__
             - name: LOG_LEVEL
               value: info
             - name: LIFETIME
