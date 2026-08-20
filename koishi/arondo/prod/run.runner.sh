@@ -2,7 +2,7 @@
 set -ex
 
 cd "$(dirname "${BASH_SOURCE[0]}")/"
-source .env
+source ./.env
 
 file_bin=/tmp/arondo.prod.runner
 file_log=/tmp/arondo.prod.runner.log

@@ -494,4 +494,7 @@ export PATH="/home/box/.local/bin:$PATH"
 
 source /mnt/coder-workspaces/private-workspace/repos/local/polyphony/devconfigs/envs/private_env.sh
 
+# Arondo
+export PATH="/mnt/coder-workspaces/private-workspace/repos/github/Arondo/bin:$PATH"
+
 # zprof #  for profiling
