@@ -32,6 +32,10 @@ spec:
               value: "true"
             - name: ROOT_URL
               value: "https://downserver.__{{infra.domains:f:x}}__/cksns"
+            - name: UPSERVER_ALLOWED_ROOT
+              value: "false"
+            - name: UPSERVER_ALLOWED_SUBDIRS
+              value: "pawwriting,forma"
           volumeMounts:
             - name: filescksns
               mountPath: /files

@@ -8,10 +8,38 @@
   </head>
   <body>
     <div class="container">
-      <form action="/" method="post" enctype="multipart/form-data">
+      <form id="uploadForm" action="/" method="post" enctype="multipart/form-data">
+        {% if allowed_subdirs %}
+        <select id="subdirInput">
+          {% if allowed_root %}
+          <option value="">-- Root --</option>
+          {% endif %}
+          {% for dir in allowed_subdirs %}
+          <option value="{{ dir }}">{{ dir }}</option>
+          {% endfor %}
+        </select>
+        {% else %}
+        <input
+          type="text"
+          id="subdirInput"
+          name="_subdir"
+          placeholder="Subdir (e.g. images/2026)"
+          autocomplete="off"
+        />
+        {% endif %}
         <input type="file" id="fileInput" name="file" multiple />
         <button type="submit" class="btn">P</button>
       </form>
     </div>
+    <script>
+      document.getElementById("uploadForm").addEventListener("submit", function (e) {
+        var subdir = document.getElementById("subdirInput").value.trim();
+        if (subdir) {
+          this.action = "/?subdir=" + encodeURIComponent(subdir);
+        } else {
+          this.action = "/";
+        }
+      });
+    </script>
   </body>
 </html>
