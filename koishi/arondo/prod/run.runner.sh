@@ -18,7 +18,7 @@ if [ -n "$pids" ]; then
   done
 fi
 
-wget https://github.com/handsomecheung/Arondo/releases/latest/download/runner-linux-amd64 -O "${file_bin}"
+wget https://github.com/handsomecheung/Arondo/releases/latest/download/arondo-runner-linux-amd64 -O "${file_bin}"
 chmod +x "${file_bin}"
 nohup bash -c "/tmp/arondo.prod.runner --server wss://${ARONDO_HOST_SERVER_PROD}/runner" >"${file_log}" 2>&1 &
 # tail -f "${file_log}"
