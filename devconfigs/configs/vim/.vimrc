@@ -83,9 +83,6 @@ nmap <C-Y> :update<CR>
 vmap <C-Y> <C-C>:update<CR>
 imap <C-Y> <C-O>:update<CR>
 
-call pathogen#runtime_append_all_bundles()
-
-
 map <leader>hcc :call SetColorColumn()<CR>
 function! SetColorColumn()
     let col_num = virtcol(".")
@@ -151,14 +148,6 @@ nmap <leader>ec :cclose<cr>
 "hi cursorline guibg=NONE gui=underline
 "
 "
-"MySQL
-let g:dbext_default_profile_mysql_local = 'type=MYSQL:user=root:passwd=root:dbname=mysql:extra=-t'
-let g:dbext_default_profile_mysql_local = 'type=MYSQL:user=root:passwd=root:dbname=ticket_dev:extra=--batch --raw --silent'
-let g:dbext_default_profile_mysql_local_DBI = 'type=DBI:user=root:passwd=root:driver=mysql:conn_parms=database=mysql;host=localhost'
-let g:dbext_default_profile_mysql_local_ODBC = 'type=ODBC:user=root:passwd=root:dsnname=mysql'
-
-
-
 "session
 " Auto Session Save/Restore
 function GetProjectName()
@@ -177,8 +166,6 @@ function GetProjectName()
 endfunction
 
 function SaveSession()
-    "NERDTree doesn't support session, so close before saving
-    execute ':NERDTreeClose'
     let project_name = GetProjectName()
     execute 'mksession! ~/.vim/sessions/' . project_name
 endfunction
@@ -209,26 +196,5 @@ set undodir=~/.vim/undodir
 set undofile
 set undolevels=1000 "maximum number of changes that can be undone
 set undoreload=10000 "maximum number lines to save for undo on a buffer reload
-
-
-source ~/.vim_config/minibufexpl.vimrc
-source ~/.vim_config/lookupfile.vimrc
-source ~/.vim_config/NerdTree.vimrc
-source ~/.vim_config/flake8.vimrc
-source ~/.vim_config/pydoc.vimrc
-source ~/.vim_config/linemotion.vimrc
-source ~/.vim_config/grep.vim.vimrc
-source ~/.vim_config/vimpress.vimrc
-source ~/.vim_config/powerline.vimrc
-source ~/.vim_config/tarbar.vimrc
-source ~/.vim_config/python-mode.vimrc
-source ~/.vim_config/neocomplcache.vimrc
-source ~/.vim_config/fuzzyfind.vimrc
-source ~/.vim_config/dwm.vim.vimrc
-source ~/.vim_config/easymotion.vimrc
-
-"source ~/.vim_config/taglist.vimrc
-"source ~/.vim_config/winManager.vimrc
-"source ~/.vim_config/pydiction.vimrc
 
 inoremap <C-g> <ESC>
