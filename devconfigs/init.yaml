@@ -79,10 +79,6 @@
         dest: "{{ home_dir }}/.vim"
         state: link
     - file:
-        src: "{{ configs_dir }}/vim/.vim_config"
-        dest: "{{ home_dir }}/.vim_config"
-        state: link
-    - file:
         src: "{{ configs_dir }}/vim/.vimrc"
         dest: "{{ home_dir }}/.vimrc"
         state: link
