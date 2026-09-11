@@ -66,6 +66,7 @@ All download services use Sablier (grouped as `download`), start at 0 replicas, 
 | FolderSync           | `foldersync/`            | SSH/SFTP ingress for photo sync and notebook sharing; LoadBalancer port 37000                      |
 | FS (file tools)      | `fs/`                    | Static downserver, Flask upserver (Sablier), and code-server IDE for file exchange                 |
 | openclaw             | `openclaw/`              | AI agent framework (Node.js); dual instances (default + KZK/LINE webhook); Caddy workspace sidecar |
+| webreader            | `webreader/`             | Webpage-to-Markdown proxy & reader service in Go; abstracts Jina Reader (`r.jina.ai`) and future scraping backends |
 | Fountain scanner     | `ck/`                    | WASM-compiled Rust scanner frontend served by Nginx; deployed to `ck-prod` namespace               |
 
 ### Finance

@@ -1,0 +1,101 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: webreader
+  namespace: default
+  labels:
+    app.kubernetes.io/name: webreader
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: webreader
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: webreader
+    spec:
+      containers:
+        - name: app
+          image: cloudpublic/default/webreader:latest
+          imagePullPolicy: Always
+          ports:
+            - name: default
+              containerPort: 8080
+              protocol: TCP
+          env:
+            - name: PORT
+              value: "8080"
+            - name: DEFAULT_PROVIDER
+              value: "jina"
+            - name: DEFAULT_TIMEOUT_SECONDS
+              value: "45"
+            - name: MAX_TIMEOUT_SECONDS
+              value: "180"
+          livenessProbe:
+            httpGet:
+              path: /ping
+              port: default
+            initialDelaySeconds: 3
+            periodSeconds: 10
+            timeoutSeconds: 3
+          readinessProbe:
+            httpGet:
+              path: /ping
+              port: default
+            initialDelaySeconds: 3
+            periodSeconds: 10
+            timeoutSeconds: 3
+          resources:
+            requests:
+              cpu: 20m
+              memory: 32Mi
+            limits:
+              cpu: 500m
+              memory: 256Mi
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: webreader
+  namespace: default
+  labels:
+    app.kubernetes.io/name: webreader
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: webreader
+  ports:
+    - name: default
+      port: 80
+      targetPort: default
+      protocol: TCP
+
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: webreader
+  namespace: default
+  annotations:
+    cert-manager.io/cluster-issuer: cluster-letsencrypt-dns-cloudflare
+    traefik.ingress.kubernetes.io/router.middlewares: default-lanonly@kubernetescrd
+spec:
+  ingressClassName: traefik
+  rules:
+    - host: webreader.home4p.__{{infra.domains:f:x}}__
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: webreader
+                port:
+                  name: default
+  tls:
+    - hosts:
+        - webreader.home4p.__{{infra.domains:f:x}}__
+      secretName: webreader-home4p-tls
