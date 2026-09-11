@@ -184,6 +184,48 @@ spec:
                 name: arondo-prod
                 port:
                   name: default
+          - path: /icon-192-maskable.png
+            pathType: Exact
+            backend:
+              service:
+                name: arondo-prod
+                port:
+                  name: default
+          - path: /icon-512-maskable.png
+            pathType: Exact
+            backend:
+              service:
+                name: arondo-prod
+                port:
+                  name: default
+          - path: /apple-touch-icon.png
+            pathType: Exact
+            backend:
+              service:
+                name: arondo-prod
+                port:
+                  name: default
+          - path: /badge-96.png
+            pathType: Exact
+            backend:
+              service:
+                name: arondo-prod
+                port:
+                  name: default
+          - path: /badge.png
+            pathType: Exact
+            backend:
+              service:
+                name: arondo-prod
+                port:
+                  name: default
+          - path: /icon-transparent-192.png
+            pathType: Exact
+            backend:
+              service:
+                name: arondo-prod
+                port:
+                  name: default
   tls:
     - hosts:
         - arondo.__{{infra.domains:f:x}}__

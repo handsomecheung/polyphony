@@ -75,3 +75,94 @@ spec:
     - hosts:
         - arondo.__{{infra.domains:f:d}}__
       secretName: arondo-domaind
+
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: arondo-dev-pwa-assets
+  namespace: default
+  annotations:
+    cert-manager.io/cluster-issuer: cluster-letsencrypt-dns-cloudflare
+    traefik.ingress.kubernetes.io/router.priority: "20"
+    traefik.ingress.kubernetes.io/router.middlewares: middleware-antimitm@kubernetescrd
+spec:
+  ingressClassName: traefik
+  rules:
+    - host: arondo.__{{infra.domains:f:d}}__
+      http:
+        paths:
+          - path: /manifest.webmanifest
+            pathType: Exact
+            backend:
+              service:
+                name: devbox-nur-arondo-dev
+                port:
+                  name: default
+          - path: /sw.js
+            pathType: Exact
+            backend:
+              service:
+                name: devbox-nur-arondo-dev
+                port:
+                  name: default
+          - path: /icon-192.png
+            pathType: Exact
+            backend:
+              service:
+                name: devbox-nur-arondo-dev
+                port:
+                  name: default
+          - path: /icon-512.png
+            pathType: Exact
+            backend:
+              service:
+                name: devbox-nur-arondo-dev
+                port:
+                  name: default
+          - path: /icon-192-maskable.png
+            pathType: Exact
+            backend:
+              service:
+                name: devbox-nur-arondo-dev
+                port:
+                  name: default
+          - path: /icon-512-maskable.png
+            pathType: Exact
+            backend:
+              service:
+                name: devbox-nur-arondo-dev
+                port:
+                  name: default
+          - path: /apple-touch-icon.png
+            pathType: Exact
+            backend:
+              service:
+                name: devbox-nur-arondo-dev
+                port:
+                  name: default
+          - path: /badge-96.png
+            pathType: Exact
+            backend:
+              service:
+                name: devbox-nur-arondo-dev
+                port:
+                  name: default
+          - path: /badge.png
+            pathType: Exact
+            backend:
+              service:
+                name: devbox-nur-arondo-dev
+                port:
+                  name: default
+          - path: /icon-transparent-192.png
+            pathType: Exact
+            backend:
+              service:
+                name: devbox-nur-arondo-dev
+                port:
+                  name: default
+  tls:
+    - hosts:
+        - arondo.__{{infra.domains:f:d}}__
+      secretName: arondo-domaind
