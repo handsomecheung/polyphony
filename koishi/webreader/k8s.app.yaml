@@ -33,6 +33,10 @@ spec:
               value: "45"
             - name: MAX_TIMEOUT_SECONDS
               value: "180"
+            - name: MAX_CONCURRENT_REQUESTS
+              value: "1"
+            - name: MAX_REQUESTS_PER_MINUTE
+              value: "20"
           livenessProbe:
             httpGet:
               path: /ping

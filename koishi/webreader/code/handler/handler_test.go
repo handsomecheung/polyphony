@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"webreader/config"
+	"webreader/pool"
 	"webreader/provider"
 )
 
@@ -33,14 +34,37 @@ func (m *mockProvider) Fetch(ctx context.Context, opts provider.FetchOptions) (*
 
 func setupTestHandler() *Handler {
 	cfg := &config.Config{
-		Port:               "8080",
-		DefaultProvider:    "test-mock",
-		DefaultTimeoutSecs: 10,
-		MaxTimeoutSecs:     30,
+		Port:                  "8080",
+		DefaultProvider:       "test-mock",
+		DefaultTimeoutSecs:    10,
+		MaxTimeoutSecs:        30,
+		MaxConcurrentRequests: 1,
+		MaxRequestsPerMinute:  60,
 	}
 	reg := provider.NewRegistry("test-mock")
 	reg.Register(&mockProvider{name: "test-mock"})
-	return NewHandler(cfg, reg)
+	limiter := pool.NewLimiter(cfg.MaxConcurrentRequests, cfg.MaxRequestsPerMinute)
+	return NewHandler(cfg, reg, limiter)
+}
+
+func TestStatusHandler(t *testing.T) {
+	h := setupTestHandler()
+	req := httptest.NewRequest(http.MethodGet, "/v1/status", nil)
+	rec := httptest.NewRecorder()
+
+	h.StatusHandler(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected status 200, got %d", rec.Code)
+	}
+
+	var stats pool.Stats
+	if err := json.NewDecoder(rec.Body).Decode(&stats); err != nil {
+		t.Fatalf("failed to decode stats response: %v", err)
+	}
+	if stats.MaxConcurrent != 1 || stats.RequestsPerMinute != 60 {
+		t.Errorf("unexpected stats: %+v", stats)
+	}
 }
 
 func TestHealthCheck(t *testing.T) {

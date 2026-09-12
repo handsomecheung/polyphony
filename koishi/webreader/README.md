@@ -99,6 +99,19 @@ curl -G "http://webreader/raw" \
 #### GET `/ping` / `/health` / `/ok`
 Returns `{"status": "ok"}` for Kubernetes liveness/readiness probes.
 
+#### GET `/v1/status`
+Returns metrics about the current worker pool queue and rate limiting state.
+
+**Example Response:**
+```json
+{
+  "max_concurrent": 1,
+  "requests_per_minute": 60,
+  "active_requests": 0,
+  "waiting_requests": 0
+}
+```
+
 #### GET `/v1/providers`
 Lists registered reader providers and the default provider.
 
@@ -125,6 +138,8 @@ The service is configured via environment variables:
 | `JINA_API_KEY` | `""` | Optional API key for Jina Reader authentication |
 | `DEFAULT_TIMEOUT_SECONDS` | `45` | Default request timeout in seconds |
 | `MAX_TIMEOUT_SECONDS` | `180` | Maximum allowed request timeout in seconds |
+| `MAX_CONCURRENT_REQUESTS` | `1` | Worker pool parallel concurrency limit (default: 1 = serialized) |
+| `MAX_REQUESTS_PER_MINUTE` | `60` | Maximum allowed outbound requests in any rolling 1-minute window (0 = disabled) |
 
 ---
 

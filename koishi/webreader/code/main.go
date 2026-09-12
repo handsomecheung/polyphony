@@ -12,6 +12,7 @@ import (
 
 	"webreader/config"
 	"webreader/handler"
+	"webreader/pool"
 	"webreader/provider"
 )
 
@@ -20,8 +21,8 @@ func main() {
 	log.Println("[INFO] Starting webreader service...")
 
 	cfg := config.LoadConfig()
-	log.Printf("[INFO] Config loaded: port=%s, default_provider=%s, timeout=%ds (max %ds)",
-		cfg.Port, cfg.DefaultProvider, cfg.DefaultTimeoutSecs, cfg.MaxTimeoutSecs)
+	log.Printf("[INFO] Config loaded: port=%s, default_provider=%s, timeout=%ds (max %ds), concurrency=%d, rpm_limit=%d",
+		cfg.Port, cfg.DefaultProvider, cfg.DefaultTimeoutSecs, cfg.MaxTimeoutSecs, cfg.MaxConcurrentRequests, cfg.MaxRequestsPerMinute)
 
 	registry := provider.NewRegistry(cfg.DefaultProvider)
 
@@ -29,7 +30,10 @@ func main() {
 	jinaProvider := provider.NewJinaProvider(cfg.JinaAPIKey)
 	registry.Register(jinaProvider)
 
-	h := handler.NewHandler(cfg, registry)
+	// Initialize worker pool & rate limiter
+	limiter := pool.NewLimiter(cfg.MaxConcurrentRequests, cfg.MaxRequestsPerMinute)
+
+	h := handler.NewHandler(cfg, registry, limiter)
 
 	mux := http.NewServeMux()
 
@@ -39,6 +43,7 @@ func main() {
 	mux.HandleFunc("/health", h.HealthHandler)
 
 	// API endpoints
+	mux.HandleFunc("/v1/status", h.StatusHandler)
 	mux.HandleFunc("/v1/providers", h.ProvidersHandler)
 	mux.HandleFunc("/v1/markdown", h.MarkdownHandler)
 	mux.HandleFunc("/raw", h.RawMarkdownHandler)

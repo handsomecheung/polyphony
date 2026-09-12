@@ -8,11 +8,13 @@ import (
 
 // Config holds runtime configuration for the webreader service.
 type Config struct {
-	Port               string
-	DefaultProvider    string
-	JinaAPIKey         string
-	DefaultTimeoutSecs int
-	MaxTimeoutSecs     int
+	Port                  string
+	DefaultProvider       string
+	JinaAPIKey            string
+	DefaultTimeoutSecs    int
+	MaxTimeoutSecs        int
+	MaxConcurrentRequests int
+	MaxRequestsPerMinute  int
 }
 
 // LoadConfig loads configuration from environment variables with sensible defaults.
@@ -23,13 +25,17 @@ func LoadConfig() *Config {
 
 	defaultTimeout := getEnvAsInt("DEFAULT_TIMEOUT_SECONDS", 45)
 	maxTimeout := getEnvAsInt("MAX_TIMEOUT_SECONDS", 180)
+	maxConcurrent := getEnvAsInt("MAX_CONCURRENT_REQUESTS", 1)
+	maxRPM := getEnvAsInt("MAX_REQUESTS_PER_MINUTE", 60)
 
 	return &Config{
-		Port:               port,
-		DefaultProvider:    defaultProvider,
-		JinaAPIKey:         jinaAPIKey,
-		DefaultTimeoutSecs: defaultTimeout,
-		MaxTimeoutSecs:     maxTimeout,
+		Port:                  port,
+		DefaultProvider:       defaultProvider,
+		JinaAPIKey:            jinaAPIKey,
+		DefaultTimeoutSecs:    defaultTimeout,
+		MaxTimeoutSecs:        maxTimeout,
+		MaxConcurrentRequests: maxConcurrent,
+		MaxRequestsPerMinute:  maxRPM,
 	}
 }
 

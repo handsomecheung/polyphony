@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"webreader/config"
+	"webreader/pool"
 	"webreader/provider"
 )
 
@@ -18,13 +19,15 @@ import (
 type Handler struct {
 	cfg      *config.Config
 	registry *provider.Registry
+	limiter  *pool.Limiter
 }
 
 // NewHandler creates a new HTTP handler.
-func NewHandler(cfg *config.Config, registry *provider.Registry) *Handler {
+func NewHandler(cfg *config.Config, registry *provider.Registry, limiter *pool.Limiter) *Handler {
 	return &Handler{
 		cfg:      cfg,
 		registry: registry,
+		limiter:  limiter,
 	}
 }
 
@@ -186,6 +189,17 @@ func (h *Handler) handlePostMarkdown(w http.ResponseWriter, r *http.Request) {
 	h.respondResult(w, r, result)
 }
 
+// StatusHandler returns the current worker pool and rate limit metrics.
+func (h *Handler) StatusHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	stats := h.limiter.GetStats()
+	w.Header().Set("Content-Type", "application/json")
+	_ = json.NewEncoder(w).Encode(stats)
+}
+
 func (h *Handler) executeFetch(r *http.Request, providerName string, timeoutSecs int, opts provider.FetchOptions) (*provider.FetchResult, error) {
 	// Validate URL format
 	parsedURL, err := url.ParseRequestURI(opts.URL)
@@ -201,6 +215,14 @@ func (h *Handler) executeFetch(r *http.Request, providerName string, timeoutSecs
 	timeout := h.cfg.GetTimeout(timeoutSecs)
 	ctx, cancel := context.WithTimeout(r.Context(), timeout)
 	defer cancel()
+
+	// Acquire slot from worker pool & rate limiter queue
+	release, err := h.limiter.Acquire(ctx)
+	if err != nil {
+		log.Printf("[QUEUE] URL=%s Error acquiring worker slot: %v", opts.URL, err)
+		return nil, fmt.Errorf("queue or rate limit error: %w", err)
+	}
+	defer release()
 
 	start := time.Now()
 	res, err := p.Fetch(ctx, opts)
