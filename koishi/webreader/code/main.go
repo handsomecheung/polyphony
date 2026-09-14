@@ -37,16 +37,13 @@ func main() {
 
 	mux := http.NewServeMux()
 
-	// Probes / Health endpoints
-	mux.HandleFunc("/ping", h.HealthHandler)
-	mux.HandleFunc("/ok", h.HealthHandler)
+	// Probes / Health endpoint
 	mux.HandleFunc("/health", h.HealthHandler)
 
 	// API endpoints
 	mux.HandleFunc("/v1/status", h.StatusHandler)
 	mux.HandleFunc("/v1/providers", h.ProvidersHandler)
 	mux.HandleFunc("/v1/markdown", h.MarkdownHandler)
-	mux.HandleFunc("/raw", h.RawMarkdownHandler)
 
 	// Top-level root redirects / helps
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
@@ -55,7 +52,7 @@ func main() {
 			return
 		}
 		w.Header().Set("Content-Type", "application/json")
-		fmt.Fprintf(w, `{"service":"webreader","version":"1.0.0","status":"running","docs":"/v1/markdown?url=<target_url>"}`)
+		fmt.Fprintf(w, `{"service":"webreader","version":"1.0.0","status":"running","docs":"POST /v1/markdown with JSON body {\"url\": \"...\"}"}`)
 	})
 
 	server := &http.Server{
@@ -109,7 +106,7 @@ func loggingMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		start := time.Now()
 		next.ServeHTTP(w, r)
-		if r.URL.Path != "/ping" && r.URL.Path != "/ok" && r.URL.Path != "/health" {
+		if r.URL.Path != "/health" {
 			log.Printf("[REQ] %s %s from %s in %s", r.Method, r.URL.RequestURI(), r.RemoteAddr, time.Since(start))
 		}
 	})

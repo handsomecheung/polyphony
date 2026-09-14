@@ -33,15 +33,13 @@ func NewHandler(cfg *config.Config, registry *provider.Registry, limiter *pool.L
 
 // MarkdownRequestBody represents the JSON request payload for POST /v1/markdown.
 type MarkdownRequestBody struct {
-	URL                string            `json:"url"`
-	Provider           string            `json:"provider,omitempty"`
-	TimeoutSeconds     int               `json:"timeout_seconds,omitempty"`
-	WithImagesSummary  bool              `json:"with_images_summary,omitempty"`
-	WithLinksSummary   bool              `json:"with_links_summary,omitempty"`
-	NoCache            bool              `json:"no_cache,omitempty"`
-	WaitForSelector    string            `json:"wait_for_selector,omitempty"`
-	TargetSelector     string            `json:"target_selector,omitempty"`
-	CustomHeaders      map[string]string `json:"custom_headers,omitempty"`
+	URL              string            `json:"url"`
+	Provider         string            `json:"provider,omitempty"`
+	TimeoutSeconds   int               `json:"timeout_seconds,omitempty"`
+	WithLinksSummary bool              `json:"with_links_summary,omitempty"`
+	WaitForSelector  string            `json:"wait_for_selector,omitempty"`
+	TargetSelector   string            `json:"target_selector,omitempty"`
+	CustomHeaders    map[string]string `json:"custom_headers,omitempty"`
 }
 
 // ErrorResponse represents an error response JSON payload.
@@ -81,82 +79,13 @@ func (h *Handler) ProvidersHandler(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-// RawMarkdownHandler fetches a URL and returns raw Markdown content directly.
-func (h *Handler) RawMarkdownHandler(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodGet {
-		http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
-		return
-	}
-
-	targetURL := strings.TrimSpace(r.URL.Query().Get("url"))
-	if targetURL == "" {
-		http.Error(w, "Missing 'url' query parameter", http.StatusBadRequest)
-		return
-	}
-
-	providerName := r.URL.Query().Get("provider")
-	timeoutSecs := 0
-	opts := provider.FetchOptions{
-		URL:               targetURL,
-		WithImagesSummary: r.URL.Query().Get("with_images_summary") == "true",
-		WithLinksSummary:  r.URL.Query().Get("with_links_summary") == "true",
-		NoCache:           r.URL.Query().Get("no_cache") == "true",
-		WaitForSelector:   r.URL.Query().Get("wait_for_selector"),
-		TargetSelector:    r.URL.Query().Get("target_selector"),
-	}
-
-	result, err := h.executeFetch(r, providerName, timeoutSecs, opts)
-	if err != nil {
-		log.Printf("[ERROR] raw fetch failed for %s: %v", targetURL, err)
-		http.Error(w, fmt.Sprintf("Failed to fetch markdown: %v", err), http.StatusInternalServerError)
-		return
-	}
-
-	w.Header().Set("Content-Type", "text/markdown; charset=utf-8")
-	w.WriteHeader(http.StatusOK)
-	_, _ = w.Write([]byte(result.Content))
-}
-
-// MarkdownHandler handles both GET and POST requests for /v1/markdown.
+// MarkdownHandler handles POST requests for /v1/markdown.
 func (h *Handler) MarkdownHandler(w http.ResponseWriter, r *http.Request) {
-	switch r.Method {
-	case http.MethodGet:
-		h.handleGetMarkdown(w, r)
-	case http.MethodPost:
-		h.handlePostMarkdown(w, r)
-	default:
-		h.writeJSONError(w, http.StatusMethodNotAllowed, "Method Not Allowed", "")
-	}
-}
-
-func (h *Handler) handleGetMarkdown(w http.ResponseWriter, r *http.Request) {
-	targetURL := strings.TrimSpace(r.URL.Query().Get("url"))
-	if targetURL == "" {
-		h.writeJSONError(w, http.StatusBadRequest, "Missing required query parameter: 'url'", "")
+	if r.Method != http.MethodPost {
+		h.writeJSONError(w, http.StatusMethodNotAllowed, "Method Not Allowed", "Only POST method is supported")
 		return
 	}
 
-	providerName := r.URL.Query().Get("provider")
-	opts := provider.FetchOptions{
-		URL:               targetURL,
-		WithImagesSummary: r.URL.Query().Get("with_images_summary") == "true",
-		WithLinksSummary:  r.URL.Query().Get("with_links_summary") == "true",
-		NoCache:           r.URL.Query().Get("no_cache") == "true",
-		WaitForSelector:   r.URL.Query().Get("wait_for_selector"),
-		TargetSelector:    r.URL.Query().Get("target_selector"),
-	}
-
-	result, err := h.executeFetch(r, providerName, 0, opts)
-	if err != nil {
-		log.Printf("[ERROR] fetch failed for %s: %v", targetURL, err)
-		h.writeJSONError(w, http.StatusBadGateway, "Failed to scrape target URL", err.Error())
-		return
-	}
-
-	h.respondResult(w, r, result)
-}
-
-func (h *Handler) handlePostMarkdown(w http.ResponseWriter, r *http.Request) {
 	var body MarkdownRequestBody
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
 		h.writeJSONError(w, http.StatusBadRequest, "Invalid JSON request body", err.Error())
@@ -170,13 +99,11 @@ func (h *Handler) handlePostMarkdown(w http.ResponseWriter, r *http.Request) {
 	}
 
 	opts := provider.FetchOptions{
-		URL:               body.URL,
-		WithImagesSummary: body.WithImagesSummary,
-		WithLinksSummary:  body.WithLinksSummary,
-		NoCache:           body.NoCache,
-		WaitForSelector:   body.WaitForSelector,
-		TargetSelector:    body.TargetSelector,
-		CustomHeaders:     body.CustomHeaders,
+		URL:              body.URL,
+		WithLinksSummary: body.WithLinksSummary,
+		WaitForSelector:  body.WaitForSelector,
+		TargetSelector:   body.TargetSelector,
+		CustomHeaders:    body.CustomHeaders,
 	}
 
 	result, err := h.executeFetch(r, body.Provider, body.TimeoutSeconds, opts)
@@ -186,7 +113,7 @@ func (h *Handler) handlePostMarkdown(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	h.respondResult(w, r, result)
+	h.respondResult(w, result)
 }
 
 // StatusHandler returns the current worker pool and rate limit metrics.
@@ -237,15 +164,7 @@ func (h *Handler) executeFetch(r *http.Request, providerName string, timeoutSecs
 	return res, nil
 }
 
-func (h *Handler) respondResult(w http.ResponseWriter, r *http.Request, result *provider.FetchResult) {
-	accept := r.Header.Get("Accept")
-	if strings.Contains(accept, "text/markdown") || strings.Contains(accept, "text/plain") {
-		w.Header().Set("Content-Type", "text/markdown; charset=utf-8")
-		w.WriteHeader(http.StatusOK)
-		_, _ = w.Write([]byte(result.Content))
-		return
-	}
-
+func (h *Handler) respondResult(w http.ResponseWriter, result *provider.FetchResult) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	_ = json.NewEncoder(w).Encode(result)

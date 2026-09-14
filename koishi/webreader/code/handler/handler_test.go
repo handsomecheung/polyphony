@@ -107,27 +107,15 @@ func TestProvidersList(t *testing.T) {
 	}
 }
 
-func TestGetMarkdown(t *testing.T) {
+func TestGetMarkdownMethodNotAllowed(t *testing.T) {
 	h := setupTestHandler()
 	req := httptest.NewRequest(http.MethodGet, "/v1/markdown?url=https://example.com/test", nil)
 	rec := httptest.NewRecorder()
 
 	h.MarkdownHandler(rec, req)
 
-	if rec.Code != http.StatusOK {
-		t.Fatalf("expected status 200, got %d: %s", rec.Code, rec.Body.String())
-	}
-
-	var res provider.FetchResult
-	if err := json.NewDecoder(rec.Body).Decode(&res); err != nil {
-		t.Fatalf("failed to decode response: %v", err)
-	}
-
-	if res.Title != "Test Article Title" {
-		t.Errorf("expected title 'Test Article Title', got '%s'", res.Title)
-	}
-	if !strings.Contains(res.Content, "# Test Article Title") {
-		t.Errorf("content does not match: %s", res.Content)
+	if rec.Code != http.StatusMethodNotAllowed {
+		t.Fatalf("expected status 405 Method Not Allowed, got %d", rec.Code)
 	}
 }
 
@@ -152,32 +140,19 @@ func TestPostMarkdown(t *testing.T) {
 	if res.URL != "https://example.com/post-test" {
 		t.Errorf("expected URL 'https://example.com/post-test', got '%s'", res.URL)
 	}
-}
-
-func TestRawMarkdown(t *testing.T) {
-	h := setupTestHandler()
-	req := httptest.NewRequest(http.MethodGet, "/raw?url=https://example.com/raw-test", nil)
-	rec := httptest.NewRecorder()
-
-	h.RawMarkdownHandler(rec, req)
-
-	if rec.Code != http.StatusOK {
-		t.Fatalf("expected status 200, got %d", rec.Code)
+	if res.Title != "Test Article Title" {
+		t.Errorf("expected title 'Test Article Title', got '%s'", res.Title)
 	}
-
-	if rec.Header().Get("Content-Type") != "text/markdown; charset=utf-8" {
-		t.Errorf("expected Content-Type text/markdown, got %s", rec.Header().Get("Content-Type"))
-	}
-
-	body := rec.Body.String()
-	if !strings.Contains(body, "# Test Article Title") {
-		t.Errorf("expected markdown body, got %s", body)
+	if !strings.Contains(res.Content, "# Test Article Title") {
+		t.Errorf("content does not match: %s", res.Content)
 	}
 }
 
 func TestInvalidURL(t *testing.T) {
 	h := setupTestHandler()
-	req := httptest.NewRequest(http.MethodGet, "/v1/markdown?url=invalid-url", nil)
+	payload := `{"url": "invalid-url"}`
+	req := httptest.NewRequest(http.MethodPost, "/v1/markdown", strings.NewReader(payload))
+	req.Header.Set("Content-Type", "application/json")
 	rec := httptest.NewRecorder()
 
 	h.MarkdownHandler(rec, req)

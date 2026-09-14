@@ -24,28 +24,19 @@ This ensures callers never depend directly on specific third-party APIs or authe
 
 ## API Reference
 
-### 1. Fetch Markdown (JSON)
-
-#### GET `/v1/markdown`
-Fetch a webpage and return a JSON payload containing structured Markdown and metadata.
-
-**Query Parameters:**
-- `url` (required): Target webpage URL to read (e.g. `https://example.com/article`).
-- `provider` (optional): Reader provider to use (default: `jina`).
-- `with_images_summary` (optional): `true` to include image captions/summary.
-- `with_links_summary` (optional): `true` to include links summary.
-- `no_cache` (optional): `true` to bypass provider cache.
-- `wait_for_selector` (optional): CSS selector to wait for before extracting.
-- `target_selector` (optional): CSS selector to restrict extraction to.
-
-**Example Request:**
-```bash
-curl -G "http://webreader/v1/markdown" \
-  --data-urlencode "url=https://en.wikipedia.org/wiki/Kubernetes"
-```
+### 1. Fetch Markdown
 
 #### POST `/v1/markdown`
-Same as GET `/v1/markdown`, with options passed in JSON body.
+Fetch a webpage and return a JSON payload containing structured Markdown and metadata.
+
+**Request Body (JSON):**
+- `url` (required, string): Target webpage URL to read.
+- `provider` (optional, string): Reader provider to use (default: `jina`).
+- `timeout_seconds` (optional, integer): Timeout override for the request.
+- `with_links_summary` (optional, boolean): `true` to include links summary.
+- `wait_for_selector` (optional, string): CSS selector to wait for before extracting.
+- `target_selector` (optional, string): CSS selector to restrict extraction to.
+- `custom_headers` (optional, object): Additional HTTP headers to forward to the target/provider.
 
 **Example Request:**
 ```bash
@@ -54,8 +45,7 @@ curl -X POST "http://webreader/v1/markdown" \
   -d '{
     "url": "https://en.wikipedia.org/wiki/Kubernetes",
     "provider": "jina",
-    "timeout_seconds": 30,
-    "no_cache": false
+    "timeout_seconds": 30
   }'
 ```
 
@@ -79,24 +69,9 @@ curl -X POST "http://webreader/v1/markdown" \
 
 ---
 
-### 2. Fetch Raw Markdown
+### 2. Service Health & Status
 
-#### GET `/raw`
-Returns raw Markdown content directly with `Content-Type: text/markdown; charset=utf-8`.
-
-**Example Request:**
-```bash
-curl -G "http://webreader/raw" \
-  --data-urlencode "url=https://example.com"
-```
-
-*Tip:* You can also request raw Markdown from `/v1/markdown` by supplying an `Accept: text/markdown` header.
-
----
-
-### 3. Service Health & Status
-
-#### GET `/ping` / `/health` / `/ok`
+#### GET `/health`
 Returns `{"status": "ok"}` for Kubernetes liveness/readiness probes.
 
 #### GET `/v1/status`
