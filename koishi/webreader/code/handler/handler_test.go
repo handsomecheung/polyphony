@@ -37,15 +37,14 @@ func (m *mockProvider) Fetch(ctx context.Context, opts provider.FetchOptions) (*
 func setupTestHandler() (*Handler, *mockProvider) {
 	cfg := &config.Config{
 		Port:                  "8080",
-		DefaultProvider:       "test-mock",
 		DefaultLanguage:       "en",
 		DefaultTimeoutSecs:    10,
 		MaxTimeoutSecs:        30,
 		MaxConcurrentRequests: 1,
 		MaxRequestsPerMinute:  60,
 	}
-	mock := &mockProvider{name: "test-mock"}
-	reg := provider.NewRegistry("test-mock")
+	mock := &mockProvider{name: "jina"}
+	reg := provider.NewRegistry("jina")
 	reg.Register(mock)
 	limiter := pool.NewLimiter(cfg.MaxConcurrentRequests, cfg.MaxRequestsPerMinute)
 	return NewHandler(cfg, reg, limiter), mock
@@ -106,7 +105,7 @@ func TestProvidersList(t *testing.T) {
 	if err := json.NewDecoder(rec.Body).Decode(&resp); err != nil {
 		t.Fatalf("failed to decode response: %v", err)
 	}
-	if resp.Default != "test-mock" || len(resp.Providers) != 1 {
+	if resp.Default != "jina" || len(resp.Providers) != 1 {
 		t.Errorf("unexpected providers response: %+v", resp)
 	}
 }

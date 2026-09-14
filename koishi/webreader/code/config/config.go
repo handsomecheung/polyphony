@@ -11,9 +11,9 @@ import (
 // Config holds runtime configuration for the webreader service.
 type Config struct {
 	Port                  string
-	DefaultProvider       string
 	DefaultLanguage       string
 	JinaAPIKey            string
+	FirecrawlAPIKey       string
 	DefaultTimeoutSecs    int
 	MaxTimeoutSecs        int
 	MaxConcurrentRequests int
@@ -24,13 +24,16 @@ type Config struct {
 // It returns an error if any required configuration is missing.
 func LoadConfig() (*Config, error) {
 	port := getEnv("PORT", "8080")
-	defaultProvider := getEnv("DEFAULT_PROVIDER", "jina")
 	defaultLanguage := getEnv("DEFAULT_LANGUAGE", getEnv("LANGUAGE", ""))
 	if strings.TrimSpace(defaultLanguage) == "" {
 		return nil, fmt.Errorf("environment variable DEFAULT_LANGUAGE is required")
 	}
 
 	jinaAPIKey := getEnv("JINA_API_KEY", "")
+	firecrawlAPIKey := getEnv("FIRECRAWL_APIKEY", "")
+	if strings.TrimSpace(firecrawlAPIKey) == "" {
+		return nil, fmt.Errorf("environment variable FIRECRAWL_APIKEY is required")
+	}
 
 	defaultTimeout := getEnvAsInt("DEFAULT_TIMEOUT_SECONDS", 45)
 	maxTimeout := getEnvAsInt("MAX_TIMEOUT_SECONDS", 180)
@@ -39,9 +42,9 @@ func LoadConfig() (*Config, error) {
 
 	return &Config{
 		Port:                  port,
-		DefaultProvider:       defaultProvider,
 		DefaultLanguage:       defaultLanguage,
 		JinaAPIKey:            jinaAPIKey,
+		FirecrawlAPIKey:       firecrawlAPIKey,
 		DefaultTimeoutSecs:    defaultTimeout,
 		MaxTimeoutSecs:        maxTimeout,
 		MaxConcurrentRequests: maxConcurrent,

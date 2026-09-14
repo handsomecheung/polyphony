@@ -31,10 +31,20 @@ func NewHandler(cfg *config.Config, registry *provider.Registry, limiter *pool.L
 	}
 }
 
+// FetchMode specifies how a page should be fetched.
+// "static" (default) fetches the raw HTML without JavaScript rendering.
+// "rendered" fetches the page after JavaScript execution (e.g. via Firecrawl).
+type FetchMode string
+
+const (
+	FetchModeStatic   FetchMode = "static"
+	FetchModeRendered FetchMode = "rendered"
+)
+
 // MarkdownRequestBody represents the JSON request payload for POST /v1/markdown.
 type MarkdownRequestBody struct {
 	URL              string            `json:"url"`
-	Provider         string            `json:"provider,omitempty"`
+	Mode             FetchMode         `json:"mode,omitempty"`
 	Language         string            `json:"language,omitempty"`
 	TimeoutSeconds   int               `json:"timeout_seconds,omitempty"`
 	WithLinksSummary bool              `json:"with_links_summary,omitempty"`
@@ -113,7 +123,13 @@ func (h *Handler) MarkdownHandler(w http.ResponseWriter, r *http.Request) {
 		CustomHeaders:    body.CustomHeaders,
 	}
 
-	result, err := h.executeFetch(r, body.Provider, body.TimeoutSeconds, opts)
+	providerName, err := modeToProviderName(body.Mode)
+	if err != nil {
+		h.writeJSONError(w, http.StatusBadRequest, "Invalid 'mode' value", err.Error())
+		return
+	}
+
+	result, err := h.executeFetch(r, providerName, body.TimeoutSeconds, opts)
 	if err != nil {
 		log.Printf("[ERROR] fetch failed for %s: %v", body.URL, err)
 		h.writeJSONError(w, http.StatusBadGateway, "Failed to scrape target URL", err.Error())
@@ -132,6 +148,24 @@ func (h *Handler) StatusHandler(w http.ResponseWriter, r *http.Request) {
 	stats := h.limiter.GetStats()
 	w.Header().Set("Content-Type", "application/json")
 	_ = json.NewEncoder(w).Encode(stats)
+}
+
+// modeToProviderName maps a client-facing FetchMode to an internal provider name.
+// This decouples the API surface from backend implementation details,
+// so callers never need to know which backend serves a given mode.
+// An empty mode defaults to FetchModeStatic.
+func modeToProviderName(mode FetchMode) (string, error) {
+	if mode == "" {
+		mode = FetchModeStatic
+	}
+	switch mode {
+	case FetchModeStatic:
+		return "jina", nil
+	case FetchModeRendered:
+		return "firecrawl", nil
+	default:
+		return "", fmt.Errorf("unknown mode %q: valid values are %q and %q", mode, FetchModeStatic, FetchModeRendered)
+	}
 }
 
 func (h *Handler) executeFetch(r *http.Request, providerName string, timeoutSecs int, opts provider.FetchOptions) (*provider.FetchResult, error) {

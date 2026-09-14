@@ -27,8 +27,6 @@ spec:
           env:
             - name: PORT
               value: "8080"
-            - name: DEFAULT_PROVIDER
-              value: "jina"
             - name: DEFAULT_LANGUAGE
               value: "en-US"
             - name: DEFAULT_TIMEOUT_SECONDS
@@ -39,6 +37,8 @@ spec:
               value: "1"
             - name: MAX_REQUESTS_PER_MINUTE
               value: "20"
+            - name: FIRECRAWL_APIKEY
+              value: "__{{firecrawl.infos:f:api-key}}__"
           livenessProbe:
             httpGet:
               path: /health

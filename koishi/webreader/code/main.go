@@ -24,14 +24,17 @@ func main() {
 	if err != nil {
 		log.Fatalf("[FATAL] Configuration error: %v", err)
 	}
-	log.Printf("[INFO] Config loaded: port=%s, default_provider=%s, default_language=%s, timeout=%ds (max %ds), concurrency=%d, rpm_limit=%d",
-		cfg.Port, cfg.DefaultProvider, cfg.DefaultLanguage, cfg.DefaultTimeoutSecs, cfg.MaxTimeoutSecs, cfg.MaxConcurrentRequests, cfg.MaxRequestsPerMinute)
+	log.Printf("[INFO] Config loaded: port=%s, default_language=%s, timeout=%ds (max %ds), concurrency=%d, rpm_limit=%d",
+		cfg.Port, cfg.DefaultLanguage, cfg.DefaultTimeoutSecs, cfg.MaxTimeoutSecs, cfg.MaxConcurrentRequests, cfg.MaxRequestsPerMinute)
 
-	registry := provider.NewRegistry(cfg.DefaultProvider)
+	registry := provider.NewRegistry("jina")
 
 	// Register providers
 	jinaProvider := provider.NewJinaProvider(cfg.JinaAPIKey)
 	registry.Register(jinaProvider)
+
+	firecrawlProvider := provider.NewFirecrawlProvider(cfg.FirecrawlAPIKey)
+	registry.Register(firecrawlProvider)
 
 	// Initialize worker pool & rate limiter
 	limiter := pool.NewLimiter(cfg.MaxConcurrentRequests, cfg.MaxRequestsPerMinute)

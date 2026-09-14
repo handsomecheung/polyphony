@@ -31,7 +31,9 @@ Fetch a webpage and return a JSON payload containing structured Markdown and met
 
 **Request Body (JSON):**
 - `url` (required, string): Target webpage URL to read.
-- `provider` (optional, string): Reader provider to use (default: `jina`).
+- `mode` (optional, string): Fetch mode — controls how the page is retrieved.
+  - `"static"` (default): Fetches raw HTML without JavaScript rendering (via Jina Reader).
+  - `"rendered"`: Fetches the page after full JavaScript execution, e.g. for SPAs (via Firecrawl).
 - `language` (optional, string): Language / locale preference (e.g. `zh-CN`, `ja`, `en`), defaults to `DEFAULT_LANGUAGE`.
 - `timeout_seconds` (optional, integer): Timeout override for the request.
 - `with_links_summary` (optional, boolean): `true` to include links summary.
@@ -45,8 +47,18 @@ curl -X POST "http://webreader/v1/markdown" \
   -H "Content-Type: application/json" \
   -d '{
     "url": "https://en.wikipedia.org/wiki/Kubernetes",
-    "provider": "jina",
+    "mode": "static",
     "timeout_seconds": 30
+  }'
+```
+
+**Example Request (JS-rendered page):**
+```bash
+curl -X POST "http://webreader/v1/markdown" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "url": "https://example.com/spa-page",
+    "mode": "rendered"
   }'
 ```
 
@@ -110,9 +122,9 @@ The service is configured via environment variables:
 | Variable | Default | Description |
 |---|---|---|
 | `PORT` | `8080` | Port for the HTTP server to listen on |
-| `DEFAULT_PROVIDER` | `jina` | Default scraper provider |
 | `DEFAULT_LANGUAGE` | *(required)* | Default language/locale preference (e.g. `zh-CN`, `ja`, `en`). Service fails to start if not set. |
 | `JINA_API_KEY` | `""` | Optional API key for Jina Reader authentication |
+| `FIRECRAWL_APIKEY` | `""` | API key for Firecrawl (required when `mode: "rendered"` is used) |
 | `DEFAULT_TIMEOUT_SECONDS` | `45` | Default request timeout in seconds |
 | `MAX_TIMEOUT_SECONDS` | `180` | Maximum allowed request timeout in seconds |
 | `MAX_CONCURRENT_REQUESTS` | `1` | Worker pool parallel concurrency limit (default: 1 = serialized) |
