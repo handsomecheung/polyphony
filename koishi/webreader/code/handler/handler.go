@@ -43,14 +43,11 @@ const (
 
 // MarkdownRequestBody represents the JSON request payload for POST /v1/markdown.
 type MarkdownRequestBody struct {
-	URL              string            `json:"url"`
-	Mode             FetchMode         `json:"mode,omitempty"`
-	Language         string            `json:"language,omitempty"`
-	TimeoutSeconds   int               `json:"timeout_seconds,omitempty"`
-	WithLinksSummary bool              `json:"with_links_summary,omitempty"`
-	WaitForSelector  string            `json:"wait_for_selector,omitempty"`
-	TargetSelector   string            `json:"target_selector,omitempty"`
-	CustomHeaders    map[string]string `json:"custom_headers,omitempty"`
+	URL            string            `json:"url"`
+	Mode           FetchMode         `json:"mode,omitempty"`
+	Language       string            `json:"language,omitempty"`
+	TimeoutSeconds int               `json:"timeout_seconds,omitempty"`
+	CustomHeaders  map[string]string `json:"custom_headers,omitempty"`
 }
 
 // ErrorResponse represents an error response JSON payload.
@@ -115,12 +112,9 @@ func (h *Handler) MarkdownHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	opts := provider.FetchOptions{
-		URL:              body.URL,
-		Language:         language,
-		WithLinksSummary: body.WithLinksSummary,
-		WaitForSelector:  body.WaitForSelector,
-		TargetSelector:   body.TargetSelector,
-		CustomHeaders:    body.CustomHeaders,
+		URL:           body.URL,
+		Language:      language,
+		CustomHeaders: body.CustomHeaders,
 	}
 
 	providerName, err := modeToProviderName(body.Mode)

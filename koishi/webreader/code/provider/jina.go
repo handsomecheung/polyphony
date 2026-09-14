@@ -70,15 +70,6 @@ func (j *JinaProvider) Fetch(ctx context.Context, opts FetchOptions) (*FetchResu
 		req.Header.Set("X-Locale", opts.Language)
 		req.Header.Set("X-Target-Language", opts.Language)
 	}
-	if opts.WithLinksSummary {
-		req.Header.Set("X-With-Links-Summary", "true")
-	}
-	if opts.WaitForSelector != "" {
-		req.Header.Set("X-Wait-For-Selector", opts.WaitForSelector)
-	}
-	if opts.TargetSelector != "" {
-		req.Header.Set("X-Target-Selector", opts.TargetSelector)
-	}
 
 	// Forward any custom headers
 	for k, v := range opts.CustomHeaders {

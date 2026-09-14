@@ -38,23 +38,15 @@ func (f *FirecrawlProvider) Name() string {
 
 // firecrawlScrapeRequest models the POST /v2/scrape request body.
 type firecrawlScrapeRequest struct {
-	URL      string              `json:"url"`
-	Formats  []string            `json:"formats"`
-	Headers  map[string]string   `json:"headers,omitempty"`
-	Actions  []firecrawlAction   `json:"actions,omitempty"`
-	WaitFor  int                 `json:"waitFor,omitempty"`
-	Location *firecrawlLocation  `json:"location,omitempty"`
+	URL      string             `json:"url"`
+	Formats  []string           `json:"formats"`
+	Headers  map[string]string  `json:"headers,omitempty"`
+	Location *firecrawlLocation `json:"location,omitempty"`
 }
 
 // firecrawlLocation sets the proxy location and browser language/timezone emulation.
 type firecrawlLocation struct {
 	Languages []string `json:"languages,omitempty"`
-}
-
-// firecrawlAction represents a single browser action to perform before scraping.
-type firecrawlAction struct {
-	Type     string `json:"type"`
-	Selector string `json:"selector,omitempty"`
 }
 
 // firecrawlScrapeResponse models the POST /v2/scrape JSON response.
@@ -83,13 +75,6 @@ func (f *FirecrawlProvider) Fetch(ctx context.Context, opts FetchOptions) (*Fetc
 	// Forward custom headers directly to the target page
 	if len(opts.CustomHeaders) > 0 {
 		reqBody.Headers = opts.CustomHeaders
-	}
-
-	// Convert wait_for_selector to a Firecrawl browser action
-	if opts.WaitForSelector != "" {
-		reqBody.Actions = []firecrawlAction{
-			{Type: "wait", Selector: opts.WaitForSelector},
-		}
 	}
 
 	bodyBytes, err := json.Marshal(reqBody)
