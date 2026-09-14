@@ -14,7 +14,8 @@ import (
 )
 
 type mockProvider struct {
-	name string
+	name        string
+	lastOptions provider.FetchOptions
 }
 
 func (m *mockProvider) Name() string {
@@ -22,6 +23,7 @@ func (m *mockProvider) Name() string {
 }
 
 func (m *mockProvider) Fetch(ctx context.Context, opts provider.FetchOptions) (*provider.FetchResult, error) {
+	m.lastOptions = opts
 	return &provider.FetchResult{
 		URL:         opts.URL,
 		Title:       "Test Article Title",
@@ -32,23 +34,25 @@ func (m *mockProvider) Fetch(ctx context.Context, opts provider.FetchOptions) (*
 	}, nil
 }
 
-func setupTestHandler() *Handler {
+func setupTestHandler() (*Handler, *mockProvider) {
 	cfg := &config.Config{
 		Port:                  "8080",
 		DefaultProvider:       "test-mock",
+		DefaultLanguage:       "en",
 		DefaultTimeoutSecs:    10,
 		MaxTimeoutSecs:        30,
 		MaxConcurrentRequests: 1,
 		MaxRequestsPerMinute:  60,
 	}
+	mock := &mockProvider{name: "test-mock"}
 	reg := provider.NewRegistry("test-mock")
-	reg.Register(&mockProvider{name: "test-mock"})
+	reg.Register(mock)
 	limiter := pool.NewLimiter(cfg.MaxConcurrentRequests, cfg.MaxRequestsPerMinute)
-	return NewHandler(cfg, reg, limiter)
+	return NewHandler(cfg, reg, limiter), mock
 }
 
 func TestStatusHandler(t *testing.T) {
-	h := setupTestHandler()
+	h, _ := setupTestHandler()
 	req := httptest.NewRequest(http.MethodGet, "/v1/status", nil)
 	rec := httptest.NewRecorder()
 
@@ -68,7 +72,7 @@ func TestStatusHandler(t *testing.T) {
 }
 
 func TestHealthCheck(t *testing.T) {
-	h := setupTestHandler()
+	h, _ := setupTestHandler()
 	req := httptest.NewRequest(http.MethodGet, "/health", nil)
 	rec := httptest.NewRecorder()
 
@@ -88,7 +92,7 @@ func TestHealthCheck(t *testing.T) {
 }
 
 func TestProvidersList(t *testing.T) {
-	h := setupTestHandler()
+	h, _ := setupTestHandler()
 	req := httptest.NewRequest(http.MethodGet, "/v1/providers", nil)
 	rec := httptest.NewRecorder()
 
@@ -108,7 +112,7 @@ func TestProvidersList(t *testing.T) {
 }
 
 func TestGetMarkdownMethodNotAllowed(t *testing.T) {
-	h := setupTestHandler()
+	h, _ := setupTestHandler()
 	req := httptest.NewRequest(http.MethodGet, "/v1/markdown?url=https://example.com/test", nil)
 	rec := httptest.NewRecorder()
 
@@ -120,7 +124,7 @@ func TestGetMarkdownMethodNotAllowed(t *testing.T) {
 }
 
 func TestPostMarkdown(t *testing.T) {
-	h := setupTestHandler()
+	h, mock := setupTestHandler()
 	payload := `{"url": "https://example.com/post-test"}`
 	req := httptest.NewRequest(http.MethodPost, "/v1/markdown", strings.NewReader(payload))
 	req.Header.Set("Content-Type", "application/json")
@@ -146,10 +150,31 @@ func TestPostMarkdown(t *testing.T) {
 	if !strings.Contains(res.Content, "# Test Article Title") {
 		t.Errorf("content does not match: %s", res.Content)
 	}
+	if mock.lastOptions.Language != "en" {
+		t.Errorf("expected default language 'en', got '%s'", mock.lastOptions.Language)
+	}
+}
+
+func TestPostMarkdownCustomLanguage(t *testing.T) {
+	h, mock := setupTestHandler()
+	payload := `{"url": "https://example.com/post-test-lang", "language": "ja"}`
+	req := httptest.NewRequest(http.MethodPost, "/v1/markdown", strings.NewReader(payload))
+	req.Header.Set("Content-Type", "application/json")
+	rec := httptest.NewRecorder()
+
+	h.MarkdownHandler(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected status 200, got %d: %s", rec.Code, rec.Body.String())
+	}
+
+	if mock.lastOptions.Language != "ja" {
+		t.Errorf("expected custom language 'ja', got '%s'", mock.lastOptions.Language)
+	}
 }
 
 func TestInvalidURL(t *testing.T) {
-	h := setupTestHandler()
+	h, _ := setupTestHandler()
 	payload := `{"url": "invalid-url"}`
 	req := httptest.NewRequest(http.MethodPost, "/v1/markdown", strings.NewReader(payload))
 	req.Header.Set("Content-Type", "application/json")

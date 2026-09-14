@@ -32,6 +32,7 @@ Fetch a webpage and return a JSON payload containing structured Markdown and met
 **Request Body (JSON):**
 - `url` (required, string): Target webpage URL to read.
 - `provider` (optional, string): Reader provider to use (default: `jina`).
+- `language` (optional, string): Language / locale preference (e.g. `zh-CN`, `ja`, `en`), defaults to `DEFAULT_LANGUAGE`.
 - `timeout_seconds` (optional, integer): Timeout override for the request.
 - `with_links_summary` (optional, boolean): `true` to include links summary.
 - `wait_for_selector` (optional, string): CSS selector to wait for before extracting.
@@ -110,6 +111,7 @@ The service is configured via environment variables:
 |---|---|---|
 | `PORT` | `8080` | Port for the HTTP server to listen on |
 | `DEFAULT_PROVIDER` | `jina` | Default scraper provider |
+| `DEFAULT_LANGUAGE` | *(required)* | Default language/locale preference (e.g. `zh-CN`, `ja`, `en`). Service fails to start if not set. |
 | `JINA_API_KEY` | `""` | Optional API key for Jina Reader authentication |
 | `DEFAULT_TIMEOUT_SECONDS` | `45` | Default request timeout in seconds |
 | `MAX_TIMEOUT_SECONDS` | `180` | Maximum allowed request timeout in seconds |

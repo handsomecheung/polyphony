@@ -65,6 +65,11 @@ func (j *JinaProvider) Fetch(ctx context.Context, opts FetchOptions) (*FetchResu
 		req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", j.apiKey))
 	}
 
+	if opts.Language != "" {
+		req.Header.Set("Accept-Language", opts.Language)
+		req.Header.Set("X-Locale", opts.Language)
+		req.Header.Set("X-Target-Language", opts.Language)
+	}
 	if opts.WithLinksSummary {
 		req.Header.Set("X-With-Links-Summary", "true")
 	}

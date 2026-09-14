@@ -29,6 +29,8 @@ spec:
               value: "8080"
             - name: DEFAULT_PROVIDER
               value: "jina"
+            - name: DEFAULT_LANGUAGE
+              value: "en-US"
             - name: DEFAULT_TIMEOUT_SECONDS
               value: "45"
             - name: MAX_TIMEOUT_SECONDS

@@ -1,8 +1,10 @@
 package config
 
 import (
+	"fmt"
 	"os"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -10,6 +12,7 @@ import (
 type Config struct {
 	Port                  string
 	DefaultProvider       string
+	DefaultLanguage       string
 	JinaAPIKey            string
 	DefaultTimeoutSecs    int
 	MaxTimeoutSecs        int
@@ -18,9 +21,15 @@ type Config struct {
 }
 
 // LoadConfig loads configuration from environment variables with sensible defaults.
-func LoadConfig() *Config {
+// It returns an error if any required configuration is missing.
+func LoadConfig() (*Config, error) {
 	port := getEnv("PORT", "8080")
 	defaultProvider := getEnv("DEFAULT_PROVIDER", "jina")
+	defaultLanguage := getEnv("DEFAULT_LANGUAGE", getEnv("LANGUAGE", ""))
+	if strings.TrimSpace(defaultLanguage) == "" {
+		return nil, fmt.Errorf("environment variable DEFAULT_LANGUAGE is required")
+	}
+
 	jinaAPIKey := getEnv("JINA_API_KEY", "")
 
 	defaultTimeout := getEnvAsInt("DEFAULT_TIMEOUT_SECONDS", 45)
@@ -31,12 +40,13 @@ func LoadConfig() *Config {
 	return &Config{
 		Port:                  port,
 		DefaultProvider:       defaultProvider,
+		DefaultLanguage:       defaultLanguage,
 		JinaAPIKey:            jinaAPIKey,
 		DefaultTimeoutSecs:    defaultTimeout,
 		MaxTimeoutSecs:        maxTimeout,
 		MaxConcurrentRequests: maxConcurrent,
 		MaxRequestsPerMinute:  maxRPM,
-	}
+	}, nil
 }
 
 // GetTimeout returns the effective timeout duration based on request parameter and server bounds.

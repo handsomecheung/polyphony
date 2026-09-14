@@ -35,6 +35,7 @@ func NewHandler(cfg *config.Config, registry *provider.Registry, limiter *pool.L
 type MarkdownRequestBody struct {
 	URL              string            `json:"url"`
 	Provider         string            `json:"provider,omitempty"`
+	Language         string            `json:"language,omitempty"`
 	TimeoutSeconds   int               `json:"timeout_seconds,omitempty"`
 	WithLinksSummary bool              `json:"with_links_summary,omitempty"`
 	WaitForSelector  string            `json:"wait_for_selector,omitempty"`
@@ -98,8 +99,14 @@ func (h *Handler) MarkdownHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	language := strings.TrimSpace(body.Language)
+	if language == "" {
+		language = h.cfg.DefaultLanguage
+	}
+
 	opts := provider.FetchOptions{
 		URL:              body.URL,
+		Language:         language,
 		WithLinksSummary: body.WithLinksSummary,
 		WaitForSelector:  body.WaitForSelector,
 		TargetSelector:   body.TargetSelector,

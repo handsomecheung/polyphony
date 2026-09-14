@@ -20,9 +20,12 @@ func main() {
 	log.SetFlags(log.LstdFlags | log.Lmicroseconds)
 	log.Println("[INFO] Starting webreader service...")
 
-	cfg := config.LoadConfig()
-	log.Printf("[INFO] Config loaded: port=%s, default_provider=%s, timeout=%ds (max %ds), concurrency=%d, rpm_limit=%d",
-		cfg.Port, cfg.DefaultProvider, cfg.DefaultTimeoutSecs, cfg.MaxTimeoutSecs, cfg.MaxConcurrentRequests, cfg.MaxRequestsPerMinute)
+	cfg, err := config.LoadConfig()
+	if err != nil {
+		log.Fatalf("[FATAL] Configuration error: %v", err)
+	}
+	log.Printf("[INFO] Config loaded: port=%s, default_provider=%s, default_language=%s, timeout=%ds (max %ds), concurrency=%d, rpm_limit=%d",
+		cfg.Port, cfg.DefaultProvider, cfg.DefaultLanguage, cfg.DefaultTimeoutSecs, cfg.MaxTimeoutSecs, cfg.MaxConcurrentRequests, cfg.MaxRequestsPerMinute)
 
 	registry := provider.NewRegistry(cfg.DefaultProvider)
 
@@ -92,7 +95,7 @@ func main() {
 	}()
 
 	log.Printf("[INFO] webreader is listening on :%s", cfg.Port)
-	err := server.ListenAndServe()
+	err = server.ListenAndServe()
 	if err != nil && err != http.ErrServerClosed {
 		log.Fatalf("[FATAL] ListenAndServe error: %v", err)
 	}
