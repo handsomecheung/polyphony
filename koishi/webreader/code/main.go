@@ -10,6 +10,7 @@ import (
 	"syscall"
 	"time"
 
+	"webreader/cache"
 	"webreader/config"
 	"webreader/handler"
 	"webreader/pool"
@@ -24,8 +25,8 @@ func main() {
 	if err != nil {
 		log.Fatalf("[FATAL] Configuration error: %v", err)
 	}
-	log.Printf("[INFO] Config loaded: port=%s, default_language=%s, timeout=%ds (max %ds), concurrency=%d, rpm_limit=%d",
-		cfg.Port, cfg.DefaultLanguage, cfg.DefaultTimeoutSecs, cfg.MaxTimeoutSecs, cfg.MaxConcurrentRequests, cfg.MaxRequestsPerMinute)
+	log.Printf("[INFO] Config loaded: port=%s, default_language=%s, timeout=%ds (max %ds), concurrency=%d, rpm_limit=%d, cache_ttl=%ds",
+		cfg.Port, cfg.DefaultLanguage, cfg.DefaultTimeoutSecs, cfg.MaxTimeoutSecs, cfg.MaxConcurrentRequests, cfg.MaxRequestsPerMinute, cfg.RedisCacheTTLSecs)
 
 	registry := provider.NewRegistry("jina")
 
@@ -38,8 +39,13 @@ func main() {
 
 	// Initialize worker pool & rate limiter
 	limiter := pool.NewLimiter(cfg.MaxConcurrentRequests, cfg.MaxRequestsPerMinute)
+	cacheStore, err := cache.NewRedisStore(cfg.RedisURL, time.Duration(cfg.RedisCacheTTLSecs)*time.Second)
+	if err != nil {
+		log.Fatalf("[FATAL] Cache configuration error: %v", err)
+	}
+	defer cacheStore.Close()
 
-	h := handler.NewHandler(cfg, registry, limiter)
+	h := handler.NewHandler(cfg, registry, limiter, cacheStore)
 
 	mux := http.NewServeMux()
 

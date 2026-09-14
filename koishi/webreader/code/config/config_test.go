@@ -10,6 +10,10 @@ func TestLoadConfigSuccess(t *testing.T) {
 	defer os.Unsetenv("DEFAULT_LANGUAGE")
 	_ = os.Setenv("FIRECRAWL_APIKEY", "test-key")
 	defer os.Unsetenv("FIRECRAWL_APIKEY")
+	_ = os.Setenv("REDIS_URL", "redis://localhost:6379")
+	defer os.Unsetenv("REDIS_URL")
+	_ = os.Setenv("REDIS_CACHE_TTL_SECONDS", "60")
+	defer os.Unsetenv("REDIS_CACHE_TTL_SECONDS")
 
 	cfg, err := LoadConfig()
 	if err != nil {
@@ -21,6 +25,19 @@ func TestLoadConfigSuccess(t *testing.T) {
 	}
 	if cfg.FirecrawlAPIKey != "test-key" {
 		t.Errorf("expected firecrawl api key 'test-key', got '%s'", cfg.FirecrawlAPIKey)
+	}
+}
+
+func TestLoadConfigMissingCacheTTLError(t *testing.T) {
+	_ = os.Setenv("DEFAULT_LANGUAGE", "en")
+	defer os.Unsetenv("DEFAULT_LANGUAGE")
+	_ = os.Setenv("FIRECRAWL_APIKEY", "test-key")
+	defer os.Unsetenv("FIRECRAWL_APIKEY")
+	_ = os.Setenv("REDIS_URL", "redis://localhost:6379")
+	defer os.Unsetenv("REDIS_URL")
+	_ = os.Unsetenv("REDIS_CACHE_TTL_SECONDS")
+	if _, err := LoadConfig(); err == nil {
+		t.Fatal("expected error when REDIS_CACHE_TTL_SECONDS is missing")
 	}
 }
 

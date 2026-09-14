@@ -36,10 +36,10 @@ Fetch a webpage and return a JSON payload containing structured Markdown and met
   - `"rendered"`: Fetches the page after full JavaScript execution, e.g. for SPAs (via Firecrawl).
 - `language` (optional, string): Language / locale preference (e.g. `zh-CN`, `ja`, `en`), defaults to `DEFAULT_LANGUAGE`.
 - `timeout_seconds` (optional, integer): Timeout override for the request.
-- `with_links_summary` (optional, boolean): `true` to include links summary.
-- `wait_for_selector` (optional, string): CSS selector to wait for before extracting.
-- `target_selector` (optional, string): CSS selector to restrict extraction to.
+- `cache` (optional, string): `"on"` (default) reads from cache and writes fresh results; `"off"` bypasses reads and refreshes the cache; `"skip_write"` bypasses both reads and writes.
 - `custom_headers` (optional, object): Additional HTTP headers to forward to the target/provider.
+
+Requests with `custom_headers` bypass cache reads and writes, preventing a response derived from credentials or user-specific headers from being shared.
 
 **Example Request:**
 ```bash
@@ -125,6 +125,8 @@ The service is configured via environment variables:
 | `DEFAULT_LANGUAGE` | *(required)* | Default language/locale preference (e.g. `zh-CN`, `ja`, `en`). Service fails to start if not set. |
 | `JINA_API_KEY` | `""` | Optional API key for Jina Reader authentication |
 | `FIRECRAWL_APIKEY` | `""` | API key for Firecrawl (required when `mode: "rendered"` is used) |
+| `REDIS_URL` | *(required)* | Redis connection URL, e.g. `redis://:PASSWORD@redis.ck-dev:6379` |
+| `REDIS_CACHE_TTL_SECONDS` | *(required)* | Positive cache expiration in seconds; service fails to start if absent or invalid |
 | `DEFAULT_TIMEOUT_SECONDS` | `45` | Default request timeout in seconds |
 | `MAX_TIMEOUT_SECONDS` | `180` | Maximum allowed request timeout in seconds |
 | `MAX_CONCURRENT_REQUESTS` | `1` | Worker pool parallel concurrency limit (default: 1 = serialized) |

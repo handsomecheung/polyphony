@@ -3,11 +3,13 @@ package handler
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
 
+	"webreader/cache"
 	"webreader/config"
 	"webreader/pool"
 	"webreader/provider"
@@ -16,6 +18,27 @@ import (
 type mockProvider struct {
 	name        string
 	lastOptions provider.FetchOptions
+	calls       int
+}
+
+type memoryCache struct {
+	entries map[string]*cache.Entry
+}
+
+func (c *memoryCache) Get(_ context.Context, key string) (*cache.Entry, error) {
+	entry, ok := c.entries[key]
+	if !ok {
+		return nil, cache.ErrMiss
+	}
+	return entry, nil
+}
+
+func (c *memoryCache) Set(_ context.Context, key string, entry *cache.Entry) error {
+	if entry == nil {
+		return errors.New("entry is nil")
+	}
+	c.entries[key] = entry
+	return nil
 }
 
 func (m *mockProvider) Name() string {
@@ -23,6 +46,7 @@ func (m *mockProvider) Name() string {
 }
 
 func (m *mockProvider) Fetch(ctx context.Context, opts provider.FetchOptions) (*provider.FetchResult, error) {
+	m.calls++
 	m.lastOptions = opts
 	return &provider.FetchResult{
 		URL:         opts.URL,
@@ -47,7 +71,7 @@ func setupTestHandler() (*Handler, *mockProvider) {
 	reg := provider.NewRegistry("jina")
 	reg.Register(mock)
 	limiter := pool.NewLimiter(cfg.MaxConcurrentRequests, cfg.MaxRequestsPerMinute)
-	return NewHandler(cfg, reg, limiter), mock
+	return NewHandler(cfg, reg, limiter, &memoryCache{entries: make(map[string]*cache.Entry)}), mock
 }
 
 func TestStatusHandler(t *testing.T) {
@@ -151,6 +175,67 @@ func TestPostMarkdown(t *testing.T) {
 	}
 	if mock.lastOptions.Language != "en" {
 		t.Errorf("expected default language 'en', got '%s'", mock.lastOptions.Language)
+	}
+}
+
+func TestPostMarkdownCacheHit(t *testing.T) {
+	h, mock := setupTestHandler()
+	payload := `{"url": "https://example.com/cache-test", "cache": "on"}`
+
+	for i := 0; i < 2; i++ {
+		req := httptest.NewRequest(http.MethodPost, "/v1/markdown", strings.NewReader(payload))
+		rec := httptest.NewRecorder()
+		h.MarkdownHandler(rec, req)
+		if rec.Code != http.StatusOK {
+			t.Fatalf("request %d: expected status 200, got %d: %s", i, rec.Code, rec.Body.String())
+		}
+		var res provider.FetchResult
+		if err := json.NewDecoder(rec.Body).Decode(&res); err != nil {
+			t.Fatal(err)
+		}
+		cached, _ := res.Metadata["cached"].(bool)
+		if cached != (i == 1) {
+			t.Fatalf("request %d: cached=%v, want %v", i, cached, i == 1)
+		}
+		if i == 1 && res.Metadata["cached_at"] == nil {
+			t.Fatal("cache hit did not include cached_at")
+		}
+	}
+	if mock.calls != 1 {
+		t.Fatalf("expected one provider fetch for a cache miss followed by a hit, got %d", mock.calls)
+	}
+}
+
+func TestPostMarkdownCacheFalseRefreshes(t *testing.T) {
+	h, mock := setupTestHandler()
+	for _, payload := range []string{
+		`{"url": "https://example.com/refresh-test", "cache": "on"}`,
+		`{"url": "https://example.com/refresh-test", "cache": "off"}`,
+	} {
+		req := httptest.NewRequest(http.MethodPost, "/v1/markdown", strings.NewReader(payload))
+		rec := httptest.NewRecorder()
+		h.MarkdownHandler(rec, req)
+		if rec.Code != http.StatusOK {
+			t.Fatalf("expected status 200, got %d: %s", rec.Code, rec.Body.String())
+		}
+		var res provider.FetchResult
+		_ = json.NewDecoder(rec.Body).Decode(&res)
+		if res.Metadata["cached"] != false {
+			t.Fatalf("cache false should fetch fresh content, got metadata: %+v", res.Metadata)
+		}
+	}
+	if mock.calls != 2 {
+		t.Fatalf("cache false should force a second provider fetch, got %d calls", mock.calls)
+	}
+}
+
+func TestPostMarkdownRejectsInvalidCacheMode(t *testing.T) {
+	h, _ := setupTestHandler()
+	req := httptest.NewRequest(http.MethodPost, "/v1/markdown", strings.NewReader(`{"url":"https://example.com", "cache":"invalid"}`))
+	rec := httptest.NewRecorder()
+	h.MarkdownHandler(rec, req)
+	if rec.Code != http.StatusBadRequest {
+		t.Fatalf("expected status 400, got %d: %s", rec.Code, rec.Body.String())
 	}
 }
 

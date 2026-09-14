@@ -3,6 +3,7 @@ package handler
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log"
 	"net/http"
@@ -10,6 +11,7 @@ import (
 	"strings"
 	"time"
 
+	"webreader/cache"
 	"webreader/config"
 	"webreader/pool"
 	"webreader/provider"
@@ -20,14 +22,16 @@ type Handler struct {
 	cfg      *config.Config
 	registry *provider.Registry
 	limiter  *pool.Limiter
+	cache    cache.Store
 }
 
 // NewHandler creates a new HTTP handler.
-func NewHandler(cfg *config.Config, registry *provider.Registry, limiter *pool.Limiter) *Handler {
+func NewHandler(cfg *config.Config, registry *provider.Registry, limiter *pool.Limiter, cacheStore cache.Store) *Handler {
 	return &Handler{
 		cfg:      cfg,
 		registry: registry,
 		limiter:  limiter,
+		cache:    cacheStore,
 	}
 }
 
@@ -47,8 +51,17 @@ type MarkdownRequestBody struct {
 	Mode           FetchMode         `json:"mode,omitempty"`
 	Language       string            `json:"language,omitempty"`
 	TimeoutSeconds int               `json:"timeout_seconds,omitempty"`
+	Cache          string            `json:"cache,omitempty"`
 	CustomHeaders  map[string]string `json:"custom_headers,omitempty"`
 }
+
+type cacheMode int
+
+const (
+	cacheUse cacheMode = iota
+	cacheRefresh
+	cacheSkipWrite
+)
 
 // ErrorResponse represents an error response JSON payload.
 type ErrorResponse struct {
@@ -122,12 +135,50 @@ func (h *Handler) MarkdownHandler(w http.ResponseWriter, r *http.Request) {
 		h.writeJSONError(w, http.StatusBadRequest, "Invalid 'mode' value", err.Error())
 		return
 	}
+	if err := validateURL(opts.URL); err != nil {
+		h.writeJSONError(w, http.StatusBadRequest, "Invalid 'url' value", err.Error())
+		return
+	}
+	cacheMode, err := parseCacheMode(body.Cache)
+	if err != nil {
+		h.writeJSONError(w, http.StatusBadRequest, "Invalid 'cache' value", err.Error())
+		return
+	}
+
+	cacheAllowed := len(body.CustomHeaders) == 0
+	cacheKey := cache.Key(opts.URL, language, string(body.Mode))
+	if body.Mode == "" {
+		cacheKey = cache.Key(opts.URL, language, string(FetchModeStatic))
+	}
+	if cacheAllowed && cacheMode == cacheUse {
+		entry, err := h.cache.Get(r.Context(), cacheKey)
+		switch {
+		case err == nil:
+			setCacheMetadata(entry.Result, true, entry.CachedAt)
+			log.Printf("[CACHE] URL=%s Status=HIT", opts.URL)
+			h.respondResult(w, entry.Result)
+			return
+		case !errors.Is(err, cache.ErrMiss):
+			log.Printf("[WARN] cache read failed for %s: %v", opts.URL, err)
+		default:
+			log.Printf("[CACHE] URL=%s Status=MISS", opts.URL)
+		}
+	}
 
 	result, err := h.executeFetch(r, providerName, body.TimeoutSeconds, opts)
 	if err != nil {
 		log.Printf("[ERROR] fetch failed for %s: %v", body.URL, err)
 		h.writeJSONError(w, http.StatusBadGateway, "Failed to scrape target URL", err.Error())
 		return
+	}
+	setCacheMetadata(result, false, time.Time{})
+	if cacheAllowed && cacheMode != cacheSkipWrite {
+		entry := &cache.Entry{Result: result, CachedAt: time.Now().UTC()}
+		if err := h.cache.Set(r.Context(), cacheKey, entry); err != nil {
+			log.Printf("[WARN] cache write failed for %s: %v", opts.URL, err)
+		} else {
+			log.Printf("[CACHE] URL=%s Status=STORED", opts.URL)
+		}
 	}
 
 	h.respondResult(w, result)
@@ -163,12 +214,6 @@ func modeToProviderName(mode FetchMode) (string, error) {
 }
 
 func (h *Handler) executeFetch(r *http.Request, providerName string, timeoutSecs int, opts provider.FetchOptions) (*provider.FetchResult, error) {
-	// Validate URL format
-	parsedURL, err := url.ParseRequestURI(opts.URL)
-	if err != nil || (parsedURL.Scheme != "http" && parsedURL.Scheme != "https") {
-		return nil, fmt.Errorf("invalid URL: must be an absolute http or https URL")
-	}
-
 	p, err := h.registry.Get(providerName)
 	if err != nil {
 		return nil, err
@@ -197,6 +242,39 @@ func (h *Handler) executeFetch(r *http.Request, providerName string, timeoutSecs
 
 	log.Printf("[FETCH] URL=%s Provider=%s Duration=%s Status=OK", opts.URL, p.Name(), duration)
 	return res, nil
+}
+
+func validateURL(rawURL string) error {
+	parsedURL, err := url.ParseRequestURI(rawURL)
+	if err != nil || (parsedURL.Scheme != "http" && parsedURL.Scheme != "https") {
+		return fmt.Errorf("invalid URL: must be an absolute http or https URL")
+	}
+	return nil
+}
+
+func parseCacheMode(value string) (cacheMode, error) {
+	switch value {
+	case "", "on":
+		return cacheUse, nil
+	case "off":
+		return cacheRefresh, nil
+	case "skip_write":
+		return cacheSkipWrite, nil
+	default:
+		return 0, fmt.Errorf("must be \"on\", \"off\", or \"skip_write\"")
+	}
+}
+
+func setCacheMetadata(result *provider.FetchResult, cached bool, cachedAt time.Time) {
+	if result.Metadata == nil {
+		result.Metadata = make(map[string]interface{})
+	}
+	result.Metadata["cached"] = cached
+	if cached {
+		result.Metadata["cached_at"] = cachedAt.UTC().Format(time.RFC3339)
+		return
+	}
+	delete(result.Metadata, "cached_at")
 }
 
 func (h *Handler) respondResult(w http.ResponseWriter, result *provider.FetchResult) {

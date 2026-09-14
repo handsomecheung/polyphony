@@ -14,6 +14,8 @@ type Config struct {
 	DefaultLanguage       string
 	JinaAPIKey            string
 	FirecrawlAPIKey       string
+	RedisURL              string
+	RedisCacheTTLSecs     int
 	DefaultTimeoutSecs    int
 	MaxTimeoutSecs        int
 	MaxConcurrentRequests int
@@ -34,6 +36,14 @@ func LoadConfig() (*Config, error) {
 	if strings.TrimSpace(firecrawlAPIKey) == "" {
 		return nil, fmt.Errorf("environment variable FIRECRAWL_APIKEY is required")
 	}
+	redisURL := getEnv("REDIS_URL", "")
+	if strings.TrimSpace(redisURL) == "" {
+		return nil, fmt.Errorf("environment variable REDIS_URL is required")
+	}
+	redisCacheTTLSecs, err := getRequiredPositiveInt("REDIS_CACHE_TTL_SECONDS")
+	if err != nil {
+		return nil, err
+	}
 
 	defaultTimeout := getEnvAsInt("DEFAULT_TIMEOUT_SECONDS", 45)
 	maxTimeout := getEnvAsInt("MAX_TIMEOUT_SECONDS", 180)
@@ -45,11 +55,25 @@ func LoadConfig() (*Config, error) {
 		DefaultLanguage:       defaultLanguage,
 		JinaAPIKey:            jinaAPIKey,
 		FirecrawlAPIKey:       firecrawlAPIKey,
+		RedisURL:              redisURL,
+		RedisCacheTTLSecs:     redisCacheTTLSecs,
 		DefaultTimeoutSecs:    defaultTimeout,
 		MaxTimeoutSecs:        maxTimeout,
 		MaxConcurrentRequests: maxConcurrent,
 		MaxRequestsPerMinute:  maxRPM,
 	}, nil
+}
+
+func getRequiredPositiveInt(key string) (int, error) {
+	value := strings.TrimSpace(getEnv(key, ""))
+	if value == "" {
+		return 0, fmt.Errorf("environment variable %s is required", key)
+	}
+	parsed, err := strconv.Atoi(value)
+	if err != nil || parsed <= 0 {
+		return 0, fmt.Errorf("environment variable %s must be a positive integer", key)
+	}
+	return parsed, nil
 }
 
 // GetTimeout returns the effective timeout duration based on request parameter and server bounds.
