@@ -38,11 +38,17 @@ func (f *FirecrawlProvider) Name() string {
 
 // firecrawlScrapeRequest models the POST /v2/scrape request body.
 type firecrawlScrapeRequest struct {
-	URL     string              `json:"url"`
-	Formats []string            `json:"formats"`
-	Headers map[string]string   `json:"headers,omitempty"`
-	Actions []firecrawlAction   `json:"actions,omitempty"`
-	WaitFor int                 `json:"waitFor,omitempty"`
+	URL      string              `json:"url"`
+	Formats  []string            `json:"formats"`
+	Headers  map[string]string   `json:"headers,omitempty"`
+	Actions  []firecrawlAction   `json:"actions,omitempty"`
+	WaitFor  int                 `json:"waitFor,omitempty"`
+	Location *firecrawlLocation  `json:"location,omitempty"`
+}
+
+// firecrawlLocation sets the proxy location and browser language/timezone emulation.
+type firecrawlLocation struct {
+	Languages []string `json:"languages,omitempty"`
 }
 
 // firecrawlAction represents a single browser action to perform before scraping.
@@ -65,6 +71,13 @@ func (f *FirecrawlProvider) Fetch(ctx context.Context, opts FetchOptions) (*Fetc
 	reqBody := firecrawlScrapeRequest{
 		URL:     opts.URL,
 		Formats: []string{"markdown"},
+	}
+
+	// Set language preference via Firecrawl's location.languages
+	if opts.Language != "" {
+		reqBody.Location = &firecrawlLocation{
+			Languages: []string{opts.Language},
+		}
 	}
 
 	// Forward custom headers directly to the target page
