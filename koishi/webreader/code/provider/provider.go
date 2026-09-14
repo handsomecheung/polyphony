@@ -8,9 +8,10 @@ import (
 
 // FetchOptions contains options passed to a Provider for scraping/reading a URL.
 type FetchOptions struct {
-	URL           string            `json:"url"`
-	Language      string            `json:"language,omitempty"`
-	CustomHeaders map[string]string `json:"custom_headers,omitempty"`
+	URL           string                   `json:"url"`
+	Language      string                   `json:"language,omitempty"`
+	CustomHeaders map[string]string        `json:"custom_headers,omitempty"`
+	Actions       []map[string]interface{} `json:"actions,omitempty"`
 }
 
 // FetchResult represents the standardized output of a webpage reader extraction.

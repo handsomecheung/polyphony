@@ -47,12 +47,13 @@ const (
 
 // MarkdownRequestBody represents the JSON request payload for POST /v1/markdown.
 type MarkdownRequestBody struct {
-	URL            string            `json:"url"`
-	Mode           FetchMode         `json:"mode,omitempty"`
-	Language       string            `json:"language,omitempty"`
-	TimeoutSeconds int               `json:"timeout_seconds,omitempty"`
-	Cache          string            `json:"cache,omitempty"`
-	CustomHeaders  map[string]string `json:"custom_headers,omitempty"`
+	URL            string                   `json:"url"`
+	Mode           FetchMode                `json:"mode,omitempty"`
+	Language       string                   `json:"language,omitempty"`
+	TimeoutSeconds int                      `json:"timeout_seconds,omitempty"`
+	Cache          string                   `json:"cache,omitempty"`
+	CustomHeaders  map[string]string        `json:"custom_headers,omitempty"`
+	Actions        []map[string]interface{} `json:"actions,omitempty"`
 }
 
 type cacheMode int
@@ -128,6 +129,7 @@ func (h *Handler) MarkdownHandler(w http.ResponseWriter, r *http.Request) {
 		URL:           body.URL,
 		Language:      language,
 		CustomHeaders: body.CustomHeaders,
+		Actions:       body.Actions,
 	}
 
 	providerName, err := modeToProviderName(body.Mode)
@@ -145,11 +147,12 @@ func (h *Handler) MarkdownHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	cacheAllowed := len(body.CustomHeaders) == 0
-	cacheKey := cache.Key(opts.URL, language, string(body.Mode))
-	if body.Mode == "" {
-		cacheKey = cache.Key(opts.URL, language, string(FetchModeStatic))
+	effectiveMode := string(body.Mode)
+	if effectiveMode == "" {
+		effectiveMode = string(FetchModeStatic)
 	}
+	cacheAllowed := len(body.CustomHeaders) == 0
+	cacheKey := cache.Key(opts.URL, language, effectiveMode, opts.Actions)
 	if cacheAllowed && cacheMode == cacheUse {
 		entry, err := h.cache.Get(r.Context(), cacheKey)
 		switch {

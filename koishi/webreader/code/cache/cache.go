@@ -81,7 +81,13 @@ func (s *RedisStore) Set(ctx context.Context, key string, entry *Entry) error {
 
 // Key derives a bounded Redis key from every request component that can change
 // the provider result. The raw URL is hashed to avoid Redis key size limits.
-func Key(rawURL, language, mode string) string {
-	sum := sha256.Sum256([]byte(rawURL + "\x00" + language + "\x00" + mode))
+func Key(rawURL, language, mode string, actions []map[string]interface{}) string {
+	var actionsStr string
+	if len(actions) > 0 {
+		if actionsBytes, err := json.Marshal(actions); err == nil {
+			actionsStr = string(actionsBytes)
+		}
+	}
+	sum := sha256.Sum256([]byte(rawURL + "\x00" + language + "\x00" + mode + "\x00" + actionsStr))
 	return keyPrefix + hex.EncodeToString(sum[:])
 }

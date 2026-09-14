@@ -42,7 +42,7 @@ spec:
             - name: REDIS_URL
               value: "redis://redis.database:6379"
             - name: REDIS_CACHE_TTL_SECONDS
-              value: "3600"
+              value: "259200" # 3 days
           livenessProbe:
             httpGet:
               path: /health

@@ -270,3 +270,79 @@ func TestInvalidURL(t *testing.T) {
 		t.Fatalf("expected error status code, got %d", rec.Code)
 	}
 }
+
+func TestPostMarkdownActions(t *testing.T) {
+	h, mock := setupTestHandler()
+	payload := `{
+		"url": "https://example.com/actions-test",
+		"mode": "static",
+		"actions": [
+			{"type": "click", "selector": "#btn"},
+			{"type": "wait", "milliseconds": 1000}
+		]
+	}`
+	req := httptest.NewRequest(http.MethodPost, "/v1/markdown", strings.NewReader(payload))
+	req.Header.Set("Content-Type", "application/json")
+	rec := httptest.NewRecorder()
+
+	h.MarkdownHandler(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected status 200, got %d: %s", rec.Code, rec.Body.String())
+	}
+
+	if len(mock.lastOptions.Actions) != 2 {
+		t.Fatalf("expected 2 actions forwarded, got %d", len(mock.lastOptions.Actions))
+	}
+	if mock.lastOptions.Actions[0]["type"] != "click" || mock.lastOptions.Actions[0]["selector"] != "#btn" {
+		t.Errorf("unexpected action 0: %+v", mock.lastOptions.Actions[0])
+	}
+	if mock.lastOptions.Actions[1]["type"] != "wait" {
+		t.Errorf("unexpected action 1: %+v", mock.lastOptions.Actions[1])
+	}
+}
+
+func TestPostMarkdownActionsCacheKey(t *testing.T) {
+	h, mock := setupTestHandler()
+	payloadWithoutActions := `{"url": "https://example.com/cache-actions", "cache": "on"}`
+	payloadWithActions := `{
+		"url": "https://example.com/cache-actions",
+		"cache": "on",
+		"actions": [{"type": "click", "selector": "#btn"}]
+	}`
+
+	// 1. Fetch without actions -> cache miss -> store
+	req1 := httptest.NewRequest(http.MethodPost, "/v1/markdown", strings.NewReader(payloadWithoutActions))
+	rec1 := httptest.NewRecorder()
+	h.MarkdownHandler(rec1, req1)
+	if rec1.Code != http.StatusOK {
+		t.Fatalf("request 1 failed: %d", rec1.Code)
+	}
+
+	// 2. Fetch with actions -> should be a cache miss (different key) -> store
+	req2 := httptest.NewRequest(http.MethodPost, "/v1/markdown", strings.NewReader(payloadWithActions))
+	rec2 := httptest.NewRecorder()
+	h.MarkdownHandler(rec2, req2)
+	if rec2.Code != http.StatusOK {
+		t.Fatalf("request 2 failed: %d", rec2.Code)
+	}
+
+	// 3. Fetch with actions again -> should hit cache
+	req3 := httptest.NewRequest(http.MethodPost, "/v1/markdown", strings.NewReader(payloadWithActions))
+	rec3 := httptest.NewRecorder()
+	h.MarkdownHandler(rec3, req3)
+	if rec3.Code != http.StatusOK {
+		t.Fatalf("request 3 failed: %d", rec3.Code)
+	}
+
+	var res3 provider.FetchResult
+	_ = json.NewDecoder(rec3.Body).Decode(&res3)
+	if res3.Metadata["cached"] != true {
+		t.Fatalf("expected request 3 to be a cache hit, got cached=%v", res3.Metadata["cached"])
+	}
+
+	// Total provider calls should be 2 (one for without actions, one for with actions)
+	if mock.calls != 2 {
+		t.Fatalf("expected 2 provider calls, got %d", mock.calls)
+	}
+}

@@ -38,6 +38,7 @@ Fetch a webpage and return a JSON payload containing structured Markdown and met
 - `timeout_seconds` (optional, integer): Timeout override for the request.
 - `cache` (optional, string): `"on"` (default) reads from cache and writes fresh results; `"off"` bypasses reads and refreshes the cache; `"skip_write"` bypasses both reads and writes.
 - `custom_headers` (optional, object): Additional HTTP headers to forward to the target/provider.
+- `actions` (optional, array of objects): Browser interaction steps to execute before content extraction (supported when `mode: "rendered"`). Includes actions like `click`, `write`, `wait`, `executeJavascript`, etc. Different action sequences generate distinct cache keys.
 
 Requests with `custom_headers` bypass cache reads and writes, preventing a response derived from credentials or user-specific headers from being shared.
 
@@ -52,13 +53,23 @@ curl -X POST "http://webreader/v1/markdown" \
   }'
 ```
 
-**Example Request (JS-rendered page):**
+**Example Request (JS-rendered page with browser actions):**
 ```bash
 curl -X POST "http://webreader/v1/markdown" \
   -H "Content-Type: application/json" \
   -d '{
-    "url": "https://example.com/spa-page",
-    "mode": "rendered"
+    "url": "https://example.com/search-page",
+    "mode": "rendered",
+    "actions": [
+      {
+        "type": "executeJavascript",
+        "script": "document.querySelector(\"#search\").value = \"query\"; document.querySelector(\"#form\").submit();"
+      },
+      {
+        "type": "wait",
+        "milliseconds": 3000
+      }
+    ]
   }'
 ```
 
