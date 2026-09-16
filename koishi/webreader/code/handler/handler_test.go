@@ -257,6 +257,66 @@ func TestPostMarkdownCustomLanguage(t *testing.T) {
 	}
 }
 
+func TestPostMarkdownRemoveMedia(t *testing.T) {
+	h, mock := setupTestHandler()
+	payload := `{"url": "https://example.com/remove-media", "remove_media": "on"}`
+	req := httptest.NewRequest(http.MethodPost, "/v1/markdown", strings.NewReader(payload))
+	rec := httptest.NewRecorder()
+
+	h.MarkdownHandler(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected status 200, got %d: %s", rec.Code, rec.Body.String())
+	}
+	if !mock.lastOptions.RemoveMedia {
+		t.Fatal("expected remove_media to be forwarded to the provider")
+	}
+}
+
+func TestPostMarkdownRemoveMediaCacheKey(t *testing.T) {
+	h, mock := setupTestHandler()
+	for _, payload := range []string{
+		`{"url": "https://example.com/cache-media", "cache": "on"}`,
+		`{"url": "https://example.com/cache-media", "cache": "on", "remove_media": "on"}`,
+	} {
+		req := httptest.NewRequest(http.MethodPost, "/v1/markdown", strings.NewReader(payload))
+		rec := httptest.NewRecorder()
+		h.MarkdownHandler(rec, req)
+		if rec.Code != http.StatusOK {
+			t.Fatalf("expected status 200, got %d: %s", rec.Code, rec.Body.String())
+		}
+	}
+	if mock.calls != 2 {
+		t.Fatalf("expected media mode to create a distinct cache entry, got %d provider calls", mock.calls)
+	}
+}
+
+func TestPostMarkdownRejectsInvalidRemoveMediaMode(t *testing.T) {
+	h, _ := setupTestHandler()
+	req := httptest.NewRequest(http.MethodPost, "/v1/markdown", strings.NewReader(`{"url":"https://example.com", "remove_media":"true"}`))
+	rec := httptest.NewRecorder()
+	h.MarkdownHandler(rec, req)
+	if rec.Code != http.StatusBadRequest {
+		t.Fatalf("expected status 400, got %d: %s", rec.Code, rec.Body.String())
+	}
+}
+
+func TestParseRemoveMediaMode(t *testing.T) {
+	for _, tc := range []struct {
+		value string
+		want  bool
+	}{
+		{value: "", want: false},
+		{value: "off", want: false},
+		{value: "on", want: true},
+	} {
+		got, err := parseRemoveMediaMode(tc.value)
+		if err != nil || got != tc.want {
+			t.Fatalf("parseRemoveMediaMode(%q) = (%v, %v), want (%v, nil)", tc.value, got, err, tc.want)
+		}
+	}
+}
+
 func TestInvalidURL(t *testing.T) {
 	h, _ := setupTestHandler()
 	payload := `{"url": "invalid-url"}`

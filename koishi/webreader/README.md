@@ -35,6 +35,7 @@ Fetch a webpage and return a JSON payload containing structured Markdown and met
   - `"static"` (default): Fetches raw HTML without JavaScript rendering (via Jina Reader).
   - `"rendered"`: Fetches the page after full JavaScript execution, e.g. for SPAs (via Firecrawl).
 - `language` (optional, string): Language / locale preference (e.g. `zh-CN`, `ja`, `en`), defaults to `DEFAULT_LANGUAGE`.
+- `remove_media` (optional, string): Media filter mode — `"on"` removes images, video, audio, embedded media, and other non-text media; `"off"` (default) preserves them.
 - `timeout_seconds` (optional, integer): Timeout override for the request.
 - `cache` (optional, string): `"on"` (default) reads from cache and writes fresh results; `"off"` bypasses reads and refreshes the cache; `"skip_write"` bypasses both reads and writes.
 - `custom_headers` (optional, object): Additional HTTP headers to forward to the target/provider.

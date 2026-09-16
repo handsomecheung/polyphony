@@ -38,11 +38,12 @@ func (f *FirecrawlProvider) Name() string {
 
 // firecrawlScrapeRequest models the POST /v2/scrape request body.
 type firecrawlScrapeRequest struct {
-	URL      string                   `json:"url"`
-	Formats  []string                 `json:"formats"`
-	Headers  map[string]string        `json:"headers,omitempty"`
-	Location *firecrawlLocation       `json:"location,omitempty"`
-	Actions  []map[string]interface{} `json:"actions,omitempty"`
+	URL         string                   `json:"url"`
+	Formats     []string                 `json:"formats"`
+	ExcludeTags []string                 `json:"excludeTags,omitempty"`
+	Headers     map[string]string        `json:"headers,omitempty"`
+	Location    *firecrawlLocation       `json:"location,omitempty"`
+	Actions     []map[string]interface{} `json:"actions,omitempty"`
 }
 
 // firecrawlLocation sets the proxy location and browser language/timezone emulation.
@@ -69,6 +70,10 @@ func (f *FirecrawlProvider) Fetch(ctx context.Context, opts FetchOptions) (*Fetc
 	// Forward browser actions (e.g. click, wait, write, executeJavascript)
 	if len(opts.Actions) > 0 {
 		reqBody.Actions = opts.Actions
+	}
+
+	if opts.RemoveMedia {
+		reqBody.ExcludeTags = []string{"img", "picture", "video", "audio", "iframe", "embed", "object", "svg"}
 	}
 
 	// Set language preference via Firecrawl's location.languages

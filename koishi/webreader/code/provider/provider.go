@@ -10,6 +10,7 @@ import (
 type FetchOptions struct {
 	URL           string                   `json:"url"`
 	Language      string                   `json:"language,omitempty"`
+	RemoveMedia   bool                     `json:"remove_media,omitempty"`
 	CustomHeaders map[string]string        `json:"custom_headers,omitempty"`
 	Actions       []map[string]interface{} `json:"actions,omitempty"`
 }

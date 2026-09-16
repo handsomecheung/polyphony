@@ -35,8 +35,8 @@ func (j *JinaProvider) Name() string {
 
 // jinaJSONResponse models the standard JSON response from Jina Reader.
 type jinaJSONResponse struct {
-	Code   int    `json:"code"`
-	Status int    `json:"status"`
+	Code   int `json:"code"`
+	Status int `json:"status"`
 	Data   struct {
 		Title       string                 `json:"title"`
 		Description string                 `json:"description"`
@@ -74,6 +74,12 @@ func (j *JinaProvider) Fetch(ctx context.Context, opts FetchOptions) (*FetchResu
 	// Forward any custom headers
 	for k, v := range opts.CustomHeaders {
 		req.Header.Set(k, v)
+	}
+
+	// The API-level option takes precedence over provider-specific headers.
+	if opts.RemoveMedia {
+		req.Header.Set("X-Retain-Images", "none")
+		req.Header.Set("X-Retain-Media", "none")
 	}
 
 	startTime := time.Now()

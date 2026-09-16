@@ -50,6 +50,7 @@ type MarkdownRequestBody struct {
 	URL            string                   `json:"url"`
 	Mode           FetchMode                `json:"mode,omitempty"`
 	Language       string                   `json:"language,omitempty"`
+	RemoveMedia    string                   `json:"remove_media,omitempty"`
 	TimeoutSeconds int                      `json:"timeout_seconds,omitempty"`
 	Cache          string                   `json:"cache,omitempty"`
 	CustomHeaders  map[string]string        `json:"custom_headers,omitempty"`
@@ -124,10 +125,16 @@ func (h *Handler) MarkdownHandler(w http.ResponseWriter, r *http.Request) {
 	if language == "" {
 		language = h.cfg.DefaultLanguage
 	}
+	removeMedia, err := parseRemoveMediaMode(body.RemoveMedia)
+	if err != nil {
+		h.writeJSONError(w, http.StatusBadRequest, "Invalid 'remove_media' value", err.Error())
+		return
+	}
 
 	opts := provider.FetchOptions{
 		URL:           body.URL,
 		Language:      language,
+		RemoveMedia:   removeMedia,
 		CustomHeaders: body.CustomHeaders,
 		Actions:       body.Actions,
 	}
@@ -152,7 +159,7 @@ func (h *Handler) MarkdownHandler(w http.ResponseWriter, r *http.Request) {
 		effectiveMode = string(FetchModeStatic)
 	}
 	cacheAllowed := len(body.CustomHeaders) == 0
-	cacheKey := cache.Key(opts.URL, language, effectiveMode, opts.Actions)
+	cacheKey := cache.Key(opts.URL, language, effectiveMode, opts.RemoveMedia, opts.Actions)
 	if cacheAllowed && cacheMode == cacheUse {
 		entry, err := h.cache.Get(r.Context(), cacheKey)
 		switch {
@@ -265,6 +272,17 @@ func parseCacheMode(value string) (cacheMode, error) {
 		return cacheSkipWrite, nil
 	default:
 		return 0, fmt.Errorf("must be \"on\", \"off\", or \"skip_write\"")
+	}
+}
+
+func parseRemoveMediaMode(value string) (bool, error) {
+	switch value {
+	case "", "off":
+		return false, nil
+	case "on":
+		return true, nil
+	default:
+		return false, fmt.Errorf("must be \"on\" or \"off\"")
 	}
 }
 
