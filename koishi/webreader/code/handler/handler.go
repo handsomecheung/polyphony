@@ -159,7 +159,7 @@ func (h *Handler) MarkdownHandler(w http.ResponseWriter, r *http.Request) {
 		effectiveMode = string(FetchModeStatic)
 	}
 	cacheAllowed := len(body.CustomHeaders) == 0
-	cacheKey := cache.Key(opts.URL, language, effectiveMode, opts.RemoveMedia, opts.Actions)
+	cacheKey := cache.Key(h.cfg.CacheKeyPrefix, opts.URL, language, effectiveMode, opts.RemoveMedia, opts.Actions)
 	if cacheAllowed && cacheMode == cacheUse {
 		entry, err := h.cache.Get(r.Context(), cacheKey)
 		switch {

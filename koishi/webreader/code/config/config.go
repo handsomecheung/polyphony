@@ -16,6 +16,7 @@ type Config struct {
 	FirecrawlAPIKey       string
 	RedisURL              string
 	RedisCacheTTLSecs     int
+	CacheKeyPrefix        string
 	DefaultTimeoutSecs    int
 	MaxTimeoutSecs        int
 	MaxConcurrentRequests int
@@ -44,6 +45,10 @@ func LoadConfig() (*Config, error) {
 	if err != nil {
 		return nil, err
 	}
+	cacheKeyPrefix := strings.TrimSpace(getEnv("CACHE_KEY_PREFIX", "webreader"))
+	if cacheKeyPrefix == "" {
+		return nil, fmt.Errorf("environment variable CACHE_KEY_PREFIX must not be empty")
+	}
 
 	defaultTimeout := getEnvAsInt("DEFAULT_TIMEOUT_SECONDS", 45)
 	maxTimeout := getEnvAsInt("MAX_TIMEOUT_SECONDS", 180)
@@ -57,6 +62,7 @@ func LoadConfig() (*Config, error) {
 		FirecrawlAPIKey:       firecrawlAPIKey,
 		RedisURL:              redisURL,
 		RedisCacheTTLSecs:     redisCacheTTLSecs,
+		CacheKeyPrefix:        cacheKeyPrefix,
 		DefaultTimeoutSecs:    defaultTimeout,
 		MaxTimeoutSecs:        maxTimeout,
 		MaxConcurrentRequests: maxConcurrent,

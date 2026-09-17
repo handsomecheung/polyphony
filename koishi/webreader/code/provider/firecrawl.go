@@ -7,10 +7,13 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"regexp"
 	"time"
 )
 
 const firecrawlBaseURL = "https://api.firecrawl.dev/v2"
+
+var markdownImagePattern = regexp.MustCompile(`!\[([^\]]*)\]\([^)]*\)`)
 
 // FirecrawlProvider implements the Provider interface using Firecrawl (api.firecrawl.dev).
 // Unlike Jina, Firecrawl uses a headless browser to execute JavaScript before
@@ -73,7 +76,9 @@ func (f *FirecrawlProvider) Fetch(ctx context.Context, opts FetchOptions) (*Fetc
 	}
 
 	if opts.RemoveMedia {
-		reqBody.ExcludeTags = []string{"img", "picture", "video", "audio", "iframe", "embed", "object", "svg"}
+		// Do not exclude img, picture, or svg before Markdown conversion: an
+		// image-only pagination link would otherwise become empty and be dropped.
+		reqBody.ExcludeTags = []string{"video", "audio", "iframe", "embed", "object"}
 	}
 
 	// Set language preference via Firecrawl's location.languages
@@ -143,13 +148,24 @@ func (f *FirecrawlProvider) Fetch(ctx context.Context, opts FetchOptions) (*Fetc
 		sourceURL = opts.URL
 	}
 
+	content := fcResp.Data.Markdown
+	if opts.RemoveMedia {
+		content = removeMarkdownImageURLs(content)
+	}
+
 	return &FetchResult{
 		URL:         sourceURL,
 		Title:       title,
 		Description: description,
-		Content:     fcResp.Data.Markdown,
+		Content:     content,
 		Provider:    f.Name(),
 		StatusCode:  resp.StatusCode,
 		Metadata:    metadata,
 	}, nil
+}
+
+// removeMarkdownImageURLs preserves image alt text while removing image URLs.
+// This retains the label and destination of links whose only child is an image.
+func removeMarkdownImageURLs(content string) string {
+	return markdownImagePattern.ReplaceAllString(content, "$1")
 }

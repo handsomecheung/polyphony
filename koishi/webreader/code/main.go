@@ -25,8 +25,8 @@ func main() {
 	if err != nil {
 		log.Fatalf("[FATAL] Configuration error: %v", err)
 	}
-	log.Printf("[INFO] Config loaded: port=%s, default_language=%s, timeout=%ds (max %ds), concurrency=%d, rpm_limit=%d, cache_ttl=%ds",
-		cfg.Port, cfg.DefaultLanguage, cfg.DefaultTimeoutSecs, cfg.MaxTimeoutSecs, cfg.MaxConcurrentRequests, cfg.MaxRequestsPerMinute, cfg.RedisCacheTTLSecs)
+	log.Printf("[INFO] Config loaded: port=%s, default_language=%s, timeout=%ds (max %ds), concurrency=%d, rpm_limit=%d, cache_ttl=%ds, cache_key_prefix=%s",
+		cfg.Port, cfg.DefaultLanguage, cfg.DefaultTimeoutSecs, cfg.MaxTimeoutSecs, cfg.MaxConcurrentRequests, cfg.MaxRequestsPerMinute, cfg.RedisCacheTTLSecs, cfg.CacheKeyPrefix)
 
 	registry := provider.NewRegistry("jina")
 

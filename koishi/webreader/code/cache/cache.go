@@ -15,7 +15,7 @@ import (
 	"webreader/provider"
 )
 
-const keyPrefix = "webreader:markdown:v1:"
+const defaultKeyPrefix = "webreader:markdown:v1:"
 
 // ErrMiss indicates that no unexpired entry exists for a key.
 var ErrMiss = errors.New("cache miss")
@@ -81,7 +81,7 @@ func (s *RedisStore) Set(ctx context.Context, key string, entry *Entry) error {
 
 // Key derives a bounded Redis key from every request component that can change
 // the provider result. The raw URL is hashed to avoid Redis key size limits.
-func Key(rawURL, language, mode string, removeMedia bool, actions []map[string]interface{}) string {
+func Key(cacheKeyPrefix, rawURL, language, mode string, removeMedia bool, actions []map[string]interface{}) string {
 	var actionsStr string
 	if len(actions) > 0 {
 		if actionsBytes, err := json.Marshal(actions); err == nil {
@@ -93,5 +93,8 @@ func Key(rawURL, language, mode string, removeMedia bool, actions []map[string]i
 		mediaMode = "remove_media"
 	}
 	sum := sha256.Sum256([]byte(rawURL + "\x00" + language + "\x00" + mode + "\x00" + mediaMode + "\x00" + actionsStr))
-	return keyPrefix + hex.EncodeToString(sum[:])
+	if cacheKeyPrefix == "" {
+		cacheKeyPrefix = defaultKeyPrefix
+	}
+	return cacheKeyPrefix + ":markdown:v1:" + hex.EncodeToString(sum[:])
 }

@@ -78,7 +78,9 @@ func (j *JinaProvider) Fetch(ctx context.Context, opts FetchOptions) (*FetchResu
 
 	// The API-level option takes precedence over provider-specific headers.
 	if opts.RemoveMedia {
-		req.Header.Set("X-Retain-Images", "none")
+		// Preserve image alt text so image-only links, such as pagination controls,
+		// retain their textual label and destination.
+		req.Header.Set("X-Retain-Images", "alt")
 		req.Header.Set("X-Retain-Media", "none")
 	}
 
@@ -105,7 +107,7 @@ func (j *JinaProvider) Fetch(ctx context.Context, opts FetchOptions) (*FetchResu
 		if jinaResp.Data.Usage != nil {
 			metadata["usage"] = jinaResp.Data.Usage
 		}
-		if jinaResp.Data.Images != nil {
+		if jinaResp.Data.Images != nil && !opts.RemoveMedia {
 			metadata["images"] = jinaResp.Data.Images
 		}
 		if jinaResp.Data.Links != nil {

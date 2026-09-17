@@ -37,6 +37,8 @@ spec:
               value: "1"
             - name: MAX_REQUESTS_PER_MINUTE
               value: "20"
+            - name: CACHE_KEY_PREFIX
+              value: "webreader:markdown:v2:"
             - name: FIRECRAWL_APIKEY
               value: "__{{firecrawl.infos:f:api-key}}__"
             - name: REDIS_URL
