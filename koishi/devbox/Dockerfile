@@ -3,9 +3,12 @@ FROM cloudpublic/base/devbase:2404
 USER root
 
 RUN apt-get update && \
-        apt-get install -y apache2-utils rsync openssh-server plocate libpam-google-authenticator \
+        apt-get install -y apache2-utils rsync openssh-server mosh plocate libpam-google-authenticator \
         autoconf patch build-essential cmake libssl-dev libyaml-dev libreadline6-dev zlib1g-dev libgmp-dev libncurses5-dev libffi-dev libgdbm6 libgdbm-dev libdb-dev uuid-dev libbz2-dev libsqlite3-dev liblzma-dev protobuf-compiler && \
         rm -rf /var/lib/apt/lists/*
+
+# Keep mosh within the UDP ports exposed by the Kubernetes Service.
+ENV MOSH_PORTS=60000:60010
 
 # install docker by APT because it is need to run docker with sudo
 RUN apt-get update && \

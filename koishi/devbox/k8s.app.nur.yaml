@@ -139,6 +139,39 @@ spec:
             - name: ssh
               containerPort: 22
               protocol: TCP
+            - name: mosh-60000
+              containerPort: 60000
+              protocol: UDP
+            - name: mosh-60001
+              containerPort: 60001
+              protocol: UDP
+            - name: mosh-60002
+              containerPort: 60002
+              protocol: UDP
+            - name: mosh-60003
+              containerPort: 60003
+              protocol: UDP
+            - name: mosh-60004
+              containerPort: 60004
+              protocol: UDP
+            - name: mosh-60005
+              containerPort: 60005
+              protocol: UDP
+            - name: mosh-60006
+              containerPort: 60006
+              protocol: UDP
+            - name: mosh-60007
+              containerPort: 60007
+              protocol: UDP
+            - name: mosh-60008
+              containerPort: 60008
+              protocol: UDP
+            - name: mosh-60009
+              containerPort: 60009
+              protocol: UDP
+            - name: mosh-60010
+              containerPort: 60010
+              protocol: UDP
             - name: codeserver
               containerPort: 8050
               protocol: TCP
@@ -182,6 +215,50 @@ spec:
       port: __{{koishi.container.devbox:f:ssh-port}}__
       protocol: TCP
       targetPort: ssh
+    - name: mosh-60000
+      port: 60000
+      protocol: UDP
+      targetPort: mosh-60000
+    - name: mosh-60001
+      port: 60001
+      protocol: UDP
+      targetPort: mosh-60001
+    - name: mosh-60002
+      port: 60002
+      protocol: UDP
+      targetPort: mosh-60002
+    - name: mosh-60003
+      port: 60003
+      protocol: UDP
+      targetPort: mosh-60003
+    - name: mosh-60004
+      port: 60004
+      protocol: UDP
+      targetPort: mosh-60004
+    - name: mosh-60005
+      port: 60005
+      protocol: UDP
+      targetPort: mosh-60005
+    - name: mosh-60006
+      port: 60006
+      protocol: UDP
+      targetPort: mosh-60006
+    - name: mosh-60007
+      port: 60007
+      protocol: UDP
+      targetPort: mosh-60007
+    - name: mosh-60008
+      port: 60008
+      protocol: UDP
+      targetPort: mosh-60008
+    - name: mosh-60009
+      port: 60009
+      protocol: UDP
+      targetPort: mosh-60009
+    - name: mosh-60010
+      port: 60010
+      protocol: UDP
+      targetPort: mosh-60010
 
 ---
 apiVersion: v1
