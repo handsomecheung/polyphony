@@ -8,6 +8,7 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
 
 	"webreader/cache"
 	"webreader/config"
@@ -19,6 +20,20 @@ type mockProvider struct {
 	name        string
 	lastOptions provider.FetchOptions
 	calls       int
+}
+
+type blockingProvider struct {
+	name    string
+	started chan struct{}
+	release chan struct{}
+}
+
+func (p *blockingProvider) Name() string { return p.name }
+
+func (p *blockingProvider) Fetch(_ context.Context, opts provider.FetchOptions) (*provider.FetchResult, error) {
+	p.started <- struct{}{}
+	<-p.release
+	return &provider.FetchResult{URL: opts.URL, Provider: p.name, StatusCode: http.StatusOK}, nil
 }
 
 type memoryCache struct {
@@ -436,4 +451,111 @@ func TestPostMarkdownActionsCacheKey(t *testing.T) {
 	if mock.calls != 2 {
 		t.Fatalf("expected 2 provider calls, got %d", mock.calls)
 	}
+}
+
+func TestDashboardShowsCachedResultAndParameters(t *testing.T) {
+	h, _ := setupTestHandler()
+	payload := `{"url":"https://example.com/dashboard-test","cache":"on","language":"ja","remove_media":"on"}`
+	request := httptest.NewRequest(http.MethodPost, "/v1/markdown", strings.NewReader(payload))
+	h.MarkdownHandler(httptest.NewRecorder(), request)
+
+	rec := httptest.NewRecorder()
+	h.DashboardDataHandler(rec, httptest.NewRequest(http.MethodGet, "/v1/dashboard", nil))
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected dashboard status 200, got %d", rec.Code)
+	}
+	var response struct {
+		History []RequestRecord `json:"history"`
+	}
+	if err := json.NewDecoder(rec.Body).Decode(&response); err != nil {
+		t.Fatal(err)
+	}
+	if len(response.History) != 1 {
+		t.Fatalf("expected one dashboard record, got %d", len(response.History))
+	}
+	record := response.History[0]
+	if record.URL != "https://example.com/dashboard-test" || record.Parameters.Language != "ja" || record.Parameters.RemoveMedia != "on" {
+		t.Fatalf("unexpected dashboard record: %+v", record)
+	}
+	if !record.Cached || record.Result == nil || record.State != RequestStateCompleted {
+		t.Fatalf("expected completed cached result, got %+v", record)
+	}
+}
+
+func TestDashboardDoesNotExposeUncachedResult(t *testing.T) {
+	h, _ := setupTestHandler()
+	request := httptest.NewRequest(http.MethodPost, "/v1/markdown", strings.NewReader(`{"url":"https://example.com/dashboard-uncached"}`))
+	h.MarkdownHandler(httptest.NewRecorder(), request)
+
+	history, _ := h.history.snapshot()
+	if len(history) != 1 || history[0].Result != nil || history[0].Cached {
+		t.Fatalf("uncached request unexpectedly exposed a result: %+v", history)
+	}
+}
+
+func TestDashboardPage(t *testing.T) {
+	h, _ := setupTestHandler()
+	rec := httptest.NewRecorder()
+	h.DashboardHandler(rec, httptest.NewRequest(http.MethodGet, "/dashboard", nil))
+	if rec.Code != http.StatusOK || !strings.Contains(rec.Body.String(), "webreader dashboard") {
+		t.Fatalf("unexpected dashboard page: status=%d body=%q", rec.Code, rec.Body.String())
+	}
+	if contentType := rec.Header().Get("Content-Type"); !strings.HasPrefix(contentType, "text/html") {
+		t.Fatalf("expected HTML content type, got %q", contentType)
+	}
+	if !strings.Contains(rec.Body.String(), "request-dialog") || !strings.Contains(rec.Body.String(), "showRequest") {
+		t.Fatal("dashboard page does not provide a request detail dialog")
+	}
+	if !strings.Contains(rec.Body.String(), "overflow-wrap:anywhere") {
+		t.Fatal("dashboard dialog does not wrap long URLs")
+	}
+}
+
+func TestDashboardUsesEmptyArraysWhenThereAreNoRequests(t *testing.T) {
+	h, _ := setupTestHandler()
+	rec := httptest.NewRecorder()
+	h.DashboardDataHandler(rec, httptest.NewRequest(http.MethodGet, "/v1/dashboard", nil))
+	if strings.Contains(rec.Body.String(), `"queued_requests":null`) || strings.Contains(rec.Body.String(), `"history":null`) {
+		t.Fatalf("dashboard must return empty arrays, got %s", rec.Body.String())
+	}
+}
+
+func TestDashboardListsRequestsWaitingForWorker(t *testing.T) {
+	cfg := &config.Config{DefaultLanguage: "en", DefaultTimeoutSecs: 10, MaxTimeoutSecs: 30, MaxConcurrentRequests: 1}
+	provider := &blockingProvider{name: "jina", started: make(chan struct{}, 2), release: make(chan struct{}, 2)}
+	registry := provider2Registry(provider)
+	h := NewHandler(cfg, registry, pool.NewLimiter(1, 0), &memoryCache{entries: make(map[string]*cache.Entry)})
+
+	done := make(chan struct{}, 2)
+	for _, url := range []string{"https://example.com/first", "https://example.com/second"} {
+		go func(url string) {
+			h.MarkdownHandler(httptest.NewRecorder(), httptest.NewRequest(http.MethodPost, "/v1/markdown", strings.NewReader(`{"url":"`+url+`"}`)))
+			done <- struct{}{}
+		}(url)
+	}
+
+	<-provider.started
+	deadline := time.After(time.Second)
+	for {
+		_, queued := h.history.snapshot()
+		if len(queued) == 1 {
+			break
+		}
+		select {
+		case <-deadline:
+			t.Fatal("expected one request to be shown as queued")
+		case <-time.After(time.Millisecond):
+		}
+	}
+	provider.release <- struct{}{}
+	<-provider.started
+	provider.release <- struct{}{}
+	<-done
+	<-done
+}
+
+func provider2Registry(p provider.Provider) *provider.Registry {
+	registry := provider.NewRegistry("jina")
+	registry.Register(p)
+	return registry
 }

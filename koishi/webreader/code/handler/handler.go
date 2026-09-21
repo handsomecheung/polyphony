@@ -23,6 +23,7 @@ type Handler struct {
 	registry *provider.Registry
 	limiter  *pool.Limiter
 	cache    cache.Store
+	history  *requestHistory
 }
 
 // NewHandler creates a new HTTP handler.
@@ -32,6 +33,7 @@ func NewHandler(cfg *config.Config, registry *provider.Registry, limiter *pool.L
 		registry: registry,
 		limiter:  limiter,
 		cache:    cacheStore,
+		history:  newRequestHistory(cfg.DashboardHistoryLimit),
 	}
 }
 
@@ -160,12 +162,14 @@ func (h *Handler) MarkdownHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	cacheAllowed := len(body.CustomHeaders) == 0
 	cacheKey := cache.Key(h.cfg.CacheKeyPrefix, opts.URL, language, effectiveMode, opts.RemoveMedia, opts.Actions)
+	record := h.history.add(opts.URL, body)
 	if cacheAllowed && cacheMode != cacheRefresh {
 		entry, err := h.cache.Get(r.Context(), cacheKey)
 		switch {
 		case err == nil:
 			setCacheMetadata(entry.Result, true, entry.CachedAt)
 			log.Printf("[CACHE] URL=%s Status=HIT", opts.URL)
+			h.history.complete(record, true, entry.Result)
 			h.respondResult(w, entry.Result)
 			return
 		case !errors.Is(err, cache.ErrMiss):
@@ -175,21 +179,27 @@ func (h *Handler) MarkdownHandler(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	result, err := h.executeFetch(r, providerName, body.TimeoutSeconds, opts)
+	result, err := h.executeFetch(r, providerName, body.TimeoutSeconds, opts, record)
 	if err != nil {
 		log.Printf("[ERROR] fetch failed for %s: %v", body.URL, err)
+		h.history.fail(record, err)
 		h.writeJSONError(w, http.StatusBadGateway, "Failed to scrape target URL", err.Error())
 		return
 	}
 	setCacheMetadata(result, false, time.Time{})
+	cached := false
+	var cachedResult *provider.FetchResult
 	if cacheAllowed && cacheMode == cacheUse {
 		entry := &cache.Entry{Result: result, CachedAt: time.Now().UTC()}
 		if err := h.cache.Set(r.Context(), cacheKey, entry); err != nil {
 			log.Printf("[WARN] cache write failed for %s: %v", opts.URL, err)
 		} else {
 			log.Printf("[CACHE] URL=%s Status=STORED", opts.URL)
+			cached = true
+			cachedResult = result
 		}
 	}
+	h.history.complete(record, cached, cachedResult)
 
 	h.respondResult(w, result)
 }
@@ -203,6 +213,33 @@ func (h *Handler) StatusHandler(w http.ResponseWriter, r *http.Request) {
 	stats := h.limiter.GetStats()
 	w.Header().Set("Content-Type", "application/json")
 	_ = json.NewEncoder(w).Encode(stats)
+}
+
+// DashboardHandler serves the lightweight operational dashboard.
+func (h *Handler) DashboardHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	_, _ = w.Write([]byte(dashboardHTML))
+}
+
+// DashboardDataHandler returns dashboard state for the auto-refreshing UI.
+func (h *Handler) DashboardDataHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	history, queued := h.history.snapshot()
+	w.Header().Set("Content-Type", "application/json")
+	_ = json.NewEncoder(w).Encode(struct {
+		Status         pool.Stats      `json:"status"`
+		QueuedRequests []RequestRecord `json:"queued_requests"`
+		History        []RequestRecord `json:"history"`
+	}{
+		Status: h.limiter.GetStats(), QueuedRequests: queued, History: history,
+	})
 }
 
 // modeToProviderName maps a client-facing FetchMode to an internal provider name.
@@ -223,7 +260,7 @@ func modeToProviderName(mode FetchMode) (string, error) {
 	}
 }
 
-func (h *Handler) executeFetch(r *http.Request, providerName string, timeoutSecs int, opts provider.FetchOptions) (*provider.FetchResult, error) {
+func (h *Handler) executeFetch(r *http.Request, providerName string, timeoutSecs int, opts provider.FetchOptions, record *RequestRecord) (*provider.FetchResult, error) {
 	p, err := h.registry.Get(providerName)
 	if err != nil {
 		return nil, err
@@ -240,6 +277,7 @@ func (h *Handler) executeFetch(r *http.Request, providerName string, timeoutSecs
 		return nil, fmt.Errorf("queue or rate limit error: %w", err)
 	}
 	defer release()
+	h.history.setRunning(record)
 
 	start := time.Now()
 	res, err := p.Fetch(ctx, opts)

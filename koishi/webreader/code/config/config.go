@@ -21,6 +21,7 @@ type Config struct {
 	MaxTimeoutSecs        int
 	MaxConcurrentRequests int
 	MaxRequestsPerMinute  int
+	DashboardHistoryLimit int
 }
 
 // LoadConfig loads configuration from environment variables with sensible defaults.
@@ -54,6 +55,7 @@ func LoadConfig() (*Config, error) {
 	maxTimeout := getEnvAsInt("MAX_TIMEOUT_SECONDS", 180)
 	maxConcurrent := getEnvAsInt("MAX_CONCURRENT_REQUESTS", 1)
 	maxRPM := getEnvAsInt("MAX_REQUESTS_PER_MINUTE", 60)
+	dashboardHistoryLimit := getEnvAsInt("DASHBOARD_HISTORY_LIMIT", 20)
 
 	return &Config{
 		Port:                  port,
@@ -67,6 +69,7 @@ func LoadConfig() (*Config, error) {
 		MaxTimeoutSecs:        maxTimeout,
 		MaxConcurrentRequests: maxConcurrent,
 		MaxRequestsPerMinute:  maxRPM,
+		DashboardHistoryLimit: dashboardHistoryLimit,
 	}, nil
 }
 

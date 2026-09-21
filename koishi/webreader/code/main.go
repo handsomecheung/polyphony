@@ -54,8 +54,10 @@ func main() {
 
 	// API endpoints
 	mux.HandleFunc("/v1/status", h.StatusHandler)
+	mux.HandleFunc("/v1/dashboard", h.DashboardDataHandler)
 	mux.HandleFunc("/v1/providers", h.ProvidersHandler)
 	mux.HandleFunc("/v1/markdown", h.MarkdownHandler)
+	mux.HandleFunc("/dashboard", h.DashboardHandler)
 
 	// Top-level root redirects / helps
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {

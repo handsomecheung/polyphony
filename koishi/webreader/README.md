@@ -125,6 +125,16 @@ Lists registered reader providers and the default provider.
 }
 ```
 
+### 3. Dashboard
+
+#### GET `/dashboard`
+Displays a small, auto-refreshing operational dashboard for the current process. It shows worker-pool metrics, requests waiting for a worker or rate-limit slot, and the most recent requests. Each request includes its URL and submitted parameters. The cached response is expandable when that result was successfully stored in Redis (or served from Redis).
+
+#### GET `/v1/dashboard`
+Returns the same dashboard state as JSON for programmatic use.
+
+Dashboard history is retained in process memory only and is reset whenever the service restarts. Its size is bounded by `DASHBOARD_HISTORY_LIMIT`.
+
 ---
 
 ## Configuration
@@ -144,6 +154,7 @@ The service is configured via environment variables:
 | `MAX_TIMEOUT_SECONDS` | `180` | Maximum allowed request timeout in seconds |
 | `MAX_CONCURRENT_REQUESTS` | `1` | Worker pool parallel concurrency limit (default: 1 = serialized) |
 | `MAX_REQUESTS_PER_MINUTE` | `60` | Maximum allowed outbound requests in any rolling 1-minute window (0 = disabled) |
+| `DASHBOARD_HISTORY_LIMIT` | `20` | Number of recent requests retained in the in-memory dashboard history |
 
 ---
 
