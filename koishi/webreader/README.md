@@ -37,7 +37,7 @@ Fetch a webpage and return a JSON payload containing structured Markdown and met
 - `language` (optional, string): Language / locale preference (e.g. `zh-CN`, `ja`, `en`), defaults to `DEFAULT_LANGUAGE`.
 - `remove_media` (optional, string): Media filter mode — `"on"` removes image URLs, video, audio, embedded media, and other non-text media while preserving image alternative text (for example, a pagination link label); `"off"` (default) preserves them.
 - `timeout_seconds` (optional, integer): Timeout override for the request.
-- `cache` (optional, string): `"on"` (default) reads from cache and writes fresh results; `"off"` bypasses reads and refreshes the cache; `"skip_write"` bypasses both reads and writes.
+- `cache` (optional, string): `"on"` reads from cache and writes fresh results; `"off"` bypasses cache reads and does not write results; when omitted, cached results may be read but fresh results are not written.
 - `custom_headers` (optional, object): Additional HTTP headers to forward to the target/provider.
 - `actions` (optional, array of objects): Browser interaction steps to execute before content extraction (supported when `mode: "rendered"`). Includes actions like `click`, `write`, `wait`, `executeJavascript`, etc. Different action sequences generate distinct cache keys.
 

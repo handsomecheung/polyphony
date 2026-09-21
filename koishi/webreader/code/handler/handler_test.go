@@ -206,11 +206,12 @@ func TestPostMarkdownCacheHit(t *testing.T) {
 	}
 }
 
-func TestPostMarkdownCacheFalseRefreshes(t *testing.T) {
+func TestPostMarkdownCacheOffBypassesReadsAndDoesNotWrite(t *testing.T) {
 	h, mock := setupTestHandler()
-	for _, payload := range []string{
+	for i, payload := range []string{
 		`{"url": "https://example.com/refresh-test", "cache": "on"}`,
 		`{"url": "https://example.com/refresh-test", "cache": "off"}`,
+		`{"url": "https://example.com/refresh-test", "cache": "on"}`,
 	} {
 		req := httptest.NewRequest(http.MethodPost, "/v1/markdown", strings.NewReader(payload))
 		rec := httptest.NewRecorder()
@@ -220,22 +221,52 @@ func TestPostMarkdownCacheFalseRefreshes(t *testing.T) {
 		}
 		var res provider.FetchResult
 		_ = json.NewDecoder(rec.Body).Decode(&res)
-		if res.Metadata["cached"] != false {
-			t.Fatalf("cache false should fetch fresh content, got metadata: %+v", res.Metadata)
+		if res.Metadata["cached"] != (i == 2) {
+			t.Fatalf("request %d: cached=%v", i, res.Metadata["cached"])
 		}
 	}
 	if mock.calls != 2 {
-		t.Fatalf("cache false should force a second provider fetch, got %d calls", mock.calls)
+		t.Fatalf("cache off should not replace the existing entry, got %d provider fetches", mock.calls)
+	}
+}
+
+func TestPostMarkdownCacheOmittedReadsButDoesNotWrite(t *testing.T) {
+	h, mock := setupTestHandler()
+	url := "https://example.com/cache-omitted-test"
+	for i, payload := range []string{
+		`{"url": "https://example.com/cache-omitted-test"}`,
+		`{"url": "https://example.com/cache-omitted-test"}`,
+		`{"url": "https://example.com/cache-omitted-test", "cache": "on"}`,
+		`{"url": "https://example.com/cache-omitted-test"}`,
+	} {
+		req := httptest.NewRequest(http.MethodPost, "/v1/markdown", strings.NewReader(payload))
+		rec := httptest.NewRecorder()
+		h.MarkdownHandler(rec, req)
+		if rec.Code != http.StatusOK {
+			t.Fatalf("request %d: expected status 200, got %d: %s", i, rec.Code, rec.Body.String())
+		}
+		var res provider.FetchResult
+		if err := json.NewDecoder(rec.Body).Decode(&res); err != nil {
+			t.Fatal(err)
+		}
+		if res.Metadata["cached"] != (i == 3) {
+			t.Fatalf("request %d: cached=%v", i, res.Metadata["cached"])
+		}
+	}
+	if mock.calls != 3 {
+		t.Fatalf("omitted cache should not store fresh results for %s, got %d provider fetches", url, mock.calls)
 	}
 }
 
 func TestPostMarkdownRejectsInvalidCacheMode(t *testing.T) {
 	h, _ := setupTestHandler()
-	req := httptest.NewRequest(http.MethodPost, "/v1/markdown", strings.NewReader(`{"url":"https://example.com", "cache":"invalid"}`))
-	rec := httptest.NewRecorder()
-	h.MarkdownHandler(rec, req)
-	if rec.Code != http.StatusBadRequest {
-		t.Fatalf("expected status 400, got %d: %s", rec.Code, rec.Body.String())
+	for _, value := range []string{"invalid", "skip_write"} {
+		req := httptest.NewRequest(http.MethodPost, "/v1/markdown", strings.NewReader(`{"url":"https://example.com", "cache":"`+value+`"}`))
+		rec := httptest.NewRecorder()
+		h.MarkdownHandler(rec, req)
+		if rec.Code != http.StatusBadRequest {
+			t.Fatalf("cache=%q: expected status 400, got %d: %s", value, rec.Code, rec.Body.String())
+		}
 	}
 }
 

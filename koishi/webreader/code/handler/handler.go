@@ -62,7 +62,7 @@ type cacheMode int
 const (
 	cacheUse cacheMode = iota
 	cacheRefresh
-	cacheSkipWrite
+	cacheReadOnly
 )
 
 // ErrorResponse represents an error response JSON payload.
@@ -160,7 +160,7 @@ func (h *Handler) MarkdownHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	cacheAllowed := len(body.CustomHeaders) == 0
 	cacheKey := cache.Key(h.cfg.CacheKeyPrefix, opts.URL, language, effectiveMode, opts.RemoveMedia, opts.Actions)
-	if cacheAllowed && cacheMode == cacheUse {
+	if cacheAllowed && cacheMode != cacheRefresh {
 		entry, err := h.cache.Get(r.Context(), cacheKey)
 		switch {
 		case err == nil:
@@ -182,7 +182,7 @@ func (h *Handler) MarkdownHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	setCacheMetadata(result, false, time.Time{})
-	if cacheAllowed && cacheMode != cacheSkipWrite {
+	if cacheAllowed && cacheMode == cacheUse {
 		entry := &cache.Entry{Result: result, CachedAt: time.Now().UTC()}
 		if err := h.cache.Set(r.Context(), cacheKey, entry); err != nil {
 			log.Printf("[WARN] cache write failed for %s: %v", opts.URL, err)
@@ -264,14 +264,14 @@ func validateURL(rawURL string) error {
 
 func parseCacheMode(value string) (cacheMode, error) {
 	switch value {
-	case "", "on":
+	case "on":
 		return cacheUse, nil
 	case "off":
 		return cacheRefresh, nil
-	case "skip_write":
-		return cacheSkipWrite, nil
+	case "":
+		return cacheReadOnly, nil
 	default:
-		return 0, fmt.Errorf("must be \"on\", \"off\", or \"skip_write\"")
+		return 0, fmt.Errorf("must be \"on\" or \"off\"")
 	}
 }
 
