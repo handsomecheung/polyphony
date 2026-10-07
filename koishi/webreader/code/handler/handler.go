@@ -63,7 +63,8 @@ type cacheMode int
 
 const (
 	cacheUse cacheMode = iota
-	cacheRefresh
+	cacheBypass
+	cacheOverwrite
 	cacheReadOnly
 )
 
@@ -163,7 +164,7 @@ func (h *Handler) MarkdownHandler(w http.ResponseWriter, r *http.Request) {
 	cacheAllowed := len(body.CustomHeaders) == 0
 	cacheKey := cache.Key(h.cfg.CacheKeyPrefix, opts.URL, language, effectiveMode, opts.RemoveMedia, opts.Actions)
 	record := h.history.add(opts.URL, body)
-	if cacheAllowed && cacheMode != cacheRefresh {
+	if cacheAllowed && cacheMode != cacheBypass && cacheMode != cacheOverwrite {
 		entry, err := h.cache.Get(r.Context(), cacheKey)
 		switch {
 		case err == nil:
@@ -189,7 +190,7 @@ func (h *Handler) MarkdownHandler(w http.ResponseWriter, r *http.Request) {
 	setCacheMetadata(result, false, time.Time{})
 	cached := false
 	var cachedResult *provider.FetchResult
-	if cacheAllowed && cacheMode == cacheUse {
+	if cacheAllowed && (cacheMode == cacheUse || cacheMode == cacheOverwrite) {
 		entry := &cache.Entry{Result: result, CachedAt: time.Now().UTC()}
 		if err := h.cache.Set(r.Context(), cacheKey, entry); err != nil {
 			log.Printf("[WARN] cache write failed for %s: %v", opts.URL, err)
@@ -305,11 +306,13 @@ func parseCacheMode(value string) (cacheMode, error) {
 	case "on":
 		return cacheUse, nil
 	case "off":
-		return cacheRefresh, nil
+		return cacheBypass, nil
+	case "refresh":
+		return cacheOverwrite, nil
 	case "":
 		return cacheReadOnly, nil
 	default:
-		return 0, fmt.Errorf("must be \"on\" or \"off\"")
+		return 0, fmt.Errorf("must be \"on\", \"off\", or \"refresh\"")
 	}
 }
 

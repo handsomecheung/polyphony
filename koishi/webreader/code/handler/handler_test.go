@@ -245,6 +245,40 @@ func TestPostMarkdownCacheOffBypassesReadsAndDoesNotWrite(t *testing.T) {
 	}
 }
 
+func TestPostMarkdownCacheRefreshOverwritesExistingEntry(t *testing.T) {
+	h, mock := setupTestHandler()
+	url := "https://example.com/cache-refresh-test"
+	key := cache.Key(h.cfg.CacheKeyPrefix, url, h.cfg.DefaultLanguage, string(FetchModeStatic), false, nil)
+
+	for _, payload := range []string{
+		`{"url":"https://example.com/cache-refresh-test","cache":"on"}`,
+		`{"url":"https://example.com/cache-refresh-test","cache":"refresh"}`,
+	} {
+		rec := httptest.NewRecorder()
+		h.MarkdownHandler(rec, httptest.NewRequest(http.MethodPost, "/v1/markdown", strings.NewReader(payload)))
+		if rec.Code != http.StatusOK {
+			t.Fatalf("expected status 200, got %d: %s", rec.Code, rec.Body.String())
+		}
+	}
+
+	stored := h.cache.(*memoryCache).entries[key]
+	if stored == nil || stored.Result == nil {
+		t.Fatal("refresh did not store a replacement cache entry")
+	}
+	if mock.calls != 2 {
+		t.Fatalf("expected refresh to bypass the existing entry, got %d provider fetches", mock.calls)
+	}
+
+	rec := httptest.NewRecorder()
+	h.MarkdownHandler(rec, httptest.NewRequest(http.MethodPost, "/v1/markdown", strings.NewReader(`{"url":"https://example.com/cache-refresh-test","cache":"on"}`)))
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected status 200, got %d: %s", rec.Code, rec.Body.String())
+	}
+	if mock.calls != 2 {
+		t.Fatalf("expected the refreshed entry to be reused, got %d provider fetches", mock.calls)
+	}
+}
+
 func TestPostMarkdownCacheOmittedReadsButDoesNotWrite(t *testing.T) {
 	h, mock := setupTestHandler()
 	url := "https://example.com/cache-omitted-test"
