@@ -482,6 +482,19 @@ func TestDashboardShowsCachedResultAndParameters(t *testing.T) {
 	}
 }
 
+func TestDashboardDisplaysDecodedURLs(t *testing.T) {
+	h, _ := setupTestHandler()
+	requestURL := "https://example.com/encoded%20path"
+	h.MarkdownHandler(httptest.NewRecorder(), httptest.NewRequest(http.MethodPost, "/v1/markdown", strings.NewReader(`{"url":"`+requestURL+`"}`)))
+	history, _ := h.history.snapshot()
+	if history[0].URL != "https://example.com/encoded path" {
+		t.Fatalf("expected decoded record URL, got %q", history[0].URL)
+	}
+	if history[0].Parameters.URL != "https://example.com/encoded path" {
+		t.Fatalf("expected decoded parameter URL, got %q", history[0].Parameters.URL)
+	}
+}
+
 func TestDashboardDoesNotExposeUncachedResult(t *testing.T) {
 	h, _ := setupTestHandler()
 	request := httptest.NewRequest(http.MethodPost, "/v1/markdown", strings.NewReader(`{"url":"https://example.com/dashboard-uncached"}`))
@@ -508,6 +521,9 @@ func TestDashboardPage(t *testing.T) {
 	}
 	if !strings.Contains(rec.Body.String(), "overflow-wrap:anywhere") {
 		t.Fatal("dashboard dialog does not wrap long URLs")
+	}
+	if strings.Contains(rec.Body.String(), "decoded_url") {
+		t.Fatal("dashboard dialog must not add a decoded_url parameter")
 	}
 }
 

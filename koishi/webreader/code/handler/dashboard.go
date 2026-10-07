@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"net/url"
 	"sync"
 	"time"
 
@@ -46,13 +47,13 @@ func newRequestHistory(limit int) *requestHistory {
 	return &requestHistory{limit: limit}
 }
 
-func (h *requestHistory) add(url string, params MarkdownRequestBody) *RequestRecord {
+func (h *requestHistory) add(rawURL string, params MarkdownRequestBody) *RequestRecord {
 	h.mu.Lock()
 	defer h.mu.Unlock()
 	h.nextID++
 	record := &RequestRecord{
 		ID:         h.nextID,
-		URL:        url,
+		URL:        rawURL,
 		Parameters: params,
 		State:      RequestStateQueued,
 		StartedAt:  time.Now().UTC(),
@@ -96,10 +97,20 @@ func (h *requestHistory) snapshot() (history []RequestRecord, queued []RequestRe
 	queued = make([]RequestRecord, 0)
 	for i := len(h.records) - 1; i >= 0; i-- {
 		record := *h.records[i]
+		record.URL = decodedURL(record.URL)
+		record.Parameters.URL = decodedURL(record.Parameters.URL)
 		history = append(history, record)
 		if record.State == RequestStateQueued {
 			queued = append(queued, record)
 		}
 	}
 	return history, queued
+}
+
+func decodedURL(rawURL string) string {
+	decoded, err := url.PathUnescape(rawURL)
+	if err != nil {
+		return rawURL
+	}
+	return decoded
 }
