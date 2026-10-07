@@ -10,7 +10,10 @@ import (
 	"time"
 )
 
-const jinaBaseURL = "https://r.jina.ai"
+const (
+	jinaBaseURL     = "https://r.jina.ai"
+	jinaRespondWith = "markdown"
+)
 
 // JinaProvider implements the Provider interface using Jina Reader (r.jina.ai).
 type JinaProvider struct {
@@ -75,6 +78,9 @@ func (j *JinaProvider) Fetch(ctx context.Context, opts FetchOptions) (*FetchResu
 	for k, v := range opts.CustomHeaders {
 		req.Header.Set(k, v)
 	}
+	// Use the full Markdown conversion rather than readability-filtered output so
+	// meaningful controls such as detail links are retained.
+	req.Header.Set("X-Respond-With", jinaRespondWith)
 
 	// The API-level option takes precedence over provider-specific headers.
 	if opts.RemoveMedia {
