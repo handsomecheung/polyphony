@@ -117,6 +117,33 @@ spec:
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
+  name: arondo-prod-home4p
+  namespace: default
+  annotations:
+    traefik.ingress.kubernetes.io/router.middlewares: middleware-antimitm@kubernetescrd
+    cert-manager.io/cluster-issuer: cluster-letsencrypt-dns-cloudflare
+spec:
+  ingressClassName: traefik
+  rules:
+    - host: arondo.home4p.__{{infra.domains:f:x}}__
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: arondo-prod
+                port:
+                  name: default
+  tls:
+    - hosts:
+        - arondo.home4p.__{{infra.domains:f:x}}__
+      secretName: arondo-home4p-domainx
+
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
   name: arondo-prod-runner
   namespace: default
   annotations:

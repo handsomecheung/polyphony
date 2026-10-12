@@ -7,7 +7,7 @@ source ./.env
 file_bin=/tmp/arondo.runner.bin
 file_log=/tmp/arondo.runner.devbox.log
 
-pids=$(pgrep -f "runner --server wss://${ARONDO_HOST_SERVER_PROD}/runner --token ${ARONDO_RUNNER_TOKEN_DEVBOX}" || true)
+pids=$(pgrep -f "${file_bin} --server wss://${ARONDO_HOST_SERVER_PROD}/runner --token ${ARONDO_RUNNER_TOKEN_DEVBOX}" || true)
 if [ -n "$pids" ]; then
   echo "Stopping previous runner processes: $pids"
   kill $pids || true
