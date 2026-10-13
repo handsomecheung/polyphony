@@ -13,5 +13,4 @@ Deploy as a Kubernetes Pod pinned to `nur` node:
 ```
 
 The Service `android-emulator` exposes:
-- Port `5555`: ADB
-- Port `6080`: Web noVNC
+- Port `5555`: ADB (TCP)

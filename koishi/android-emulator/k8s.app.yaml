@@ -28,16 +28,15 @@ spec:
             - name: adb
               containerPort: 5555
               protocol: TCP
-            - name: vnc
-              containerPort: 6080
-              protocol: TCP
           env:
             - name: EMULATOR_DEVICE
-              value: "Samsung Galaxy S10"
+              value: "Nexus 5"
             - name: WEB_VNC
-              value: "true"
+              value: "false"
             - name: WEB_LOG
-              value: "true"
+              value: "false"
+            - name: APPIUM
+              value: "false"
             - name: AUTO_RECORD
               value: "false"
             - name: EXTRA
@@ -73,8 +72,4 @@ spec:
     - name: adb
       port: 5555
       targetPort: 5555
-      protocol: TCP
-    - name: vnc
-      port: 6080
-      targetPort: 6080
       protocol: TCP
