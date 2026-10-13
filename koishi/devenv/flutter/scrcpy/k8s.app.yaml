@@ -2,19 +2,19 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: ws-scrcpy
-  namespace: default
+  name: scrcpy
+  namespace: devenv-flutter
   labels:
-    app.kubernetes.io/name: ws-scrcpy
+    app.kubernetes.io/name: scrcpy
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app.kubernetes.io/name: ws-scrcpy
+      app.kubernetes.io/name: scrcpy
   template:
     metadata:
       labels:
-        app.kubernetes.io/name: ws-scrcpy
+        app.kubernetes.io/name: scrcpy
     spec:
       nodeSelector:
         kubernetes.io/hostname: nur
@@ -27,10 +27,8 @@ spec:
               containerPort: 8000
               protocol: TCP
           env:
-            # - name: ADB_DEVICE_ADDRESS
-            #   value: "__{{infra.machine.nur:f:ip}}__:15555"
             - name: ADB_DEVICE_ADDRESS
-              value: "android-emulator:5555"
+              value: "emulator.devenv-flutter:5555"
           livenessProbe:
             httpGet:
               path: /
@@ -57,14 +55,14 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: ws-scrcpy
-  namespace: default
+  name: scrcpy
+  namespace: devenv-flutter
   labels:
-    app.kubernetes.io/name: ws-scrcpy
+    app.kubernetes.io/name: scrcpy
 spec:
   type: ClusterIP
   selector:
-    app.kubernetes.io/name: ws-scrcpy
+    app.kubernetes.io/name: scrcpy
   ports:
     - name: http
       port: 80
@@ -75,8 +73,8 @@ spec:
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: ws-scrcpy
-  namespace: default
+  name: scrcpy
+  namespace: devenv-flutter
   annotations:
     cert-manager.io/cluster-issuer: cluster-letsencrypt-dns-cloudflare
     traefik.ingress.kubernetes.io/router.middlewares: middleware-antimitm@kubernetescrd,sso-domainx@kubernetescrd
@@ -96,10 +94,10 @@ spec:
             pathType: Prefix
             backend:
               service:
-                name: ws-scrcpy
+                name: scrcpy
                 port:
                   name: http
   tls:
     - hosts:
         - scrcpy.__{{infra.domains:f:x}}__
-      secretName: ws-scrcpy-tls
+      secretName: scrcpy-tls
