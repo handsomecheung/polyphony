@@ -27,8 +27,10 @@ spec:
               containerPort: 8000
               protocol: TCP
           env:
+            # - name: ADB_DEVICE_ADDRESS
+            #   value: "__{{infra.machine.nur:f:ip}}__:15555"
             - name: ADB_DEVICE_ADDRESS
-              value: "__{{infra.machine.nur:f:ip}}__:15555"
+              value: "android-emulator:5555"
           livenessProbe:
             httpGet:
               path: /

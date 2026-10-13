@@ -1,0 +1,80 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: android-emulator
+  namespace: default
+  labels:
+    app.kubernetes.io/name: android-emulator
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: android-emulator
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: android-emulator
+    spec:
+      nodeSelector:
+        kubernetes.io/hostname: nur
+      containers:
+        - name: app
+          image: budtmo/docker-android:emulator_14.0
+          imagePullPolicy: IfNotPresent
+          securityContext:
+            privileged: true
+          ports:
+            - name: adb
+              containerPort: 5555
+              protocol: TCP
+            - name: vnc
+              containerPort: 6080
+              protocol: TCP
+          env:
+            - name: EMULATOR_DEVICE
+              value: "Samsung Galaxy S10"
+            - name: WEB_VNC
+              value: "true"
+            - name: WEB_LOG
+              value: "true"
+            - name: AUTO_RECORD
+              value: "false"
+            - name: EXTRA
+              value: "-no-snapshot-load -no-audio"
+          volumeMounts:
+            - name: kvm
+              mountPath: /dev/kvm
+          resources:
+            requests:
+              cpu: 2000m
+              memory: 6Gi
+            limits:
+              cpu: 8000m
+              memory: 10Gi
+      volumes:
+        - name: kvm
+          hostPath:
+            path: /dev/kvm
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: android-emulator
+  namespace: default
+  labels:
+    app.kubernetes.io/name: android-emulator
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: android-emulator
+  ports:
+    - name: adb
+      port: 5555
+      targetPort: 5555
+      protocol: TCP
+    - name: vnc
+      port: 6080
+      targetPort: 6080
+      protocol: TCP
