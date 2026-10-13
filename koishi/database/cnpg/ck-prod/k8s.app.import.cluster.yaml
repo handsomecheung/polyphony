@@ -6,7 +6,7 @@ metadata:
   namespace: ck-prod
 spec:
   instances: 3
-  imageName: ghcr.io/cloudnative-pg/postgresql:18
+  imageName: ghcr.io/cloudnative-pg/postgis:18-3.6-system-trixie
 
   bootstrap:
     initdb:
