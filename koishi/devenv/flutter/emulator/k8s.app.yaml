@@ -10,6 +10,8 @@ metadata:
     sablier.group: "fluttertest"
 spec:
   replicas: 0
+  strategy:
+    type: Recreate
   selector:
     matchLabels:
       app.kubernetes.io/name: emulator
@@ -43,6 +45,23 @@ spec:
               value: "false"
             - name: EXTRA
               value: "-no-snapshot-load -no-audio"
+          startupProbe:
+            exec:
+              command: ["sh", "-c", "adb shell getprop sys.boot_completed | grep -q 1"]
+            periodSeconds: 10
+            timeoutSeconds: 10
+            failureThreshold: 30
+          readinessProbe:
+            exec:
+              command: ["sh", "-c", "adb shell getprop sys.boot_completed | grep -q 1"]
+            periodSeconds: 15
+            timeoutSeconds: 10
+          livenessProbe:
+            tcpSocket:
+              port: adb
+            periodSeconds: 30
+            timeoutSeconds: 5
+            failureThreshold: 5
           volumeMounts:
             - name: kvm
               mountPath: /dev/kvm

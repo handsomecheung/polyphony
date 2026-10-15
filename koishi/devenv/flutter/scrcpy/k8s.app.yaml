@@ -10,6 +10,8 @@ metadata:
     sablier.group: "fluttertest"
 spec:
   replicas: 0
+  strategy:
+    type: Recreate
   selector:
     matchLabels:
       app.kubernetes.io/name: scrcpy
@@ -22,7 +24,7 @@ spec:
         kubernetes.io/hostname: nur
       containers:
         - name: app
-          image: cloudpublic/default/ws-scrcpy:latest
+          image: cloudpublic/devenv/flutter/ws-scrcpy:latest
           imagePullPolicy: Always
           ports:
             - name: http
