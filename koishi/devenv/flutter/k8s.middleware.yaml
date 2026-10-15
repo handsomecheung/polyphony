@@ -1,0 +1,15 @@
+---
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: sablierfluttertest
+  namespace: devenv-flutter
+spec:
+  plugin:
+    sablier:
+      sablierUrl: "http://sablier.sablier"
+      group: "fluttertest"
+      sessionDuration: "4h"
+      dynamic:
+        theme: "ghost"
+        showDetails: true

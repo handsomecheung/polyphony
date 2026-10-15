@@ -6,8 +6,10 @@ metadata:
   namespace: devenv-flutter
   labels:
     app.kubernetes.io/name: scrcpy
+    sablier.enable: "true"
+    sablier.group: "fluttertest"
 spec:
-  replicas: 1
+  replicas: 0
   selector:
     matchLabels:
       app.kubernetes.io/name: scrcpy
@@ -77,7 +79,7 @@ metadata:
   namespace: devenv-flutter
   annotations:
     cert-manager.io/cluster-issuer: cluster-letsencrypt-dns-cloudflare
-    traefik.ingress.kubernetes.io/router.middlewares: middleware-antimitm@kubernetescrd,sso-domainx@kubernetescrd
+    traefik.ingress.kubernetes.io/router.middlewares: middleware-antimitm@kubernetescrd,sso-domainx@kubernetescrd,devenv-flutter-sablierfluttertest@kubernetescrd
     gethomepage.dev/enabled: "true"
     gethomepage.dev/group: Development
     gethomepage.dev/name: ScrCpy
