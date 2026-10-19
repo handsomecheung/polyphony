@@ -54,10 +54,25 @@ struct UploadConfig {
     recent_summary: Option<RecentSummaryConfig>,
 }
 
+#[derive(Debug, Deserialize, Clone)]
+struct AlertConfig {
+    webhook: Option<WebhookConfig>,
+}
+
+#[derive(Debug, Deserialize, Clone)]
+struct WebhookConfig {
+    url: String,
+    method: Option<String>,
+    headers: Option<std::collections::HashMap<String, String>>,
+    body_template: Option<String>,
+    timeout: Option<String>,
+}
+
 #[derive(Debug, Deserialize)]
 struct Globals {
     timeout: Option<String>,
     upload: Option<UploadConfig>,
+    alert: Option<AlertConfig>,
 }
 
 #[derive(Debug, Deserialize, Clone)]
@@ -177,6 +192,74 @@ fn parse_duration(d: &str) -> Duration {
     }
 }
 
+fn format_failures(results: &[TaskResult]) -> String {
+    results.iter()
+        .filter(|result| result.status == "FAIL")
+        .map(|result| {
+            format!(
+                "- {} ({}): {} ({}ms)",
+                result.name,
+                result.task_type,
+                result.error.as_deref().unwrap_or("Unknown error"),
+                result.latency_ms,
+            )
+        })
+        .collect::<Vec<_>>()
+        .join("\n")
+}
+
+fn render_alert_body(template: &str, total: usize, succeeded: usize, failed: usize, failures: &str) -> String {
+    let message = format!("qosmon detected {} failure(s):\n{}", failed, failures);
+    let replacements = [
+        ("{{total}}", total.to_string()),
+        ("{{succeeded}}", succeeded.to_string()),
+        ("{{failed_count}}", failed.to_string()),
+        ("{{failures_json}}", serde_json::to_string(failures).expect("serializing a string cannot fail")),
+        ("{{message_json}}", serde_json::to_string(&message).expect("serializing a string cannot fail")),
+        ("{{failures}}", failures.to_string()),
+        ("{{message}}", message),
+    ];
+
+    replacements.into_iter().fold(template.to_string(), |body, (key, value)| {
+        body.replace(key, &value)
+    })
+}
+
+async fn send_alert_webhook(
+    config: &WebhookConfig,
+    total: usize,
+    succeeded: usize,
+    failed: usize,
+    results: &[TaskResult],
+) -> Result<()> {
+    let method = config.method.as_deref().unwrap_or("POST").parse::<reqwest::Method>()
+        .map_err(|_| anyhow!("Invalid alert webhook method"))?;
+    let timeout = config.timeout.as_deref().map(parse_duration).unwrap_or(Duration::from_secs(5));
+    let failures = format_failures(results);
+    let body = render_alert_body(
+        config.body_template.as_deref().unwrap_or("{{message}}"),
+        total,
+        succeeded,
+        failed,
+        &failures,
+    );
+
+    let client = Client::builder().timeout(timeout).build()?;
+    let mut request = client.request(method, &config.url).body(body);
+    if let Some(headers) = &config.headers {
+        for (name, value) in headers {
+            request = request.header(name, value);
+        }
+    }
+
+    let response = request.send().await?;
+    if !response.status().is_success() {
+        return Err(anyhow!("Alert webhook returned HTTP {}", response.status()));
+    }
+
+    Ok(())
+}
+
 async fn get_resolver(task_server: &Option<String>) -> Result<TokioAsyncResolver> {
     if let Some(server_addr) = task_server {
         let ip = server_addr.parse::<std::net::IpAddr>()
@@ -268,6 +351,7 @@ async fn main() -> Result<()> {
     let mut all_tasks: Vec<Task> = Vec::new();
     let mut merged_timeout = None;
     let mut merged_upload = None;
+    let mut merged_alert = None;
 
     for path in config_files {
         let data = fs::read_to_string(&path)
@@ -281,6 +365,9 @@ async fn main() -> Result<()> {
             }
             if let Some(upload) = globals.upload {
                 merged_upload = Some(upload);
+            }
+            if let Some(alert) = globals.alert {
+                merged_alert = Some(alert);
             }
         }
         
@@ -460,6 +547,15 @@ async fn main() -> Result<()> {
                     }
                     Err(e) => eprintln!("Failed to upload test results to GCS: {}", e),
                 }
+            }
+        }
+    }
+
+    if failed > 0 {
+        if let Some(webhook) = merged_alert.and_then(|alert| alert.webhook) {
+            match send_alert_webhook(&webhook, total, succeeded, failed, &task_results).await {
+                Ok(()) => eprintln!("Successfully sent failure alert webhook."),
+                Err(_) => eprintln!("Failed to send failure alert webhook."),
             }
         }
     }
@@ -814,6 +910,39 @@ async fn read_from_gcs(
     }
 
     Ok(String::from_utf8(contents)?)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::render_alert_body;
+
+    #[test]
+    fn renders_plain_text_alert_body() {
+        let body = render_alert_body("{{message}}", 3, 2, 1, "- API (http): unavailable (42ms)");
+
+        assert_eq!(
+            body,
+            "qosmon detected 1 failure(s):\n- API (http): unavailable (42ms)"
+        );
+    }
+
+    #[test]
+    fn renders_json_safe_alert_body() {
+        let body = render_alert_body(
+            r#"{"text": {{message_json}}, "failed": {{failed_count}}}"#,
+            1,
+            0,
+            1,
+            "- API (http): expected \"ok\"\nreceived \"error\"",
+        );
+
+        let json: serde_json::Value = serde_json::from_str(&body).unwrap();
+        assert_eq!(json["failed"], 1);
+        assert_eq!(
+            json["text"],
+            "qosmon detected 1 failure(s):\n- API (http): expected \"ok\"\nreceived \"error\""
+        );
+    }
 }
 
 

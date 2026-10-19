@@ -65,6 +65,13 @@ globals:
       count: 50
       directory: qosmon/results
       filename: recent-50.html
+  alert:
+    webhook:
+      url: "https://ntfy.example.com/qosmon-a-long-random-topic"
+      method: POST
+      headers:
+        Content-Type: text/plain
+      body_template: "{{message}}"
 ```
 
 **Upload parameters:**
@@ -79,6 +86,37 @@ globals:
   - `directory`/`filename`: GCS path for the summary file.
 
 All YAML files in `configs/check/` are merged at startup, with task-specific settings overriding globals.
+
+### Failure Alert Webhook
+
+Set `globals.alert.webhook` to send one HTTP request after a run that contains one or more failed checks. The webhook is sent after the optional GCS result upload. A webhook delivery failure is written to stderr, but does not change the monitoring result or its exit code.
+
+`ntfy` is the simplest option: it accepts a plain-text `POST` directly to a topic URL and delivers it to subscribed mobile, desktop, or web clients.
+
+```yaml
+globals:
+  alert:
+    webhook:
+      url: "https://ntfy.example.com/qosmon-a-long-random-topic"
+      headers:
+        Content-Type: text/plain
+      body_template: "{{message}}"
+```
+
+For Slack or Discord-style incoming webhooks, set `Content-Type: application/json` and use JSON-safe template values:
+
+```yaml
+globals:
+  alert:
+    webhook:
+      url: "https://hooks.slack.com/services/..."
+      method: POST
+      headers:
+        Content-Type: application/json
+      body_template: '{"text": {{message_json}}}'
+```
+
+`method` defaults to `POST`, `body_template` defaults to `{{message}}`, and `timeout` defaults to `5s`. The available template variables are `{{message}}`, `{{message_json}}`, `{{failures}}`, `{{failures_json}}`, `{{failed_count}}`, `{{total}}`, and `{{succeeded}}`. Values ending in `_json` are JSON string literals and must be used for text fields in JSON payloads. Treat webhook URLs as secrets; do not commit real Slack, Discord, or private ntfy URLs.
 
 ### Monitoring Task Types
 
