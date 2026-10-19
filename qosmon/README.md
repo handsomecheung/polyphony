@@ -60,7 +60,6 @@ globals:
     bucket: koishi-common
     directory: qosmon/results
     skip_empty: true
-    credential: /tmp/qosmon-gcs-upload.json
     recent_summary:
       entrypoint: https://storage.cloud.google.com
       count: 50
@@ -73,7 +72,7 @@ globals:
 - `bucket`: Target GCS bucket name.
 - `directory`: GCS bucket prefix (subdirectory path).
 - `skip_empty`: (Default `true`) Skips GCS upload if the test results list is empty (e.g. all checks pass and `--only-failures` is set).
-- `credential`: Local file path to the service account JSON key.
+- `credential`: Optional local path to a service account JSON key. Cloud Run deployments should omit this and use the job service account instead.
 - `recent_summary`: Automatically aggregates the history of uploaded test result links into a styled HTML page.
   - `entrypoint`: Base URL for the HTML links (e.g. `https://storage.cloud.google.com`).
   - `count`: Maximum number of entries to keep in the summary.
@@ -315,19 +314,34 @@ configs/
     └── config.yaml                  # Generator configuration
 ```
 
-## GCS Credentials & Deployment
+## Configuration, GCS Authentication & Deployment
 
 ### Local Execution
-When executing locally using `run.local.sh`, the GCS client reads the credentials from `/tmp/qosmon-gcs-upload.json` as specified in the `global.yaml` configuration.
+When executing locally using `run.local.sh`, the script sets `GOOGLE_APPLICATION_CREDENTIALS` to the local credential file. You can override it by exporting `GOOGLE_APPLICATION_CREDENTIALS` before running the script.
 
 ### Cloud Run Jobs Deployment
-The `deploy.sh` script automatically deploys the health checker as a Cloud Run Job.
-To manage the service account credentials securely without baking them into the Docker image, `deploy.sh` utilizes **GCP Secret Manager**:
-1. Checks and uploads your local `/tmp/qosmon-gcs-upload.json` to GCP Secret Manager under the name `qosmon-gcs-upload-key`.
-2. Automatically grants the default Compute Engine service account (`roles/secretmanager.secretAccessor`) read permissions on the secret.
-3. Automatically mounts the secret from Secret Manager into the Cloud Run Job container at the runtime path `/tmp/qosmon-gcs-upload.json`.
+`run.build.sh` and `run.deploy.sh` are separate steps. The build script uses the shared `my-k8s-build-image` helper to push `cloudpublic/default/qosmon:latest` to GitHub Container Registry (GHCR). The deployment script does not build an image; it resolves the existing GHCR image reference and deploys it to Cloud Run. The image contains only the application binary; it does not contain `configs/` or a service account key.
 
-This ensures the container runs securely and dynamically reads the credentials from the same path as configured in `global.yaml`.
+```bash
+./run.build.sh   # Build and push the image
+./run.deploy.sh  # Sync configuration and deploy the existing image
+```
+
+Before the first deployment, set the resulting GitHub package's visibility to **Public** in GitHub Packages. Cloud Run can then pull the image without Artifact Registry access or registry credentials.
+
+The deployment script then:
+
+1. Generates the check configuration and synchronizes `configs/check/` to `gs://koishi-common/qosmon/configs` (override the bucket with `RESULTS_BUCKET` or the prefix with `CONFIG_DIRECTORY`).
+2. Mounts only that prefix read-only at `/app/configs/check` in the Cloud Run Job by using the Cloud Storage FUSE `only-dir` option.
+3. Creates and attaches a dedicated runtime service account (`qosmon-job-sa` by default), granting it `roles/storage.objectUser` on the shared bucket so it can read configuration and write results.
+
+The application uses Cloud Run service identity (Application Default Credentials) to access GCS. No service account JSON key is uploaded or mounted in Cloud Run. The shared bucket remains private, so publishing the container image does not disclose the monitoring configuration.
+
+Using a shared bucket reduces IAM isolation: the runtime service account needs result-writing access and can therefore also access configuration objects. Keep a separate configuration bucket if strict write isolation is required.
+
+To use a different public image name, set `PUBLIC_IMAGE_NAME` to a `cloudpublic/...` reference. To override the GHCR host or owner used for the deployed URI, set `GHCR_HOST` or `GHCR_OWNER`.
+
+After a successful deployment, remove the legacy `qosmon-gcs-upload-key` Secret Manager secret and revoke its corresponding service account key if it is no longer used elsewhere.
 
 ## Concurrency and Resource Management
 

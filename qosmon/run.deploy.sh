@@ -4,75 +4,82 @@ set -e
 cd "$(dirname "${BASH_SOURCE[0]}")"
 
 source run.env.sh
-bash run.common.sh
 
 PROJECT_ID=$(gcloud config get-value project 2>/dev/null)
 REGION=${REGION:-"asia-northeast1"}
-REPO_NAME=${REPO_NAME:-"cloudrun"}
-IMAGE_NAME=${IMAGE_NAME:-"qosmon"}
+PUBLIC_IMAGE_NAME=${PUBLIC_IMAGE_NAME:-"${QOSMON_PUBLIC_IMAGE}"}
 JOB_NAME=${JOB_NAME:-"qosmon-job"}
 SCHEDULER_JOB_NAME=${SCHEDULER_JOB_NAME:-"qosmon-scheduler"}
-SERVICE_ACCOUNT_NAME=${SERVICE_ACCOUNT_NAME:-"qosmon-scheduler-sa"}
+RESULTS_BUCKET=${RESULTS_BUCKET:-"koishi-common"}
+CONFIG_DIRECTORY=${CONFIG_DIRECTORY:-"qosmon/configs"}
+RUNTIME_SERVICE_ACCOUNT_NAME=${RUNTIME_SERVICE_ACCOUNT_NAME:-"qosmon-job-sa"}
+SCHEDULER_SERVICE_ACCOUNT_NAME=${SCHEDULER_SERVICE_ACCOUNT_NAME:-"${SERVICE_ACCOUNT_NAME:-qosmon-scheduler-sa}"}
 
 if [ -z "$PROJECT_ID" ]; then
   echo "Error: GCP Project ID could not be determined. Please set it using 'gcloud config set project [PROJECT_ID]' or run 'gcloud auth login'."
   exit 1
 fi
 
+if [[ "$PUBLIC_IMAGE_NAME" != cloudpublic/* ]]; then
+  echo "Error: PUBLIC_IMAGE_NAME must start with cloudpublic/."
+  exit 1
+fi
+
+if ! command -v bwww >/dev/null 2>&1; then
+  echo "Error: bwww is required to resolve the cloudpublic registry image URI."
+  exit 1
+fi
+
+GHCR_HOST=${GHCR_HOST:-"$(bwww get-password koishi.deploy.cloudpublic_registry_host)"}
+GHCR_OWNER=${GHCR_OWNER:-"$(bwww get-password koishi.deploy.cloudpublic_registry_id)"}
+IMAGE_URI="${GHCR_HOST}/${GHCR_OWNER}/${PUBLIC_IMAGE_NAME#cloudpublic/}"
+
 echo "============================================="
 echo " Deploying qosmon to Cloud Run Jobs"
 echo " Project:          $PROJECT_ID"
 echo " Region:           $REGION"
-echo " Repository:       $REPO_NAME"
-echo " Image Name:       $IMAGE_NAME"
+echo " Public Image:     $IMAGE_URI"
 echo " Job Name:         $JOB_NAME"
 echo " Scheduler Job:    $SCHEDULER_JOB_NAME"
+echo " Config Location:  gs://$RESULTS_BUCKET/$CONFIG_DIRECTORY"
 echo "============================================="
 
 ./scripts/run.generate.sh
 
 echo "Enabling required APIs..."
 gcloud services enable \
-  artifactregistry.googleapis.com \
   run.googleapis.com \
-  cloudbuild.googleapis.com \
   cloudscheduler.googleapis.com \
-  secretmanager.googleapis.com \
+  storage.googleapis.com \
   --project="$PROJECT_ID"
 
-echo "Checking Artifact Registry Repository..."
-if ! gcloud artifacts repositories describe "$REPO_NAME" --location="$REGION" --project="$PROJECT_ID" >/dev/null 2>&1; then
-  echo "Creating Artifact Registry repository '$REPO_NAME'..."
-  gcloud artifacts repositories create "$REPO_NAME" \
-    --repository-format=docker \
-    --location="$REGION" \
-    --description="Docker repository for CloudRun" \
+RUNTIME_SA_EMAIL="${RUNTIME_SERVICE_ACCOUNT_NAME}@${PROJECT_ID}.iam.gserviceaccount.com"
+echo "Setting up runtime service account: $RUNTIME_SA_EMAIL..."
+if ! gcloud iam service-accounts describe "$RUNTIME_SA_EMAIL" --project="$PROJECT_ID" >/dev/null 2>&1; then
+  gcloud iam service-accounts create "$RUNTIME_SERVICE_ACCOUNT_NAME" \
+    --display-name="Service Account for qosmon Cloud Run Job" \
     --project="$PROJECT_ID"
-else
-  echo "Repository '$REPO_NAME' already exists."
 fi
 
-IMAGE_URI="${REGION}-docker.pkg.dev/${PROJECT_ID}/${REPO_NAME}/${IMAGE_NAME}:latest"
-echo "Building and pushing Docker image to $IMAGE_URI..."
-gcloud builds submit --tag "$IMAGE_URI" --project="$PROJECT_ID" .
+echo "Synchronizing runtime configuration..."
+gcloud storage rsync --recursive --delete-unmatched-destination-objects \
+  configs/check "gs://$RESULTS_BUCKET/$CONFIG_DIRECTORY" \
+  --project="$PROJECT_ID"
 
-SECRET_NAME="qosmon-gcs-upload-key"
+echo "Granting the runtime service account access to Cloud Storage..."
+gcloud storage buckets add-iam-policy-binding "gs://$RESULTS_BUCKET" \
+  --member="serviceAccount:${RUNTIME_SA_EMAIL}" \
+  --role="roles/storage.objectUser" \
+  --project="$PROJECT_ID" >/dev/null
 
-echo "Checking Secret Manager for $SECRET_NAME..."
-if ! gcloud secrets describe "$SECRET_NAME" --project="$PROJECT_ID" >/dev/null 2>&1; then
-  echo "Creating secret $SECRET_NAME..."
-  gcloud secrets create "$SECRET_NAME" --replication-policy="automatic" --project="$PROJECT_ID"
+if gcloud run jobs describe "$JOB_NAME" --region="$REGION" --project="$PROJECT_ID" --format=export 2>/dev/null | grep -q 'name: qosmon-config'; then
+  echo "Replacing the existing configuration volume..."
+  gcloud run jobs update "$JOB_NAME" \
+    --region="$REGION" \
+    --project="$PROJECT_ID" \
+    --remove-volume-mount="/app/configs/check" \
+    --remove-volume="qosmon-config"
 fi
-echo "Uploading credential to Secret Manager..."
-gcloud secrets versions add "$SECRET_NAME" --data-file="${QOSMON_GCS_CRED_FILE}" --project="$PROJECT_ID"
-
-echo "Granting Secret Accessor role to default Compute Engine service account..."
-PROJECT_NUMBER=$(gcloud projects describe "$PROJECT_ID" --format="value(projectNumber)")
-DEFAULT_RUN_SA="${PROJECT_NUMBER}-compute@developer.gserviceaccount.com"
-gcloud projects add-iam-policy-binding "$PROJECT_ID" \
-  --member="serviceAccount:${DEFAULT_RUN_SA}" \
-  --role="roles/secretmanager.secretAccessor" \
-  --condition=None >/dev/null
 
 echo "Deploying Cloud Run Job '$JOB_NAME'..."
 gcloud run jobs deploy "$JOB_NAME" \
@@ -81,13 +88,15 @@ gcloud run jobs deploy "$JOB_NAME" \
   --project="$PROJECT_ID" \
   --max-retries=0 \
   --task-timeout="5m" \
-  --set-secrets="/mnt/coder-sharepoint/qosmon-gcs-upload.json=qosmon-gcs-upload-key:latest"
+  --service-account="$RUNTIME_SA_EMAIL" \
+  --add-volume="name=qosmon-config,type=cloud-storage,bucket=${RESULTS_BUCKET},readonly=true,mount-options=only-dir=${CONFIG_DIRECTORY}" \
+  --add-volume-mount="volume=qosmon-config,mount-path=/app/configs/check"
 
-SA_EMAIL="${SERVICE_ACCOUNT_NAME}@${PROJECT_ID}.iam.gserviceaccount.com"
+SA_EMAIL="${SCHEDULER_SERVICE_ACCOUNT_NAME}@${PROJECT_ID}.iam.gserviceaccount.com"
 echo "Setting up Service Account: $SA_EMAIL..."
 if ! gcloud iam service-accounts describe "$SA_EMAIL" --project="$PROJECT_ID" >/dev/null 2>&1; then
   echo "Creating service account..."
-  gcloud iam service-accounts create "$SERVICE_ACCOUNT_NAME" \
+  gcloud iam service-accounts create "$SCHEDULER_SERVICE_ACCOUNT_NAME" \
     --display-name="Service Account for triggering qosmon Cloud Run Job" \
     --project="$PROJECT_ID"
 else
