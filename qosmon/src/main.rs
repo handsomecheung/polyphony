@@ -36,14 +36,6 @@ struct Config {
 }
 
 #[derive(Debug, Deserialize, Clone)]
-struct RecentSummaryConfig {
-    entrypoint: String,
-    count: usize,
-    directory: Option<String>,
-    filename: String,
-}
-
-#[derive(Debug, Deserialize, Clone)]
 struct UploadConfig {
     #[serde(rename = "type")]
     upload_type: String,
@@ -51,7 +43,6 @@ struct UploadConfig {
     directory: Option<String>,
     credential: Option<String>,
     skip_empty: Option<bool>,
-    recent_summary: Option<RecentSummaryConfig>,
 }
 
 #[derive(Debug, Deserialize, Clone)]
@@ -484,67 +475,7 @@ async fn main() -> Result<()> {
 
                 eprintln!("Uploading results to GCS bucket '{}' as '{}'...", upload.bucket, object_name);
                 match upload_to_gcs(&upload.bucket, &object_name, output_data, upload.credential.as_deref()).await {
-                    Ok(_) => {
-                        eprintln!("Successfully uploaded test results to GCS.");
-                        
-                        if let Some(recent) = &upload.recent_summary {
-                            let new_url = format!(
-                                "{}/{}/{}",
-                                recent.entrypoint.trim_end_matches('/'),
-                                upload.bucket,
-                                object_name
-                            );
-                            
-                            let summary_object_name = if let Some(dir) = &recent.directory {
-                                format!("{}/{}", dir.trim_end_matches('/'), recent.filename)
-                            } else {
-                                recent.filename.clone()
-                            };
-
-                            eprintln!("Updating recent summary file '{}'...", summary_object_name);
-                            
-                            let existing = read_from_gcs(&upload.bucket, &summary_object_name, upload.credential.as_deref()).await
-                                .unwrap_or_else(|e| {
-                                    eprintln!("Warning: failed to read existing summary: {}", e);
-                                    String::new()
-                                });
-
-                            let re = Regex::new(r#"href="([^"]+)""#).unwrap();
-                            let mut urls: Vec<String> = re.captures_iter(&existing)
-                                .map(|cap| cap[1].to_string())
-                                .collect();
-
-                            urls.insert(0, new_url);
-                            urls.truncate(recent.count);
-
-                            let mut new_summary_content = String::new();
-                            new_summary_content.push_str("<!DOCTYPE html>\n<html>\n<head>\n");
-                            new_summary_content.push_str("  <meta charset=\"utf-8\">\n");
-                            new_summary_content.push_str("  <title>Recent Test Results</title>\n");
-                            new_summary_content.push_str("  <style>\n");
-                            new_summary_content.push_str("    body { font-family: -apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, Helvetica, Arial, sans-serif; max-width: 800px; margin: 40px auto; padding: 0 20px; line-height: 1.6; }\n");
-                            new_summary_content.push_str("    h1 { border-bottom: 2px solid #eaecef; padding-bottom: 0.3em; color: #24292e; }\n");
-                            new_summary_content.push_str("    ul { list-style-type: none; padding: 0; }\n");
-                            new_summary_content.push_str("    li { padding: 8px 12px; margin-bottom: 8px; background-color: #f6f8fa; border: 1px solid #e1e4e8; border-radius: 6px; }\n");
-                            new_summary_content.push_str("    a { color: #0366d6; text-decoration: none; font-weight: 600; font-family: monospace; }\n");
-                            new_summary_content.push_str("    a:hover { text-decoration: underline; }\n");
-                            new_summary_content.push_str("  </style>\n");
-                            new_summary_content.push_str("</head>\n<body>\n");
-                            new_summary_content.push_str("  <h1>Recent Test Results</h1>\n");
-                            new_summary_content.push_str("  <ul>\n");
-                            for url in &urls {
-                                let filename = url.split('/').last().unwrap_or(url);
-                                new_summary_content.push_str(&format!("    <li><a href=\"{}\">{}</a></li>\n", url, filename));
-                            }
-                            new_summary_content.push_str("  </ul>\n");
-                            new_summary_content.push_str("</body>\n</html>\n");
-
-                            match upload_to_gcs(&upload.bucket, &summary_object_name, new_summary_content, upload.credential.as_deref()).await {
-                                Ok(_) => eprintln!("Successfully updated recent summary in GCS."),
-                                Err(e) => eprintln!("Failed to update recent summary in GCS: {}", e),
-                            }
-                        }
-                    }
+                    Ok(_) => eprintln!("Successfully uploaded test results to GCS."),
                     Err(e) => eprintln!("Failed to upload test results to GCS: {}", e),
                 }
             }
@@ -868,48 +799,6 @@ async fn upload_to_gcs(
         .send_buffered()
         .await?;
     Ok(())
-}
-
-async fn read_from_gcs(
-    bucket: &str,
-    object_name: &str,
-    credential_path: Option<&str>,
-) -> Result<String> {
-    let mut builder = Storage::builder();
-
-    if let Some(path) = credential_path {
-        let key_data = fs::read_to_string(path)
-            .map_err(|e| anyhow!("Failed to read credential file at {}: {}", path, e))?;
-        let key_json: serde_json::Value = serde_json::from_str(&key_data)
-            .map_err(|e| anyhow!("Failed to parse credential JSON from {}: {}", path, e))?;
-        
-        let credentials = google_cloud_auth::credentials::service_account::Builder::new(key_json)
-            .build()
-            .map_err(|e| anyhow!("Failed to build credentials: {}", e))?;
-
-        builder = builder.with_credentials(credentials);
-    }
-
-    let client = builder.build().await?;
-    let bucket_path = format!("projects/_/buckets/{}", bucket);
-
-    let mut resp = match client.read_object(&bucket_path, object_name).send().await {
-        Ok(r) => r,
-        Err(e) => {
-            eprintln!("Info: could not read existing summary (might not exist yet): {}", e);
-            return Ok(String::new());
-        }
-    };
-
-    let mut contents = Vec::new();
-    while let Some(chunk) = resp.next().await {
-        match chunk {
-            Ok(bytes) => contents.extend_from_slice(&bytes),
-            Err(e) => return Err(anyhow!("Failed reading chunk: {}", e)),
-        }
-    }
-
-    Ok(String::from_utf8(contents)?)
 }
 
 #[cfg(test)]

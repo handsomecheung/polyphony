@@ -60,11 +60,6 @@ globals:
     bucket: koishi-common
     directory: qosmon/results
     skip_empty: true
-    recent_summary:
-      entrypoint: https://storage.cloud.google.com
-      count: 50
-      directory: qosmon/results
-      filename: recent-50.html
   alert:
     webhook:
       url: "https://ntfy.example.com/qosmon-a-long-random-topic"
@@ -80,10 +75,6 @@ globals:
 - `directory`: GCS bucket prefix (subdirectory path).
 - `skip_empty`: (Default `true`) Skips GCS upload if the test results list is empty (e.g. all checks pass and `--only-failures` is set).
 - `credential`: Optional local path to a service account JSON key. Cloud Run deployments should omit this and use the job service account instead.
-- `recent_summary`: Automatically aggregates the history of uploaded test result links into a styled HTML page.
-  - `entrypoint`: Base URL for the HTML links (e.g. `https://storage.cloud.google.com`).
-  - `count`: Maximum number of entries to keep in the summary.
-  - `directory`/`filename`: GCS path for the summary file.
 
 All YAML files in `configs/check/` are merged at startup, with task-specific settings overriding globals.
 
