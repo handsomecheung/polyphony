@@ -2,4 +2,3 @@
 .gitignore
 .gcloudignore
 target/
-configs/

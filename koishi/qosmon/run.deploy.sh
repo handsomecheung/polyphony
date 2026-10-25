@@ -4,35 +4,14 @@ set -e
 cd "$(dirname "${BASH_SOURCE[0]}")"
 
 source run.env.sh
+source run.common.sh
 
-PROJECT_ID=$(gcloud config get-value project 2>/dev/null)
 REGION=${REGION:-"asia-northeast1"}
-PUBLIC_IMAGE_NAME=${PUBLIC_IMAGE_NAME:-"${QOSMON_PUBLIC_IMAGE}"}
 JOB_NAME=${JOB_NAME:-"qosmon-job"}
 SCHEDULER_JOB_NAME=${SCHEDULER_JOB_NAME:-"qosmon-scheduler"}
-RESULTS_BUCKET=${RESULTS_BUCKET:-"koishi-common"}
 CONFIG_DIRECTORY=${CONFIG_DIRECTORY:-"qosmon/configs"}
 RUNTIME_SERVICE_ACCOUNT_NAME=${RUNTIME_SERVICE_ACCOUNT_NAME:-"qosmon-job-sa"}
 SCHEDULER_SERVICE_ACCOUNT_NAME=${SCHEDULER_SERVICE_ACCOUNT_NAME:-"${SERVICE_ACCOUNT_NAME:-qosmon-scheduler-sa}"}
-
-if [ -z "$PROJECT_ID" ]; then
-  echo "Error: GCP Project ID could not be determined. Please set it using 'gcloud config set project [PROJECT_ID]' or run 'gcloud auth login'."
-  exit 1
-fi
-
-if [[ "$PUBLIC_IMAGE_NAME" != cloudpublic/* ]]; then
-  echo "Error: PUBLIC_IMAGE_NAME must start with cloudpublic/."
-  exit 1
-fi
-
-if ! command -v bwww >/dev/null 2>&1; then
-  echo "Error: bwww is required to resolve the cloudpublic registry image URI."
-  exit 1
-fi
-
-GHCR_HOST=${GHCR_HOST:-"$(bwww get-password koishi.deploy.cloudpublic_registry_host)"}
-GHCR_OWNER=${GHCR_OWNER:-"$(bwww get-password koishi.deploy.cloudpublic_registry_id)"}
-IMAGE_URI="${GHCR_HOST}/${GHCR_OWNER}/${PUBLIC_IMAGE_NAME#cloudpublic/}"
 
 echo "============================================="
 echo " Deploying qosmon to Cloud Run Jobs"
@@ -44,7 +23,7 @@ echo " Scheduler Job:    $SCHEDULER_JOB_NAME"
 echo " Config Location:  gs://$RESULTS_BUCKET/$CONFIG_DIRECTORY"
 echo "============================================="
 
-./scripts/run.generate.sh
+./run.generate.sh
 
 echo "Enabling required APIs..."
 gcloud services enable \
@@ -116,7 +95,7 @@ if gcloud scheduler jobs describe "$SCHEDULER_JOB_NAME" --location="$REGION" --p
   echo "Updating existing Cloud Scheduler Job '$SCHEDULER_JOB_NAME'..."
   gcloud scheduler jobs update http "$SCHEDULER_JOB_NAME" \
     --location="$REGION" \
-    --schedule="*/10 * * * *" \
+    --schedule="0 */4 * * *" \
     --uri="$SCHEDULER_URI" \
     --http-method=POST \
     --oauth-service-account-email="$SA_EMAIL" \
@@ -126,7 +105,7 @@ else
   echo "Creating new Cloud Scheduler Job '$SCHEDULER_JOB_NAME'..."
   gcloud scheduler jobs create http "$SCHEDULER_JOB_NAME" \
     --location="$REGION" \
-    --schedule="*/10 * * * *" \
+    --schedule="0 */4 * * *" \
     --uri="$SCHEDULER_URI" \
     --http-method=POST \
     --oauth-service-account-email="$SA_EMAIL" \
@@ -136,5 +115,5 @@ fi
 
 echo "============================================="
 echo " Deployment completed successfully!"
-echo " The monitoring job is scheduled to run every 10 minutes."
+echo " The monitoring job is scheduled to run every 4 hours."
 echo "============================================="
