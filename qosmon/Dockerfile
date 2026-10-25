@@ -31,4 +31,4 @@ WORKDIR /app
 # Copy the statically linked binary from the builder stage
 COPY --from=builder /usr/src/qosmon/target/x86_64-unknown-linux-musl/release/qosmon /app/qosmon
 
-ENTRYPOINT ["/app/qosmon", "--config-dir", "/app/configs/check", "--concurrency", "50", "--only-failures", "--format", "plain"]
+ENTRYPOINT ["/app/qosmon", "--config-dir", "/app/configs/check", "--concurrency", "50", "--format", "plain"]
