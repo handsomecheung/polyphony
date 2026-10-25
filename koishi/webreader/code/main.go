@@ -25,8 +25,8 @@ func main() {
 	if err != nil {
 		log.Fatalf("[FATAL] Configuration error: %v", err)
 	}
-	log.Printf("[INFO] Config loaded: port=%s, default_language=%s, timeout=%ds (max %ds), concurrency=%d, rpm_limit=%d, cache_ttl=%ds, cache_key_prefix=%s",
-		cfg.Port, cfg.DefaultLanguage, cfg.DefaultTimeoutSecs, cfg.MaxTimeoutSecs, cfg.MaxConcurrentRequests, cfg.MaxRequestsPerMinute, cfg.RedisCacheTTLSecs, cfg.CacheKeyPrefix)
+	log.Printf("[INFO] Config loaded: port=%s, default_language=%s, timeout=%ds (max %ds), concurrency=%d, static_rpm_limit=%d, rendered_rpm_limit=%d, cache_ttl=%ds, cache_key_prefix=%s",
+		cfg.Port, cfg.DefaultLanguage, cfg.DefaultTimeoutSecs, cfg.MaxTimeoutSecs, cfg.MaxConcurrentRequests, cfg.MaxStaticRequestsPerMinute, cfg.MaxRenderedRequestsPerMinute, cfg.RedisCacheTTLSecs, cfg.CacheKeyPrefix)
 
 	registry := provider.NewRegistry("jina")
 
@@ -37,15 +37,16 @@ func main() {
 	firecrawlProvider := provider.NewFirecrawlProvider(cfg.FirecrawlAPIKey)
 	registry.Register(firecrawlProvider)
 
-	// Initialize worker pool & rate limiter
-	limiter := pool.NewLimiter(cfg.MaxConcurrentRequests, cfg.MaxRequestsPerMinute)
+	// Initialize independent worker pools and rate limiters for each fetch mode.
+	staticLimiter := pool.NewLimiter(cfg.MaxConcurrentRequests, cfg.MaxStaticRequestsPerMinute)
+	renderedLimiter := pool.NewLimiter(cfg.MaxConcurrentRequests, cfg.MaxRenderedRequestsPerMinute)
 	cacheStore, err := cache.NewRedisStore(cfg.RedisURL, time.Duration(cfg.RedisCacheTTLSecs)*time.Second)
 	if err != nil {
 		log.Fatalf("[FATAL] Cache configuration error: %v", err)
 	}
 	defer cacheStore.Close()
 
-	h := handler.NewHandler(cfg, registry, limiter, cacheStore)
+	h := handler.NewHandler(cfg, registry, staticLimiter, renderedLimiter, cacheStore)
 
 	mux := http.NewServeMux()
 

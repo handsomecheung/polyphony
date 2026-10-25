@@ -75,18 +75,20 @@ func (m *mockProvider) Fetch(ctx context.Context, opts provider.FetchOptions) (*
 
 func setupTestHandler() (*Handler, *mockProvider) {
 	cfg := &config.Config{
-		Port:                  "8080",
-		DefaultLanguage:       "en",
-		DefaultTimeoutSecs:    10,
-		MaxTimeoutSecs:        30,
-		MaxConcurrentRequests: 1,
-		MaxRequestsPerMinute:  60,
+		Port:                         "8080",
+		DefaultLanguage:              "en",
+		DefaultTimeoutSecs:           10,
+		MaxTimeoutSecs:               30,
+		MaxConcurrentRequests:        1,
+		MaxStaticRequestsPerMinute:   60,
+		MaxRenderedRequestsPerMinute: 60,
 	}
 	mock := &mockProvider{name: "jina"}
 	reg := provider.NewRegistry("jina")
 	reg.Register(mock)
-	limiter := pool.NewLimiter(cfg.MaxConcurrentRequests, cfg.MaxRequestsPerMinute)
-	return NewHandler(cfg, reg, limiter, &memoryCache{entries: make(map[string]*cache.Entry)}), mock
+	staticLimiter := pool.NewLimiter(cfg.MaxConcurrentRequests, cfg.MaxStaticRequestsPerMinute)
+	renderedLimiter := pool.NewLimiter(cfg.MaxConcurrentRequests, cfg.MaxRenderedRequestsPerMinute)
+	return NewHandler(cfg, reg, staticLimiter, renderedLimiter, &memoryCache{entries: make(map[string]*cache.Entry)}), mock
 }
 
 func TestStatusHandler(t *testing.T) {
@@ -100,12 +102,45 @@ func TestStatusHandler(t *testing.T) {
 		t.Fatalf("expected status 200, got %d", rec.Code)
 	}
 
-	var stats pool.Stats
+	var stats StatusResponse
 	if err := json.NewDecoder(rec.Body).Decode(&stats); err != nil {
 		t.Fatalf("failed to decode stats response: %v", err)
 	}
-	if stats.MaxConcurrent != 1 || stats.RequestsPerMinute != 60 {
+	if stats.Static.MaxConcurrent != 1 || stats.Static.RequestsPerMinute != 60 || stats.Rendered.MaxConcurrent != 1 || stats.Rendered.RequestsPerMinute != 60 {
 		t.Errorf("unexpected stats: %+v", stats)
+	}
+}
+
+func TestFetchModesUseIndependentQueues(t *testing.T) {
+	cfg := &config.Config{
+		DefaultLanguage:       "en",
+		DefaultTimeoutSecs:    1,
+		MaxTimeoutSecs:        1,
+		DashboardHistoryLimit: 20,
+	}
+	jina := &mockProvider{name: "jina"}
+	firecrawl := &mockProvider{name: "firecrawl"}
+	registry := provider.NewRegistry("jina")
+	registry.Register(jina)
+	registry.Register(firecrawl)
+	staticLimiter := pool.NewLimiter(1, 1)
+	renderedLimiter := pool.NewLimiter(1, 1)
+	h := NewHandler(cfg, registry, staticLimiter, renderedLimiter, &memoryCache{entries: make(map[string]*cache.Entry)})
+
+	// Fill the static mode's RPM window. The rendered mode must remain available.
+	release, err := staticLimiter.Acquire(context.Background())
+	if err != nil {
+		t.Fatalf("failed to acquire static queue: %v", err)
+	}
+	defer release()
+
+	rec := httptest.NewRecorder()
+	h.MarkdownHandler(rec, httptest.NewRequest(http.MethodPost, "/v1/markdown", strings.NewReader(`{"url":"https://example.com/rendered","mode":"rendered"}`)))
+	if rec.Code != http.StatusOK {
+		t.Fatalf("rendered request should not wait for the static queue, got status %d: %s", rec.Code, rec.Body.String())
+	}
+	if firecrawl.calls != 1 {
+		t.Fatalf("expected one rendered provider call, got %d", firecrawl.calls)
 	}
 }
 
@@ -574,7 +609,7 @@ func TestDashboardListsRequestsWaitingForWorker(t *testing.T) {
 	cfg := &config.Config{DefaultLanguage: "en", DefaultTimeoutSecs: 10, MaxTimeoutSecs: 30, MaxConcurrentRequests: 1}
 	provider := &blockingProvider{name: "jina", started: make(chan struct{}, 2), release: make(chan struct{}, 2)}
 	registry := provider2Registry(provider)
-	h := NewHandler(cfg, registry, pool.NewLimiter(1, 0), &memoryCache{entries: make(map[string]*cache.Entry)})
+	h := NewHandler(cfg, registry, pool.NewLimiter(1, 0), pool.NewLimiter(1, 0), &memoryCache{entries: make(map[string]*cache.Entry)})
 
 	done := make(chan struct{}, 2)
 	for _, url := range []string{"https://example.com/first", "https://example.com/second"} {

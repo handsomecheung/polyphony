@@ -10,18 +10,19 @@ import (
 
 // Config holds runtime configuration for the webreader service.
 type Config struct {
-	Port                  string
-	DefaultLanguage       string
-	JinaAPIKey            string
-	FirecrawlAPIKey       string
-	RedisURL              string
-	RedisCacheTTLSecs     int
-	CacheKeyPrefix        string
-	DefaultTimeoutSecs    int
-	MaxTimeoutSecs        int
-	MaxConcurrentRequests int
-	MaxRequestsPerMinute  int
-	DashboardHistoryLimit int
+	Port                         string
+	DefaultLanguage              string
+	JinaAPIKey                   string
+	FirecrawlAPIKey              string
+	RedisURL                     string
+	RedisCacheTTLSecs            int
+	CacheKeyPrefix               string
+	DefaultTimeoutSecs           int
+	MaxTimeoutSecs               int
+	MaxConcurrentRequests        int
+	MaxStaticRequestsPerMinute   int
+	MaxRenderedRequestsPerMinute int
+	DashboardHistoryLimit        int
 }
 
 // LoadConfig loads configuration from environment variables with sensible defaults.
@@ -54,22 +55,24 @@ func LoadConfig() (*Config, error) {
 	defaultTimeout := getEnvAsInt("DEFAULT_TIMEOUT_SECONDS", 45)
 	maxTimeout := getEnvAsInt("MAX_TIMEOUT_SECONDS", 180)
 	maxConcurrent := getEnvAsInt("MAX_CONCURRENT_REQUESTS", 1)
-	maxRPM := getEnvAsInt("MAX_REQUESTS_PER_MINUTE", 60)
+	maxStaticRPM := getEnvAsInt("MAX_STATIC_REQUESTS_PER_MINUTE", 60)
+	maxRenderedRPM := getEnvAsInt("MAX_RENDERED_REQUESTS_PER_MINUTE", 60)
 	dashboardHistoryLimit := getEnvAsInt("DASHBOARD_HISTORY_LIMIT", 20)
 
 	return &Config{
-		Port:                  port,
-		DefaultLanguage:       defaultLanguage,
-		JinaAPIKey:            jinaAPIKey,
-		FirecrawlAPIKey:       firecrawlAPIKey,
-		RedisURL:              redisURL,
-		RedisCacheTTLSecs:     redisCacheTTLSecs,
-		CacheKeyPrefix:        cacheKeyPrefix,
-		DefaultTimeoutSecs:    defaultTimeout,
-		MaxTimeoutSecs:        maxTimeout,
-		MaxConcurrentRequests: maxConcurrent,
-		MaxRequestsPerMinute:  maxRPM,
-		DashboardHistoryLimit: dashboardHistoryLimit,
+		Port:                         port,
+		DefaultLanguage:              defaultLanguage,
+		JinaAPIKey:                   jinaAPIKey,
+		FirecrawlAPIKey:              firecrawlAPIKey,
+		RedisURL:                     redisURL,
+		RedisCacheTTLSecs:            redisCacheTTLSecs,
+		CacheKeyPrefix:               cacheKeyPrefix,
+		DefaultTimeoutSecs:           defaultTimeout,
+		MaxTimeoutSecs:               maxTimeout,
+		MaxConcurrentRequests:        maxConcurrent,
+		MaxStaticRequestsPerMinute:   maxStaticRPM,
+		MaxRenderedRequestsPerMinute: maxRenderedRPM,
+		DashboardHistoryLimit:        dashboardHistoryLimit,
 	}, nil
 }
 

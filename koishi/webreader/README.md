@@ -105,10 +105,18 @@ Returns metrics about the current worker pool queue and rate limiting state.
 **Example Response:**
 ```json
 {
-  "max_concurrent": 1,
-  "requests_per_minute": 60,
-  "active_requests": 0,
-  "waiting_requests": 0
+  "static": {
+    "max_concurrent": 1,
+    "requests_per_minute": 60,
+    "active_requests": 0,
+    "waiting_requests": 0
+  },
+  "rendered": {
+    "max_concurrent": 1,
+    "requests_per_minute": 60,
+    "active_requests": 0,
+    "waiting_requests": 0
+  }
 }
 ```
 
@@ -152,8 +160,9 @@ The service is configured via environment variables:
 | `CACHE_KEY_PREFIX` | `webreader` | Prefix applied to every Redis cache key (for example, `webreader:markdown:v1:…`) |
 | `DEFAULT_TIMEOUT_SECONDS` | `45` | Default request timeout in seconds |
 | `MAX_TIMEOUT_SECONDS` | `180` | Maximum allowed request timeout in seconds |
-| `MAX_CONCURRENT_REQUESTS` | `1` | Worker pool parallel concurrency limit (default: 1 = serialized) |
-| `MAX_REQUESTS_PER_MINUTE` | `60` | Maximum allowed outbound requests in any rolling 1-minute window (0 = disabled) |
+| `MAX_CONCURRENT_REQUESTS` | `1` | Parallel concurrency limit for each mode's worker pool (default: 1 = serialized per mode) |
+| `MAX_STATIC_REQUESTS_PER_MINUTE` | `60` | Maximum static-mode outbound requests in any rolling 1-minute window (0 = disabled) |
+| `MAX_RENDERED_REQUESTS_PER_MINUTE` | `60` | Maximum rendered-mode outbound requests in any rolling 1-minute window (0 = disabled) |
 | `DASHBOARD_HISTORY_LIMIT` | `20` | Number of recent requests retained in the in-memory dashboard history |
 
 ---

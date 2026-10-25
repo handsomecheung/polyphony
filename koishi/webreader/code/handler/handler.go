@@ -19,21 +19,23 @@ import (
 
 // Handler handles incoming HTTP requests.
 type Handler struct {
-	cfg      *config.Config
-	registry *provider.Registry
-	limiter  *pool.Limiter
-	cache    cache.Store
-	history  *requestHistory
+	cfg             *config.Config
+	registry        *provider.Registry
+	staticLimiter   *pool.Limiter
+	renderedLimiter *pool.Limiter
+	cache           cache.Store
+	history         *requestHistory
 }
 
 // NewHandler creates a new HTTP handler.
-func NewHandler(cfg *config.Config, registry *provider.Registry, limiter *pool.Limiter, cacheStore cache.Store) *Handler {
+func NewHandler(cfg *config.Config, registry *provider.Registry, staticLimiter, renderedLimiter *pool.Limiter, cacheStore cache.Store) *Handler {
 	return &Handler{
-		cfg:      cfg,
-		registry: registry,
-		limiter:  limiter,
-		cache:    cacheStore,
-		history:  newRequestHistory(cfg.DashboardHistoryLimit),
+		cfg:             cfg,
+		registry:        registry,
+		staticLimiter:   staticLimiter,
+		renderedLimiter: renderedLimiter,
+		cache:           cacheStore,
+		history:         newRequestHistory(cfg.DashboardHistoryLimit),
 	}
 }
 
@@ -78,6 +80,12 @@ type ErrorResponse struct {
 type ProvidersResponse struct {
 	Default   string   `json:"default"`
 	Providers []string `json:"providers"`
+}
+
+// StatusResponse reports separate queue metrics for each fetch mode.
+type StatusResponse struct {
+	Static   pool.Stats `json:"static"`
+	Rendered pool.Stats `json:"rendered"`
 }
 
 // HealthHandler handles health check requests.
@@ -142,7 +150,11 @@ func (h *Handler) MarkdownHandler(w http.ResponseWriter, r *http.Request) {
 		Actions:       body.Actions,
 	}
 
-	providerName, err := modeToProviderName(body.Mode)
+	mode := body.Mode
+	if mode == "" {
+		mode = FetchModeStatic
+	}
+	providerName, err := modeToProviderName(mode)
 	if err != nil {
 		h.writeJSONError(w, http.StatusBadRequest, "Invalid 'mode' value", err.Error())
 		return
@@ -157,12 +169,8 @@ func (h *Handler) MarkdownHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	effectiveMode := string(body.Mode)
-	if effectiveMode == "" {
-		effectiveMode = string(FetchModeStatic)
-	}
 	cacheAllowed := len(body.CustomHeaders) == 0
-	cacheKey := cache.Key(h.cfg.CacheKeyPrefix, opts.URL, language, effectiveMode, opts.RemoveMedia, opts.Actions)
+	cacheKey := cache.Key(h.cfg.CacheKeyPrefix, opts.URL, language, string(mode), opts.RemoveMedia, opts.Actions)
 	record := h.history.add(opts.URL, body)
 	if cacheAllowed && cacheMode != cacheBypass && cacheMode != cacheOverwrite {
 		entry, err := h.cache.Get(r.Context(), cacheKey)
@@ -180,7 +188,7 @@ func (h *Handler) MarkdownHandler(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	result, err := h.executeFetch(r, providerName, body.TimeoutSeconds, opts, record)
+	result, err := h.executeFetch(r, mode, providerName, body.TimeoutSeconds, opts, record)
 	if err != nil {
 		log.Printf("[ERROR] fetch failed for %s: %v", body.URL, err)
 		h.history.fail(record, err)
@@ -211,9 +219,8 @@ func (h *Handler) StatusHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
 		return
 	}
-	stats := h.limiter.GetStats()
 	w.Header().Set("Content-Type", "application/json")
-	_ = json.NewEncoder(w).Encode(stats)
+	_ = json.NewEncoder(w).Encode(h.status())
 }
 
 // DashboardHandler serves the lightweight operational dashboard.
@@ -235,11 +242,11 @@ func (h *Handler) DashboardDataHandler(w http.ResponseWriter, r *http.Request) {
 	history, queued := h.history.snapshot()
 	w.Header().Set("Content-Type", "application/json")
 	_ = json.NewEncoder(w).Encode(struct {
-		Status         pool.Stats      `json:"status"`
+		Status         StatusResponse  `json:"status"`
 		QueuedRequests []RequestRecord `json:"queued_requests"`
 		History        []RequestRecord `json:"history"`
 	}{
-		Status: h.limiter.GetStats(), QueuedRequests: queued, History: history,
+		Status: h.status(), QueuedRequests: queued, History: history,
 	})
 }
 
@@ -261,7 +268,22 @@ func modeToProviderName(mode FetchMode) (string, error) {
 	}
 }
 
-func (h *Handler) executeFetch(r *http.Request, providerName string, timeoutSecs int, opts provider.FetchOptions, record *RequestRecord) (*provider.FetchResult, error) {
+func (h *Handler) status() StatusResponse {
+	return StatusResponse{Static: h.staticLimiter.GetStats(), Rendered: h.renderedLimiter.GetStats()}
+}
+
+func (h *Handler) limiterForMode(mode FetchMode) (*pool.Limiter, error) {
+	switch mode {
+	case FetchModeStatic:
+		return h.staticLimiter, nil
+	case FetchModeRendered:
+		return h.renderedLimiter, nil
+	default:
+		return nil, fmt.Errorf("unknown fetch mode %q", mode)
+	}
+}
+
+func (h *Handler) executeFetch(r *http.Request, mode FetchMode, providerName string, timeoutSecs int, opts provider.FetchOptions, record *RequestRecord) (*provider.FetchResult, error) {
 	p, err := h.registry.Get(providerName)
 	if err != nil {
 		return nil, err
@@ -271,8 +293,12 @@ func (h *Handler) executeFetch(r *http.Request, providerName string, timeoutSecs
 	ctx, cancel := context.WithTimeout(r.Context(), timeout)
 	defer cancel()
 
-	// Acquire slot from worker pool & rate limiter queue
-	release, err := h.limiter.Acquire(ctx)
+	limiter, err := h.limiterForMode(mode)
+	if err != nil {
+		return nil, err
+	}
+	// Acquire a slot from this mode's independent worker pool and rate limiter queue.
+	release, err := limiter.Acquire(ctx)
 	if err != nil {
 		log.Printf("[QUEUE] URL=%s Error acquiring worker slot: %v", opts.URL, err)
 		return nil, fmt.Errorf("queue or rate limit error: %w", err)

@@ -29,6 +29,26 @@ func TestLoadConfigSuccess(t *testing.T) {
 	if cfg.CacheKeyPrefix != "webreader" {
 		t.Errorf("expected default cache key prefix 'webreader', got %q", cfg.CacheKeyPrefix)
 	}
+	if cfg.MaxStaticRequestsPerMinute != 60 || cfg.MaxRenderedRequestsPerMinute != 60 {
+		t.Errorf("expected default per-mode RPM limits of 60, got static=%d rendered=%d", cfg.MaxStaticRequestsPerMinute, cfg.MaxRenderedRequestsPerMinute)
+	}
+}
+
+func TestLoadConfigPerModeRequestLimits(t *testing.T) {
+	t.Setenv("DEFAULT_LANGUAGE", "en")
+	t.Setenv("FIRECRAWL_APIKEY", "test-key")
+	t.Setenv("REDIS_URL", "redis://localhost:6379")
+	t.Setenv("REDIS_CACHE_TTL_SECONDS", "60")
+	t.Setenv("MAX_STATIC_REQUESTS_PER_MINUTE", "10")
+	t.Setenv("MAX_RENDERED_REQUESTS_PER_MINUTE", "5")
+
+	cfg, err := LoadConfig()
+	if err != nil {
+		t.Fatalf("expected no error, got: %v", err)
+	}
+	if cfg.MaxStaticRequestsPerMinute != 10 || cfg.MaxRenderedRequestsPerMinute != 5 {
+		t.Fatalf("unexpected per-mode RPM limits: static=%d rendered=%d", cfg.MaxStaticRequestsPerMinute, cfg.MaxRenderedRequestsPerMinute)
+	}
 }
 
 func TestLoadConfigCustomCacheKeyPrefix(t *testing.T) {
