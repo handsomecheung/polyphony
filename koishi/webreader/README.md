@@ -14,8 +14,8 @@ Caller (gen / prag / etc.)
                             │
             ┌───────────────┼────────────────┐
             ▼               ▼                ▼
-     Jina Reader       (Firecrawl)      (Self-hosted)
-    (r.jina.ai)
+     Jina Reader        Firecrawl       Direct HTTP
+    (r.jina.ai)     (api.firecrawl.dev)  (in-container)
 ```
 
 This ensures callers never depend directly on specific third-party APIs or authentication details. When backend implementations are changed or extended (e.g., adding Firecrawl or a self-hosted crawler), caller code remains untouched.
@@ -33,6 +33,7 @@ Fetch a webpage and return a JSON payload containing structured Markdown and met
 - `url` (required, string): Target webpage URL to read.
 - `mode` (optional, string): Fetch mode — controls how the page is retrieved.
   - `"static"` (default): Fetches raw HTML without JavaScript rendering (via Jina Reader).
+  - `"static.direct"`: Fetches HTML directly from the container and converts it locally to Markdown. Does not execute JavaScript or call Jina/Firecrawl. Uses the container's network egress and ignores `HTTP_PROXY`/`HTTPS_PROXY` environment variables.
   - `"rendered"`: Fetches the page after full JavaScript execution, e.g. for SPAs (via Firecrawl).
 - `language` (optional, string): Language / locale preference (e.g. `zh-CN`, `ja`, `en`), defaults to `DEFAULT_LANGUAGE`.
 - `remove_media` (optional, string): Media filter mode — `"on"` removes image URLs, video, audio, embedded media, and other non-text media while preserving image alternative text (for example, a pagination link label); `"off"` (default) preserves them.
@@ -53,6 +54,15 @@ curl -X POST "http://webreader/v1/markdown" \
     "timeout_seconds": 30
   }'
 ```
+
+**Example Request (direct from the container):**
+```bash
+curl -X POST "http://webreader/v1/markdown" \
+  -H "Content-Type: application/json" \
+  -d '{"url":"https://www.tpo.or.jp/concert/?category=all","mode":"static.direct","cache":"off"}'
+```
+
+`static.direct` mode supports `language`, `custom_headers`, `remove_media`, timeouts, and the existing cache options, with cache entries separated by mode. It returns the final URL after redirects, the page title and description, and Markdown with absolute links. It preserves page structure rather than applying article-only extraction. HTML/XHTML and plain text are supported; other content types and responses larger than 10 MiB are rejected. Browser `actions` are rejected in `static.direct` mode. The default User-Agent across all modes (`static`, `static.direct`, and `rendered`) is `Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36`; override it with `custom_headers: {"User-Agent": "..."}`.
 
 **Example Request (JS-rendered page with browser actions):**
 ```bash
@@ -105,6 +115,12 @@ Returns metrics about the current worker pool queue and rate limiting state.
 **Example Response:**
 ```json
 {
+  "static.direct": {
+    "max_concurrent": 1,
+    "requests_per_minute": 60,
+    "active_requests": 0,
+    "waiting_requests": 0
+  },
   "static": {
     "max_concurrent": 1,
     "requests_per_minute": 60,
@@ -161,6 +177,7 @@ The service is configured via environment variables:
 | `DEFAULT_TIMEOUT_SECONDS` | `45` | Default request timeout in seconds |
 | `MAX_TIMEOUT_SECONDS` | `180` | Maximum allowed request timeout in seconds |
 | `MAX_CONCURRENT_REQUESTS` | `1` | Parallel concurrency limit for each mode's worker pool (default: 1 = serialized per mode) |
+| `MAX_STATICDIRECT_REQUESTS_PER_MINUTE` | `60` | Maximum static.direct-mode outbound requests in any rolling 1-minute window |
 | `MAX_STATIC_REQUESTS_PER_MINUTE` | `60` | Maximum static-mode outbound requests in any rolling 1-minute window (0 = disabled) |
 | `MAX_RENDERED_REQUESTS_PER_MINUTE` | `60` | Maximum rendered-mode outbound requests in any rolling 1-minute window (0 = disabled) |
 | `DASHBOARD_HISTORY_LIMIT` | `20` | Number of recent requests retained in the in-memory dashboard history |

@@ -39,6 +39,7 @@ func TestLoadConfigPerModeRequestLimits(t *testing.T) {
 	t.Setenv("FIRECRAWL_APIKEY", "test-key")
 	t.Setenv("REDIS_URL", "redis://localhost:6379")
 	t.Setenv("REDIS_CACHE_TTL_SECONDS", "60")
+	t.Setenv("MAX_STATICDIRECT_REQUESTS_PER_MINUTE", "12")
 	t.Setenv("MAX_STATIC_REQUESTS_PER_MINUTE", "10")
 	t.Setenv("MAX_RENDERED_REQUESTS_PER_MINUTE", "5")
 
@@ -46,8 +47,24 @@ func TestLoadConfigPerModeRequestLimits(t *testing.T) {
 	if err != nil {
 		t.Fatalf("expected no error, got: %v", err)
 	}
-	if cfg.MaxStaticRequestsPerMinute != 10 || cfg.MaxRenderedRequestsPerMinute != 5 {
-		t.Fatalf("unexpected per-mode RPM limits: static=%d rendered=%d", cfg.MaxStaticRequestsPerMinute, cfg.MaxRenderedRequestsPerMinute)
+	if cfg.MaxStaticDirectRequestsPerMinute != 12 || cfg.MaxStaticRequestsPerMinute != 10 || cfg.MaxRenderedRequestsPerMinute != 5 {
+		t.Fatalf("unexpected per-mode RPM limits: staticdirect=%d static=%d rendered=%d", cfg.MaxStaticDirectRequestsPerMinute, cfg.MaxStaticRequestsPerMinute, cfg.MaxRenderedRequestsPerMinute)
+	}
+}
+
+func TestLoadConfigStaticDirectRPMFallback(t *testing.T) {
+	t.Setenv("DEFAULT_LANGUAGE", "en")
+	t.Setenv("FIRECRAWL_APIKEY", "test-key")
+	t.Setenv("REDIS_URL", "redis://localhost:6379")
+	t.Setenv("REDIS_CACHE_TTL_SECONDS", "60")
+	t.Setenv("MAX_DIRECT_REQUESTS_PER_MINUTE", "15")
+
+	cfg, err := LoadConfig()
+	if err != nil {
+		t.Fatalf("expected no error, got: %v", err)
+	}
+	if cfg.MaxStaticDirectRequestsPerMinute != 15 {
+		t.Fatalf("expected fallback staticdirect RPM 15, got: %d", cfg.MaxStaticDirectRequestsPerMinute)
 	}
 }
 

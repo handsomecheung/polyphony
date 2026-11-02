@@ -35,6 +35,8 @@ spec:
               value: "180"
             - name: MAX_CONCURRENT_REQUESTS
               value: "1"
+            - name: MAX_STATICDIRECT_REQUESTS_PER_MINUTE
+              value: "60"
             - name: MAX_STATIC_REQUESTS_PER_MINUTE
               value: "20"
             - name: MAX_RENDERED_REQUESTS_PER_MINUTE

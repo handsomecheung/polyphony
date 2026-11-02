@@ -62,7 +62,8 @@ func (j *JinaProvider) Fetch(ctx context.Context, opts FetchOptions) (*FetchResu
 
 	// Request JSON response from Jina
 	req.Header.Set("Accept", "application/json")
-	req.Header.Set("User-Agent", "webreader/1.0 (koishi-cluster)")
+	req.Header.Set("User-Agent", DefaultUserAgent)
+	req.Header.Set("X-User-Agent", DefaultUserAgent)
 
 	if j.apiKey != "" {
 		req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", j.apiKey))
@@ -77,6 +78,11 @@ func (j *JinaProvider) Fetch(ctx context.Context, opts FetchOptions) (*FetchResu
 	// Forward any custom headers
 	for k, v := range opts.CustomHeaders {
 		req.Header.Set(k, v)
+	}
+	if ua := getHeaderCaseInsensitive(opts.CustomHeaders, "User-Agent"); ua != "" {
+		if getHeaderCaseInsensitive(opts.CustomHeaders, "X-User-Agent") == "" {
+			req.Header.Set("X-User-Agent", ua)
+		}
 	}
 	// Use the full Markdown conversion rather than readability-filtered output so
 	// meaningful controls such as detail links are retained.

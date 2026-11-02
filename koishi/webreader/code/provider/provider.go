@@ -3,8 +3,21 @@ package provider
 import (
 	"context"
 	"fmt"
+	"strings"
 	"sync"
 )
+
+// DefaultUserAgent is the standard modern browser User-Agent used across all fetch modes.
+const DefaultUserAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"
+
+func getHeaderCaseInsensitive(headers map[string]string, key string) string {
+	for k, v := range headers {
+		if strings.EqualFold(k, key) {
+			return v
+		}
+	}
+	return ""
+}
 
 // FetchOptions contains options passed to a Provider for scraping/reading a URL.
 type FetchOptions struct {

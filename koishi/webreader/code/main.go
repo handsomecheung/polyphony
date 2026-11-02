@@ -25,12 +25,13 @@ func main() {
 	if err != nil {
 		log.Fatalf("[FATAL] Configuration error: %v", err)
 	}
-	log.Printf("[INFO] Config loaded: port=%s, default_language=%s, timeout=%ds (max %ds), concurrency=%d, static_rpm_limit=%d, rendered_rpm_limit=%d, cache_ttl=%ds, cache_key_prefix=%s",
-		cfg.Port, cfg.DefaultLanguage, cfg.DefaultTimeoutSecs, cfg.MaxTimeoutSecs, cfg.MaxConcurrentRequests, cfg.MaxStaticRequestsPerMinute, cfg.MaxRenderedRequestsPerMinute, cfg.RedisCacheTTLSecs, cfg.CacheKeyPrefix)
+	log.Printf("[INFO] Config loaded: port=%s, default_language=%s, timeout=%ds (max %ds), concurrency=%d, static_rpm_limit=%d, rendered_rpm_limit=%d, staticdirect_rpm_limit=%d, cache_ttl=%ds, cache_key_prefix=%s",
+		cfg.Port, cfg.DefaultLanguage, cfg.DefaultTimeoutSecs, cfg.MaxTimeoutSecs, cfg.MaxConcurrentRequests, cfg.MaxStaticRequestsPerMinute, cfg.MaxRenderedRequestsPerMinute, cfg.MaxStaticDirectRequestsPerMinute, cfg.RedisCacheTTLSecs, cfg.CacheKeyPrefix)
 
 	registry := provider.NewRegistry("jina")
 
 	// Register providers
+	registry.Register(provider.NewDirectProvider())
 	jinaProvider := provider.NewJinaProvider(cfg.JinaAPIKey)
 	registry.Register(jinaProvider)
 

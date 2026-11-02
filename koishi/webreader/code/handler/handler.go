@@ -21,6 +21,7 @@ import (
 type Handler struct {
 	cfg             *config.Config
 	registry        *provider.Registry
+	directLimiter   *pool.Limiter
 	staticLimiter   *pool.Limiter
 	renderedLimiter *pool.Limiter
 	cache           cache.Store
@@ -32,6 +33,7 @@ func NewHandler(cfg *config.Config, registry *provider.Registry, staticLimiter, 
 	return &Handler{
 		cfg:             cfg,
 		registry:        registry,
+		directLimiter:   pool.NewLimiter(cfg.MaxConcurrentRequests, cfg.MaxStaticDirectRequestsPerMinute),
 		staticLimiter:   staticLimiter,
 		renderedLimiter: renderedLimiter,
 		cache:           cacheStore,
@@ -40,13 +42,15 @@ func NewHandler(cfg *config.Config, registry *provider.Registry, staticLimiter, 
 }
 
 // FetchMode specifies how a page should be fetched.
-// "static" (default) fetches the raw HTML without JavaScript rendering.
-// "rendered" fetches the page after JavaScript execution (e.g. via Firecrawl).
+// "static" (default) fetches the raw HTML without JavaScript rendering (via Jina Reader).
+// "static.direct" fetches HTML directly from the container and converts it locally.
+// "rendered" fetches the page after JavaScript execution (via Firecrawl).
 type FetchMode string
 
 const (
-	FetchModeStatic   FetchMode = "static"
-	FetchModeRendered FetchMode = "rendered"
+	FetchModeStaticDirect FetchMode = "static.direct"
+	FetchModeStatic       FetchMode = "static"
+	FetchModeRendered     FetchMode = "rendered"
 )
 
 // MarkdownRequestBody represents the JSON request payload for POST /v1/markdown.
@@ -84,8 +88,9 @@ type ProvidersResponse struct {
 
 // StatusResponse reports separate queue metrics for each fetch mode.
 type StatusResponse struct {
-	Static   pool.Stats `json:"static"`
-	Rendered pool.Stats `json:"rendered"`
+	StaticDirect pool.Stats `json:"static.direct"`
+	Static       pool.Stats `json:"static"`
+	Rendered     pool.Stats `json:"rendered"`
 }
 
 // HealthHandler handles health check requests.
@@ -157,6 +162,10 @@ func (h *Handler) MarkdownHandler(w http.ResponseWriter, r *http.Request) {
 	providerName, err := modeToProviderName(mode)
 	if err != nil {
 		h.writeJSONError(w, http.StatusBadRequest, "Invalid 'mode' value", err.Error())
+		return
+	}
+	if mode == FetchModeStaticDirect && len(opts.Actions) > 0 {
+		h.writeJSONError(w, http.StatusBadRequest, "Browser actions are not supported in static.direct mode", "")
 		return
 	}
 	if err := validateURL(opts.URL); err != nil {
@@ -259,21 +268,25 @@ func modeToProviderName(mode FetchMode) (string, error) {
 		mode = FetchModeStatic
 	}
 	switch mode {
+	case FetchModeStaticDirect:
+		return "direct", nil
 	case FetchModeStatic:
 		return "jina", nil
 	case FetchModeRendered:
 		return "firecrawl", nil
 	default:
-		return "", fmt.Errorf("unknown mode %q: valid values are %q and %q", mode, FetchModeStatic, FetchModeRendered)
+		return "", fmt.Errorf("unknown mode %q: valid values are %q, %q and %q", mode, FetchModeStatic, FetchModeRendered, FetchModeStaticDirect)
 	}
 }
 
 func (h *Handler) status() StatusResponse {
-	return StatusResponse{Static: h.staticLimiter.GetStats(), Rendered: h.renderedLimiter.GetStats()}
+	return StatusResponse{StaticDirect: h.directLimiter.GetStats(), Static: h.staticLimiter.GetStats(), Rendered: h.renderedLimiter.GetStats()}
 }
 
 func (h *Handler) limiterForMode(mode FetchMode) (*pool.Limiter, error) {
 	switch mode {
+	case FetchModeStaticDirect:
+		return h.directLimiter, nil
 	case FetchModeStatic:
 		return h.staticLimiter, nil
 	case FetchModeRendered:

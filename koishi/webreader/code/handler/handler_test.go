@@ -644,3 +644,53 @@ func provider2Registry(p provider.Provider) *provider.Registry {
 	registry.Register(p)
 	return registry
 }
+
+func TestDirectModeCacheAndRouting(t *testing.T) {
+	calls := 0
+	target := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		calls++
+		w.Header().Set("Content-Type", "text/html; charset=utf-8")
+		_, _ = w.Write([]byte("<h1>Direct concert</h1>"))
+	}))
+	defer target.Close()
+	h, jina := setupTestHandler()
+	h.registry.Register(provider.NewDirectProvider())
+	for _, mode := range []string{"static.direct", "static.direct", "static"} {
+		rec := httptest.NewRecorder()
+		h.MarkdownHandler(rec, httptest.NewRequest(http.MethodPost, "/v1/markdown", strings.NewReader(`{"url":"`+target.URL+`","mode":"`+mode+`","cache":"on"}`)))
+		if rec.Code != http.StatusOK {
+			t.Fatalf("%s: %d %s", mode, rec.Code, rec.Body.String())
+		}
+		if mode == "static.direct" && !strings.Contains(rec.Body.String(), "# Direct concert") {
+			t.Fatalf("missing direct content: %s", rec.Body.String())
+		}
+	}
+	if calls != 1 || jina.calls != 1 {
+		t.Fatalf("cache or mode routing failed: direct=%d jina=%d", calls, jina.calls)
+	}
+	if h.status().StaticDirect.MaxConcurrent != 1 {
+		t.Fatalf("missing direct metrics: %+v", h.status())
+	}
+	rec := httptest.NewRecorder()
+	h.MarkdownHandler(rec, httptest.NewRequest(http.MethodPost, "/v1/markdown", strings.NewReader(`{"url":"`+target.URL+`","mode":"static.direct","actions":[{"type":"wait","milliseconds":1}]}`)))
+	if rec.Code != http.StatusBadRequest || calls != 1 {
+		t.Fatalf("expected actions rejection before fetching: %d", rec.Code)
+	}
+}
+
+func TestDirectQueueIndependentOfStatic(t *testing.T) {
+	h, _ := setupTestHandler()
+	direct := &mockProvider{name: "direct"}
+	h.registry.Register(direct)
+	h.staticLimiter = pool.NewLimiter(1, 1)
+	release, err := h.staticLimiter.Acquire(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer release()
+	rec := httptest.NewRecorder()
+	h.MarkdownHandler(rec, httptest.NewRequest(http.MethodPost, "/v1/markdown", strings.NewReader(`{"url":"https://example.com","mode":"static.direct","cache":"off","timeout_seconds":1}`)))
+	if rec.Code != http.StatusOK || direct.calls != 1 {
+		t.Fatalf("direct blocked by static queue: %d %s", rec.Code, rec.Body.String())
+	}
+}

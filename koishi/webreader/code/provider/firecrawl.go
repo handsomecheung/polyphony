@@ -8,6 +8,7 @@ import (
 	"io"
 	"net/http"
 	"regexp"
+	"strings"
 	"time"
 )
 
@@ -88,10 +89,19 @@ func (f *FirecrawlProvider) Fetch(ctx context.Context, opts FetchOptions) (*Fetc
 		}
 	}
 
-	// Forward custom headers directly to the target page
-	if len(opts.CustomHeaders) > 0 {
-		reqBody.Headers = opts.CustomHeaders
+	// Forward headers to the target page with DefaultUserAgent as the default User-Agent
+	headers := make(map[string]string)
+	hasUA := false
+	for k, v := range opts.CustomHeaders {
+		if strings.EqualFold(k, "User-Agent") {
+			hasUA = true
+		}
+		headers[k] = v
 	}
+	if !hasUA {
+		headers["User-Agent"] = DefaultUserAgent
+	}
+	reqBody.Headers = headers
 
 	bodyBytes, err := json.Marshal(reqBody)
 	if err != nil {
@@ -105,7 +115,7 @@ func (f *FirecrawlProvider) Fetch(ctx context.Context, opts FetchOptions) (*Fetc
 
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Accept", "application/json")
-	req.Header.Set("User-Agent", "webreader/1.0 (koishi-cluster)")
+	req.Header.Set("User-Agent", DefaultUserAgent)
 	if f.apiKey != "" {
 		req.Header.Set("Authorization", "Bearer "+f.apiKey)
 	}
