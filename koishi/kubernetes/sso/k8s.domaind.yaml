@@ -34,6 +34,12 @@ spec:
         - name: app
           image: thomseddon/traefik-forward-auth:latest
           imagePullPolicy: Always
+          args:
+            [
+              "--rule.high.action=auth",
+              '--rule.high.rule="Host(`subscout.__{{infra.domains:f:d}}__`)"',
+              '--rule.high.whitelist="__{{infra-emails:f:hh}}__,__{{infra-emails:f:hz}}__"',
+            ]
           env:
             - name: PROVIDERS_GOOGLE_CLIENT_ID
               valueFrom:
