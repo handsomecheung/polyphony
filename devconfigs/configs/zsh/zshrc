@@ -341,10 +341,10 @@ alias rm='rm -i'
 alias ssh='ssh -A'
 alias e='LC_ALL=zh_CN.UTF-8 emacs -nw'
 alias lg='lazygit'
-alias claude='SHELL=/bin/bash claude'
-alias c='bash ~/.kube/get-token.devbox-user.sh session >/dev/null && SHELL=/bin/bash claude'
 alias a='bash ~/.kube/get-token.devbox-user.sh session >/dev/null && agy'
-alias codex='codex --dangerously-bypass-approvals-and-sandbox'
+alias c='codex --dangerously-bypass-approvals-and-sandbox'
+alias o='opencode'
+alias claude='SHELL=/bin/bash claude'
 alias 9='bash ~/.kube/get-token.devbox-user.sh session >/dev/null && k9s'
 
 # do not use python3 in nix
@@ -470,9 +470,9 @@ fi
 if [ -d ~/bin/android-sdk/cmdline-tools/latest/bin ]; then
     export ANDROID_SDK_ROOT=$HOME/bin/android-sdk
     export ANDROID_HOME=$HOME/bin/android-sdk
-    export PATH=$PATH:$ANDROID_SDK_ROOT/cmdline-tools/latest/bin
-    export PATH=$PATH:$ANDROID_SDK_ROOT/platform-tools
-    export PATH=$PATH:$ANDROID_SDK_ROOT/emulator
+    export PATH=$ANDROID_SDK_ROOT/cmdline-tools/latest/bin:$PATH
+    export PATH=$ANDROID_SDK_ROOT/platform-tools:$PATH
+    export PATH=$ANDROID_SDK_ROOT/emulator:$PATH
 fi
 
 if [ -d ~/bin/npm-packages/bin ]; then
