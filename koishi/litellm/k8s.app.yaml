@@ -70,10 +70,14 @@ spec:
           env:
             - name: LITELLM_LOG
               value: INFO
+            - name: UI_USERNAME
+              value: "admin"
+            - name: UI_PASSWORD
+              value: "__{{koishi.litellm}}__"
             - name: OLLAMA_API_BASE
               value: "http://ollama"
             - name: LITELLM_MASTER_KEY
-              value: "__{{koishi.litellm}}__"
+              value: "__{{koishi.litellm:f:master-key}}__"
             - name: LITELLM_SALT_KEY
               value: "__{{koishi.litellm:f:salt-key}}__"
             - name: DATABASE_URL

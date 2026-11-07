@@ -60,7 +60,7 @@ spec:
             - name: NODE_OPTIONS
               value: "--max-old-space-size=1536"
             - name: LITELLM_API_KEY
-              value: "__{{koishi.litellm}}__"
+              value: "__{{koishi.litellm:f:master-key}}__"
             - name: GOG_ACCOUNT
               value: "__{{openclaw-kzk.infos:f:gog.email}}__"
             - name: GOG_KEYRING_PASSWORD

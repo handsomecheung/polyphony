@@ -48,7 +48,7 @@ spec:
             - name: LITELLM_API_BASE
               value: http://litellm.default
             - name: LITELLM_API_KEY
-              value: "__{{koishi.litellm}}__"
+              value: "__{{koishi.litellm:f:master-key}}__"
 
             - name: GEN_MODEL_TIMEOUT_SECONDS
               value: "120"

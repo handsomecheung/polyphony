@@ -269,12 +269,12 @@ This calls `my-k8s-deploy --file=k8s.app.yaml`.
 - **Service**: ClusterIP on port 80 → container port 8000
 - **Resources**: 100m CPU, 256Mi memory request
 
-Environment variables in pod (note `__{{koishi.litellm}}__` is a template placeholder injected at deploy time):
+Environment variables in pod (note `__{{koishi.litellm:f:master-key}}__` is a template placeholder injected at deploy time):
 
 ```yaml
 LITELLM_MODEL: balanced-model
 LITELLM_API_BASE: http://litellm.default
-LITELLM_API_KEY: __{{koishi.litellm}}__
+LITELLM_API_KEY: __{{koishi.litellm:f:master-key}}__
 GEN_OUTPUT_DIR: /data/output
 GEN_SKILLS_ROOT: /data/skills
 GEN_MODEL_TIMEOUT_SECONDS: 120
