@@ -17,9 +17,14 @@ data:
       - model_name: balanced-model
         litellm_params:
           model_info:
-            id: balanced-model-gemini-2_5-flash
-          model: gemini/gemini-2.5-flash
+            id: balanced-model-gemini-3_5-flash-lite
+          model: gemini/gemini-3.5-flash-lite
           rpm: 100
+
+      - model_name: agent-model
+        litellm_params:
+          model: gemini/gemini-3.8-flash
+          reasoning_effort: medium
 
     router_settings:
       routing_strategy: simple-shuffle
