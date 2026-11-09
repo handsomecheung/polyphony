@@ -1,0 +1,105 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: reqanalytics-reviewer
+  namespace: cloudflare
+  labels:
+    app.kubernetes.io/name: reqanalytics-reviewer
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: reqanalytics-reviewer
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: reqanalytics-reviewer
+    spec:
+      nodeSelector:
+        kubernetes.io/hostname: nur
+      containers:
+        - name: app
+          image: cloudpublic/cloudflare/reqanalytics-reviewer:latest
+          imagePullPolicy: Always
+          ports:
+            - name: default
+              containerPort: 8080
+              protocol: TCP
+          env:
+            - name: DATA_DIR
+              value: "/data"
+            - name: PORT
+              value: "8080"
+          volumeMounts:
+            - name: data
+              mountPath: /data
+              readOnly: true
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: default
+            initialDelaySeconds: 5
+            periodSeconds: 15
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: default
+            initialDelaySeconds: 2
+            periodSeconds: 10
+      volumes:
+        - name: data
+          hostPath:
+            path: /mnt/coder-workspaces/private-workspace/repos/local/polyphony/koishi/kubernetes/cloudflare/reqanalytics/data
+            type: DirectoryOrCreate
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: reqanalytics-reviewer
+  namespace: cloudflare
+  labels:
+    app.kubernetes.io/name: reqanalytics-reviewer
+spec:
+  type: ClusterIP
+  ports:
+    - name: default
+      port: 80
+      targetPort: default
+      protocol: TCP
+  selector:
+    app.kubernetes.io/name: reqanalytics-reviewer
+
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: reqanalytics-reviewer
+  namespace: cloudflare
+  annotations:
+    cert-manager.io/cluster-issuer: cluster-letsencrypt-dns-cloudflare
+    traefik.ingress.kubernetes.io/router.middlewares: middleware-antimitm@kubernetescrd,sso-domainx@kubernetescrd
+    gethomepage.dev/enabled: "true"
+    gethomepage.dev/group: Kubernetes
+    gethomepage.dev/name: Request Analytics
+    gethomepage.dev/app: reqanalytics
+    gethomepage.dev/href: https://reqanalytics.__{{infra.domains:f:x}}__
+    gethomepage.dev/weight: "5"
+spec:
+  ingressClassName: traefik
+  rules:
+    - host: reqanalytics.__{{infra.domains:f:x}}__
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: reqanalytics-reviewer
+                port:
+                  name: default
+  tls:
+    - hosts:
+        - reqanalytics.__{{infra.domains:f:x}}__
+      secretName: reqanalytics-reviewer-domainx

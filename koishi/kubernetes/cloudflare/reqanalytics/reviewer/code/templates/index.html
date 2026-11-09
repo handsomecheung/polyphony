@@ -1,0 +1,708 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cloudflare Request Analytics - Yesterday</title>
+  <style>
+    :root {
+      --bg: #0d1117;
+      --card-bg: #161b22;
+      --card-hover: #1c2128;
+      --border: #30363d;
+      --text: #f0f6fc;
+      --text-muted: #8b949e;
+      --accent: #38bdf8;
+      --accent-dim: rgba(56, 189, 248, 0.12);
+      --font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background-color: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      line-height: 1.5;
+      padding: 24px;
+      min-height: 100vh;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    /* Header */
+    header {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: center;
+      gap: 16px;
+      margin-bottom: 24px;
+      padding-bottom: 16px;
+      border-bottom: 1px solid var(--border);
+    }
+    .header-title {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .badge-icon {
+      width: 36px;
+      height: 36px;
+      background: linear-gradient(135deg, #f97316, #ea580c);
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+    }
+    h1 {
+      font-size: 18px;
+      font-weight: 600;
+      letter-spacing: -0.01em;
+    }
+    .header-subtitle {
+      font-size: 13px;
+      color: var(--text-muted);
+    }
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .date-badge {
+      font-family: var(--font-mono);
+      font-size: 12px;
+      padding: 6px 12px;
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      color: var(--accent);
+      font-weight: 500;
+    }
+    .btn {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 6px 12px;
+      border-radius: 6px;
+      font-size: 13px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.15s ease;
+    }
+    .btn:hover {
+      background: var(--card-hover);
+      border-color: var(--text-muted);
+    }
+
+    /* Domain Filter Selector */
+    .domain-selector-bar {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 20px;
+      padding: 10px 14px;
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+    }
+    .domain-selector-label {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    .domain-pills {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+    .pill-btn {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+      padding: 5px 12px;
+      font-size: 12px;
+      border-radius: 16px;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+    .pill-btn:hover {
+      color: var(--text);
+      border-color: var(--text-muted);
+    }
+    .pill-btn.active {
+      background: var(--accent-dim);
+      border-color: var(--accent);
+      color: var(--accent);
+      font-weight: 600;
+    }
+
+    /* 4 Primary Metric Cards */
+    .metrics-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+    .card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 18px 20px;
+    }
+    .card-label {
+      font-size: 12px;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 8px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .card-value {
+      font-size: 28px;
+      font-weight: 700;
+      font-family: var(--font-mono);
+      color: var(--text);
+      letter-spacing: -0.02em;
+    }
+    .card-subtext {
+      font-size: 12px;
+      color: var(--text-muted);
+      margin-top: 4px;
+    }
+
+    /* 24h Hourly Chart */
+    .chart-section {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 18px 20px;
+      margin-bottom: 24px;
+    }
+    .chart-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 14px;
+    }
+    .chart-title {
+      font-size: 14px;
+      font-weight: 600;
+    }
+    .chart-subtitle {
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+    .chart-wrapper {
+      width: 100%;
+      height: 160px;
+      position: relative;
+    }
+    svg.timeline-chart {
+      width: 100%;
+      height: 100%;
+      overflow: visible;
+    }
+    .bar {
+      fill: var(--accent);
+      cursor: pointer;
+      transition: fill 0.15s, opacity 0.15s;
+    }
+    .bar:hover {
+      fill: #60a5fa;
+    }
+    .chart-axis-line {
+      stroke: var(--border);
+      stroke-width: 1;
+    }
+    .chart-label {
+      fill: var(--text-muted);
+      font-size: 10px;
+      font-family: var(--font-mono);
+      text-anchor: middle;
+    }
+
+    /* Toolbar: Search */
+    .toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 14px;
+    }
+    .search-box {
+      flex: 1;
+      min-width: 240px;
+      max-width: 380px;
+      position: relative;
+    }
+    .search-input {
+      width: 100%;
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 7px 12px 7px 32px;
+      border-radius: 6px;
+      font-size: 13px;
+      outline: none;
+    }
+    .search-input:focus {
+      border-color: var(--accent);
+    }
+    .search-icon {
+      position: absolute;
+      left: 10px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--text-muted);
+      font-size: 13px;
+      pointer-events: none;
+    }
+    .table-count-label {
+      font-size: 12px;
+      color: var(--text-muted);
+      font-family: var(--font-mono);
+    }
+
+    /* Table */
+    .table-container {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      overflow-x: auto;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+      text-align: left;
+    }
+    th {
+      background: #11141a;
+      color: var(--text-muted);
+      font-weight: 600;
+      padding: 10px 16px;
+      border-bottom: 1px solid var(--border);
+      cursor: pointer;
+      user-select: none;
+      white-space: nowrap;
+    }
+    th:hover { color: var(--text); }
+    th.sorted-asc::after { content: " ▲"; font-size: 10px; }
+    th.sorted-desc::after { content: " ▼"; font-size: 10px; }
+    td {
+      padding: 10px 16px;
+      border-bottom: 1px solid var(--border);
+      vertical-align: middle;
+    }
+    tr:hover td {
+      background: var(--card-hover);
+    }
+    .host-name {
+      font-family: var(--font-mono);
+      font-weight: 500;
+      color: var(--text);
+    }
+    .domain-tag {
+      font-size: 10px;
+      padding: 1px 6px;
+      border-radius: 4px;
+      background: rgba(255, 255, 255, 0.05);
+      color: var(--text-muted);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      margin-left: 6px;
+    }
+    .num-cell {
+      font-family: var(--font-mono);
+      font-size: 13px;
+      white-space: nowrap;
+    }
+    .pct-tag {
+      font-size: 11px;
+      color: var(--text-muted);
+      margin-left: 4px;
+    }
+    .progress-bar {
+      display: inline-block;
+      width: 70px;
+      height: 4px;
+      background: rgba(255, 255, 255, 0.08);
+      border-radius: 2px;
+      overflow: hidden;
+      vertical-align: middle;
+      margin-left: 6px;
+    }
+    .progress-fill {
+      height: 100%;
+      background: var(--accent);
+      border-radius: 2px;
+    }
+
+    /* Tooltip */
+    #chart-tooltip {
+      position: absolute;
+      display: none;
+      background: #1f2937;
+      border: 1px solid #374151;
+      padding: 6px 10px;
+      border-radius: 6px;
+      font-size: 12px;
+      font-family: var(--font-mono);
+      pointer-events: none;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+      z-index: 100;
+      white-space: nowrap;
+    }
+    .empty-state {
+      padding: 36px;
+      text-align: center;
+      color: var(--text-muted);
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <div class="header-title">
+        <div class="badge-icon">⚡</div>
+        <div>
+          <h1>Cloudflare Request Analytics</h1>
+          <div class="header-subtitle">Yesterday's Edge Traffic Summary</div>
+        </div>
+      </div>
+      <div class="header-actions">
+        <span class="date-badge" id="date-badge">Loading...</span>
+        <button class="btn" id="refresh-btn" onclick="loadStats()">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 4v6h-6M1 20v-6h6M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+          Refresh
+        </button>
+      </div>
+    </header>
+
+    <!-- Domain Selector Bar (Affects Cards, Chart, and Table) -->
+    <div class="domain-selector-bar">
+      <span class="domain-selector-label">Domain:</span>
+      <div class="domain-pills" id="domain-pills"></div>
+    </div>
+
+    <!-- 4 Primary Metric Cards -->
+    <div class="metrics-grid">
+      <div class="card">
+        <div class="card-label">Total Requests <span>📈</span></div>
+        <div class="card-value" id="val-requests">-</div>
+        <div class="card-subtext" id="sub-requests">Full calendar day (24h)</div>
+      </div>
+      <div class="card">
+        <div class="card-label">Total Bandwidth <span>💾</span></div>
+        <div class="card-value" id="val-bandwidth">-</div>
+        <div class="card-subtext" id="sub-bandwidth">Edge response bytes</div>
+      </div>
+      <div class="card">
+        <div class="card-label">Total Visits <span>👁️</span></div>
+        <div class="card-value" id="val-visits">-</div>
+        <div class="card-subtext" id="sub-visits">Page-view equivalent</div>
+      </div>
+      <div class="card">
+        <div class="card-label">Active Hosts <span>🖥️</span></div>
+        <div class="card-value" id="val-hosts">-</div>
+        <div class="card-subtext" id="sub-domains">-</div>
+      </div>
+    </div>
+
+    <!-- 24h Hourly Trend Chart -->
+    <div class="chart-section">
+      <div class="chart-header">
+        <div class="chart-title" id="chart-title">24-Hour Traffic Trend</div>
+        <div class="chart-subtitle" id="chart-subtitle">Hourly distribution (00:00 - 23:00 UTC)</div>
+      </div>
+      <div class="chart-wrapper">
+        <svg class="timeline-chart" id="timeline-svg"></svg>
+        <div id="chart-tooltip"></div>
+      </div>
+    </div>
+
+    <!-- Hosts Toolbar -->
+    <div class="toolbar">
+      <div class="search-box">
+        <span class="search-icon">🔍</span>
+        <input type="text" class="search-input" id="search-input" placeholder="Search host (e.g. jellyfin, aria2)..." oninput="renderTable()">
+      </div>
+      <div class="table-count-label" id="table-count-label">-</div>
+    </div>
+
+    <!-- Hosts Table -->
+    <div class="table-container">
+      <table>
+        <thead>
+          <tr>
+            <th onclick="sortTable('host')">Host</th>
+            <th onclick="sortTable('requests')" class="sorted-desc">Total Requests</th>
+            <th onclick="sortTable('visits')">Total Visits</th>
+            <th onclick="sortTable('bandwidth')">Total Bandwidth</th>
+          </tr>
+        </thead>
+        <tbody id="hosts-tbody">
+          <tr><td colspan="4" class="empty-state">Loading yesterday's statistics...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <script>
+    let reportData = null;
+    let selectedDomain = 'all';
+    let sortColumn = 'requests';
+    let sortDirection = 'desc';
+
+    function formatNumber(num) {
+      if (num === undefined || num === null) return '0';
+      return new Intl.NumberFormat().format(num);
+    }
+
+    async function loadStats() {
+      const btn = document.getElementById('refresh-btn');
+      if (btn) btn.style.opacity = '0.5';
+      try {
+        const res = await fetch('/api/stats?refresh=1');
+        if (!res.ok) throw new Error('API error: ' + res.status);
+        reportData = await res.json();
+        updateUI();
+      } catch (err) {
+        console.error(err);
+      } finally {
+        if (btn) btn.style.opacity = '1';
+      }
+    }
+
+    function updateUI() {
+      if (!reportData) return;
+
+      const s = reportData.summary;
+      document.getElementById('date-badge').innerText = `Yesterday: ${s.date} (UTC)`;
+
+      renderDomainPills();
+      updateMetricCards();
+      renderChart();
+      renderTable();
+    }
+
+    function renderDomainPills() {
+      const container = document.getElementById('domain-pills');
+      if (!container || !reportData.domains) return;
+
+      let html = `<button class="pill-btn ${selectedDomain === 'all' ? 'active' : ''}" onclick="setDomain('all')">All Domains</button>`;
+      reportData.domains.forEach(d => {
+        const active = selectedDomain === d.domain ? 'active' : '';
+        html += `<button class="pill-btn ${active}" onclick="setDomain('${d.domain}')">${d.domain} (${d.active_hosts})</button>`;
+      });
+      container.innerHTML = html;
+    }
+
+    function setDomain(dom) {
+      selectedDomain = dom;
+      renderDomainPills();
+      updateMetricCards();
+      renderChart();
+      renderTable();
+    }
+
+    function updateMetricCards() {
+      if (!reportData) return;
+      const s = reportData.summary;
+
+      if (selectedDomain === 'all') {
+        document.getElementById('val-requests').innerText = formatNumber(s.total_requests);
+        document.getElementById('sub-requests').innerText = `${s.hourly_files_count} / 24 hours recorded`;
+        document.getElementById('val-bandwidth').innerText = s.total_bandwidth_formatted;
+        document.getElementById('sub-bandwidth').innerText = 'Edge response bytes';
+        document.getElementById('val-visits').innerText = formatNumber(s.total_visits);
+        document.getElementById('sub-visits').innerText = 'Page-view equivalent';
+        document.getElementById('val-hosts').innerText = s.active_hosts;
+        const domainCount = reportData.domains ? reportData.domains.length : 0;
+        document.getElementById('sub-domains').innerText = `Across ${domainCount} root domains`;
+        document.getElementById('chart-title').innerText = '24-Hour Traffic Trend (All Domains)';
+      } else {
+        const domObj = reportData.domains ? reportData.domains.find(d => d.domain === selectedDomain) : null;
+        const reqs = domObj ? domObj.requests : 0;
+        const bw = domObj ? domObj.bandwidth_formatted : '0 B';
+        const visits = domObj ? domObj.visits : 0;
+        const hosts = domObj ? domObj.active_hosts : 0;
+
+        document.getElementById('val-requests').innerText = formatNumber(reqs);
+        document.getElementById('sub-requests').innerText = `Filtered: ${selectedDomain}`;
+        document.getElementById('val-bandwidth').innerText = bw;
+        document.getElementById('sub-bandwidth').innerText = `Filtered: ${selectedDomain}`;
+        document.getElementById('val-visits').innerText = formatNumber(visits);
+        document.getElementById('sub-visits').innerText = `Filtered: ${selectedDomain}`;
+        document.getElementById('val-hosts').innerText = hosts;
+        document.getElementById('sub-domains').innerText = `Active in ${selectedDomain}`;
+        document.getElementById('chart-title').innerText = `24-Hour Traffic Trend (${selectedDomain})`;
+      }
+    }
+
+    function renderChart() {
+      const svg = document.getElementById('timeline-svg');
+      if (!svg || !reportData || !reportData.timeline) return;
+
+      const data = reportData.timeline;
+      const rect = svg.getBoundingClientRect();
+      const width = rect.width || 1100;
+      const height = rect.height || 160;
+      const padLeft = 10;
+      const padRight = 10;
+      const padBottom = 26;
+      const padTop = 10;
+
+      const chartW = width - padLeft - padRight;
+      const chartH = height - padTop - padBottom;
+
+      // Calculate values for current domain selection
+      const hourValues = data.map(d => {
+        if (selectedDomain === 'all') {
+          return {
+            requests: d.requests,
+            bandwidth: d.bandwidth_formatted
+          };
+        }
+        if (d.domains && d.domains[selectedDomain]) {
+          return {
+            requests: d.domains[selectedDomain].requests,
+            bandwidth: d.domains[selectedDomain].bandwidth_formatted
+          };
+        }
+        return {
+          requests: 0,
+          bandwidth: '0 B'
+        };
+      });
+
+      const maxVal = Math.max(...hourValues.map(v => v.requests), 1);
+      const barSlot = chartW / 24;
+      const barW = Math.max(barSlot * 0.72, 6);
+
+      let content = `<line x1="${padLeft}" y1="${height - padBottom}" x2="${width - padRight}" y2="${height - padBottom}" class="chart-axis-line"/>`;
+
+      data.forEach((d, i) => {
+        const val = hourValues[i];
+        const bH = (val.requests / maxVal) * chartH;
+        const x = padLeft + (i * barSlot) + (barSlot - barW) / 2;
+        const y = height - padBottom - bH;
+        const showLabel = (i % 2 === 0);
+
+        content += `
+          <g>
+            <rect class="bar" x="${x}" y="${y}" width="${barW}" height="${Math.max(bH, 2)}" rx="2"
+              onmousemove="showTooltip(event, '${d.label}', ${val.requests}, '${val.bandwidth}', '${selectedDomain}')"
+              onmouseleave="hideTooltip()">
+            </rect>
+            ${showLabel ? `<text x="${x + barW / 2}" y="${height - 8}" class="chart-label">${d.label}</text>` : ''}
+          </g>
+        `;
+      });
+
+      svg.innerHTML = content;
+    }
+
+    function showTooltip(evt, label, requests, bandwidth, domain) {
+      const tt = document.getElementById('chart-tooltip');
+      tt.style.display = 'block';
+      tt.style.left = (evt.clientX + 12) + 'px';
+      tt.style.top = (evt.clientY - 38) + 'px';
+      const domLabel = (domain && domain !== 'all') ? ` [${domain}]` : '';
+      tt.innerHTML = `<b>${label}${domLabel}</b>: ${formatNumber(requests)} reqs (${bandwidth})`;
+    }
+
+    function hideTooltip() {
+      const tt = document.getElementById('chart-tooltip');
+      if (tt) tt.style.display = 'none';
+    }
+
+    function sortTable(col) {
+      if (sortColumn === col) {
+        sortDirection = sortDirection === 'asc' ? 'desc' : 'asc';
+      } else {
+        sortColumn = col;
+        sortDirection = (col === 'host') ? 'asc' : 'desc';
+      }
+      renderTable();
+    }
+
+    function renderTable() {
+      const tbody = document.getElementById('hosts-tbody');
+      if (!tbody || !reportData || !reportData.hosts) return;
+
+      const q = (document.getElementById('search-input')?.value || '').toLowerCase().trim();
+      let list = reportData.hosts.filter(h => {
+        if (selectedDomain !== 'all' && h.domain !== selectedDomain) return false;
+        if (q && !h.host.toLowerCase().includes(q)) return false;
+        return true;
+      });
+
+      document.getElementById('table-count-label').innerText = `${list.length} hosts shown`;
+
+      list.sort((a, b) => {
+        let va = a[sortColumn];
+        let vb = b[sortColumn];
+        if (typeof va === 'string') {
+          return sortDirection === 'asc' ? va.localeCompare(vb) : vb.localeCompare(va);
+        }
+        return sortDirection === 'asc' ? va - vb : vb - va;
+      });
+
+      document.querySelectorAll('th').forEach(th => {
+        th.classList.remove('sorted-asc', 'sorted-desc');
+        const text = th.innerText.toLowerCase();
+        if (text.includes(sortColumn)) {
+          th.classList.add(sortDirection === 'asc' ? 'sorted-asc' : 'sorted-desc');
+        }
+      });
+
+      if (list.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="4" class="empty-state">No matching hosts found.</td></tr>`;
+        return;
+      }
+
+      let html = '';
+      list.forEach(item => {
+        const reqPct = item.requests_pct.toFixed(1);
+        const bwPct = item.bandwidth_pct.toFixed(1);
+
+        html += `
+          <tr>
+            <td>
+              <span class="host-name">${item.host}</span>
+              <span class="domain-tag">${item.domain}</span>
+            </td>
+            <td class="num-cell">
+              <b>${formatNumber(item.requests)}</b>
+              <span class="progress-bar"><span class="progress-fill" style="width: ${Math.min(reqPct, 100)}%;"></span></span>
+              <span class="pct-tag">${reqPct}%</span>
+            </td>
+            <td class="num-cell">${formatNumber(item.visits)}</td>
+            <td class="num-cell">
+              ${item.bandwidth_formatted}
+              <span class="pct-tag">${bwPct}%</span>
+            </td>
+          </tr>
+        `;
+      });
+
+      tbody.innerHTML = html;
+    }
+
+    window.addEventListener('DOMContentLoaded', loadStats);
+    window.addEventListener('resize', renderChart);
+  </script>
+</body>
+</html>
