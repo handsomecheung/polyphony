@@ -1,0 +1,66 @@
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: cloudflare
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: reqanalytics-config
+  namespace: cloudflare
+data:
+  DOMAIN_X: "__{{infra.domains:f:x}}__"
+  DOMAIN_C: "__{{infra.domains:f:c}}__"
+  DOMAIN_D: "__{{infra.domains:f:d}}__"
+  OUTPUT_DIR: "/data"
+  LOOKBACK_HOURS: "48"
+
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: reqanalytics
+  namespace: cloudflare
+spec:
+  schedule: "17 * * * *"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 2
+  failedJobsHistoryLimit: 5
+  jobTemplate:
+    spec:
+      backoffLimit: 0
+      template:
+        spec:
+          nodeSelector:
+            kubernetes.io/hostname: nur
+          containers:
+            - name: app
+              image: python:3.12-slim
+              imagePullPolicy: IfNotPresent
+              envFrom:
+                - configMapRef:
+                    name: reqanalytics-config
+              env:
+                - name: CLOUDFLARE_ANALYTICS_TOKEN
+                  value: "__{{cloudflare.analytics.token}}__"
+              command:
+                - python3
+                - -u
+                - /app/fetcher.py
+              volumeMounts:
+                - name: code
+                  mountPath: /app
+                  readOnly: true
+                - name: data
+                  mountPath: /data
+          volumes:
+            - name: code
+              configMap:
+                name: reqanalytics-code
+            - name: data
+              hostPath:
+                path: /mnt/coder-workspaces/private-workspace/repos/local/polyphony/koishi/kubernetes/cloudflare/reqanalytics/data
+                type: DirectoryOrCreate
+          restartPolicy: Never
