@@ -13,6 +13,9 @@ yq -y --rawfile settings "settings.yaml" \
     'if (.kind == "ConfigMap" and .metadata.name == "homepage") then
          .data["settings.yaml"] = $settings | .data["services.yaml"] = $services 
        else . end' \
-    k8s.app.yaml >"$k8s_tmp_file"
-
+    k8s.configmap.yaml >"$k8s_tmp_file"
 my-k8s-deploy --file="$k8s_tmp_file"
+kubectl -n default rollout restart deployment homepage || true
+kubectl -n default rollout status deployment homepage --timeout=300s || true
+
+my-k8s-deploy --file=k8s.app.yaml

@@ -1,0 +1,72 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: homepage
+  namespace: default
+  labels:
+    app.kubernetes.io/name: homepage
+data:
+  kubernetes.yaml: |
+    mode: cluster
+  settings.yaml: "" # This field is dynamically updated by deploy.sh from local files
+  services.yaml: "" # This field is dynamically updated by deploy.sh from local files
+  custom.css: ""
+  custom.js: ""
+  bookmarks.yaml: ""
+  widgets.yaml: |
+    - resources:
+        cputemp: true
+        # or imperial # only used by cpu temp
+        units: celsius
+        # optional, minimum cpu temp
+        tempmin: 0
+        # optional, maximum cpu temp
+        tempmax: 95
+        # optional, in ms
+        refresh: 10000
+        disk: /
+        # optional, bytes (default) or bbytes. Only applies to disk
+        diskUnits: bytes
+    - search:
+        # google, duckduckgo, bing, baidu, brave or custom
+        provider: google
+        # Optional, will set focus to the search bar on page load
+        focus: true
+        # Optional, will show search suggestions. Defaults to false
+        showSearchSuggestions: true
+        # One of _self, _blank, _parent or _top
+        target: _blank
+    - kubernetes:
+        cluster:
+          # Shows cluster-wide statistics
+          show: true
+          # Shows the aggregate CPU stats
+          cpu: true
+          # Shows the aggregate memory stats
+          memory: true
+          # Shows a custom label
+          showLabel: true
+          label: "cluster"
+        nodes:
+          # Shows node-specific statistics
+          show: true
+          # Shows the CPU for each node
+          cpu: true
+          # Shows the memory for each node
+          memory: true
+          # Shows the label, which is always the node name
+          showLabel: true
+    - openmeteo:
+        label: Tokyo
+        latitude: 35.6895
+        longitude: 139.6917
+        timezone: Asia/Tokyo
+        # or imperial
+        units: metric
+        # Time in minutes to cache API responses, to stay within limits
+        cache: 5
+        # optional, Intl.NumberFormat options
+        format:
+          maximumFractionDigits: 1
+  docker.yaml: ""
