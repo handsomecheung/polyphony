@@ -106,3 +106,30 @@ spec:
     - hosts:
         - litellm.__{{infra.domains:f:x}}__
       secretName: litellm-domainx
+
+---
+# for Pi Agents
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: litellm-home4p
+  namespace: default
+  annotations:
+    cert-manager.io/cluster-issuer: cluster-letsencrypt-dns-cloudflare
+spec:
+  ingressClassName: traefik
+  rules:
+    - host: litellm.home4p.__{{infra.domains:f:x}}__
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: litellm
+                port:
+                  name: default
+  tls:
+    - hosts:
+        - litellm.home4p.__{{infra.domains:f:x}}__
+      secretName: litellm-home4p-domainx
