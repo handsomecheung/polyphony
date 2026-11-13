@@ -1,0 +1,123 @@
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: cbox-box-password
+  namespace: others
+type: Opaque
+data:
+  password: __{{koishi.container.cbox:_:b64}}__
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cbox
+  namespace: others
+  labels:
+    app: cbox
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: cbox
+  template:
+    metadata:
+      labels:
+        app: cbox
+    spec:
+      nodeSelector:
+        kubernetes.io/hostname: nur
+      hostname: cbox
+      volumes:
+        - name: secret-config
+          hostPath:
+            path: /root/secret-config
+            type: DirectoryOrCreate
+        - name: coder-workspaces
+          hostPath:
+            path: /mnt/coder-workspaces/private-workspace/others/c/coder-workspaces
+            type: Directory
+        - name: coder-sharepoint
+          hostPath:
+            path: /mnt/coder-workspaces/private-workspace/others/c/coder-sharepoint
+            type: Directory
+        - name: polyphony
+          hostPath:
+            path: /mnt/coder-workspaces/private-workspace/repos/local/polyphony
+            type: Directory
+      containers:
+        - name: app
+          image: cloudpublic/default/devbox:latest
+          imagePullPolicy: Always
+          command: ["bash", "/home/box/entrypoint.root.sh"]
+          env:
+            - name: BOX_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: cbox-box-password
+                  key: password
+          volumeMounts:
+            - name: coder-workspaces
+              subPath: public-workspace/system/zsh # .zhistory is not suitable for symbolic link
+              mountPath: /home/box/.zsh
+
+            - name: coder-workspaces
+              mountPath: /mnt/coder-workspaces
+            - name: coder-sharepoint
+              mountPath: /mnt/coder-sharepoint
+
+            - name: polyphony
+              mountPath: /mnt/coder-workspaces/private-workspace/repos/local/polyphony
+
+            - name: polyphony
+              subPath: koishi/cbox/default.nix
+              mountPath: /home/box/default.nix
+              readOnly: true
+            - name: polyphony
+              subPath: koishi/cbox/entrypoint.root.sh
+              mountPath: /home/box/entrypoint.root.sh
+              readOnly: true
+            - name: polyphony
+              subPath: koishi/cbox/entrypoint.box.sh
+              mountPath: /home/box/entrypoint.box.sh
+              readOnly: true
+
+            - name: secret-config
+              mountPath: /root/secret-config
+          ports:
+            - name: ssh
+              containerPort: 22
+              protocol: TCP
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+          livenessProbe:
+            tcpSocket:
+              port: 22
+            initialDelaySeconds: 120
+            periodSeconds: 20
+          readinessProbe:
+            tcpSocket:
+              port: 22
+            initialDelaySeconds: 5
+            periodSeconds: 10
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: cbox
+  namespace: others
+  labels:
+    app: cbox-internal
+spec:
+  type: ClusterIP
+  selector:
+    app: cbox
+  ports:
+    - name: ssh
+      port: 22
+      protocol: TCP
+      targetPort: ssh
