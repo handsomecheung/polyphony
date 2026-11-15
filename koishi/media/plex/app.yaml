@@ -113,13 +113,18 @@ spec:
               subPath: p/video/music
               readOnly: true
 
+            - name: user-data-others
+              subPath: edata/family-events/video
+              mountPath: /data/warehouse/evideo/family-events/local
+              readOnly: true
+
             - name: workspace-pikpak
-              mountPath: /data/warehouse/video/koiki/pikpak
               subPath: p/video/koiki
+              mountPath: /data/warehouse/video/koiki/pikpak
               readOnly: true
             - name: user-data-others
-              mountPath: /data/warehouse/video/koiki/local
               subPath: data/video/koiki
+              mountPath: /data/warehouse/video/koiki/local
               readOnly: true
 
             - name: user-data-others

@@ -37,6 +37,12 @@ MONITOR_COPY_DIRS = {
             {"name": "gdrive", "path": "SharePoint/backup/p/data"},
         ],
     },
+    "/mnt/user-data-others/edata": {
+        "remotes": [
+            {"name": "pikpak-encrypted-backup", "path": "user-data-others-data"},
+            {"name": "gdrive-encrypted-backup", "path": "user-data-others-data"},
+        ],
+    },
     BACKUP_DIR_BACKUP: {
         "remotes": [
             {"name": "pikpak", "path": "backup/p/backup"},

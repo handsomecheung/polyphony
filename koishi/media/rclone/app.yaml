@@ -120,6 +120,10 @@ spec:
               subPath: data
               mountPath: /mnt/user-data-others/data
               readOnly: true
+            - name: user-data-others
+              subPath: edata
+              mountPath: /mnt/user-data-others/edata
+              readOnly: true
 
             - name: user-data-others
               subPath: upload
