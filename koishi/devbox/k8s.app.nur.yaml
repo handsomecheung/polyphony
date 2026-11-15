@@ -38,6 +38,11 @@ spec:
             path: /mnt/user-data-slight
             type: DirectoryOrCreate
 
+        - name: user-data-music
+          hostPath:
+            path: /mnt/user-data-music
+            type: DirectoryOrCreate
+
         - name: coder-workspaces
           hostPath:
             path: /mnt/coder-workspaces
@@ -72,6 +77,17 @@ spec:
               mountPath: /mnt/user-data-slight
             - name: coder-sharepoint
               mountPath: /mnt/coder-sharepoint
+
+            - name: user-data-music
+              subPath: music
+              mountPath: /mnt/user-data-music/music
+              readOnly: true
+            - name: user-data-music
+              subPath: tagging
+              mountPath: /mnt/user-data-music/tagging
+            - name: user-data-music
+              subPath: upload
+              mountPath: /mnt/user-data-music/upload
 
             - name: docker-sock
               mountPath: /var/run/docker.sock
@@ -127,7 +143,7 @@ spec:
               mountPath: /home/box/.vscode-server/data/Machine/extensions.json
 
             - name: coder-workspaces
-              subPath: public-workspace/system/zsh # .zhistory is not suitable for symbolic link
+              subPath: public-workspace/user/zsh # .zhistory is not suitable for symbolic link
               mountPath: /home/box/.zsh
             - name: coder-workspaces
               subPath: private-workspace/workspace/encrypted-configs/.ssh # for something unknown reason, .ssh/authroized_keys is not working if symbol link

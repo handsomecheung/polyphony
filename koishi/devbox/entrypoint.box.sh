@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 set -e
 
-if [ -f /mnt/coder-workspaces/public-workspace/init.yaml ]; then
+if [ -f /mnt/coder-workspaces/public-workspace/init.sh ]; then
     echo "init public-workspace ..."
-    ansible-playbook /mnt/coder-workspaces/public-workspace/init.yaml
+    bash /mnt/coder-workspaces/public-workspace/init.sh
 fi
 
 if [ -f /mnt/coder-workspaces/private-workspace/repos/local/polyphony/devconfigs/init.sh ]; then
@@ -11,9 +11,9 @@ if [ -f /mnt/coder-workspaces/private-workspace/repos/local/polyphony/devconfigs
     bash /mnt/coder-workspaces/private-workspace/repos/local/polyphony/devconfigs/init.sh
 fi
 
-if [ -f /mnt/coder-workspaces/private-workspace/init.yaml ]; then
+if [ -f /mnt/coder-workspaces/private-workspace/init.sh ]; then
     echo "init private-workspace ..."
-    ansible-playbook /mnt/coder-workspaces/private-workspace/init.yaml
+    bash /mnt/coder-workspaces/private-workspace/init.sh
 fi
 
 if [ -f /mnt/coder-workspaces/private-workspace/repos/local/polyphony/koishi/init.sh ]; then
@@ -42,5 +42,7 @@ echo "run code-server"
 if [ -f /home/box/.nix-profile/etc/profile.d/nix.sh ]; then
     echo "load Nix profile ..."
     . /home/box/.nix-profile/etc/profile.d/nix.sh
-    bash /mnt/coder-workspaces/private-workspace/repos/local/polyphony/koishi/arondo/prod/run.runner.prod.devbox.sh
 fi
+
+echo "start arondo-runner ..."
+zsh -ic 'exec bash /mnt/coder-workspaces/private-workspace/repos/local/polyphony/koishi/arondo/prod/run.runner.prod.devbox.sh'

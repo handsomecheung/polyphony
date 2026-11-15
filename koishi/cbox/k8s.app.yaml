@@ -34,6 +34,12 @@ spec:
           hostPath:
             path: /root/secret-config
             type: DirectoryOrCreate
+
+        - name: system
+          hostPath:
+            path: /mnt/coder-workspaces/public-workspace/system
+            type: Directory
+
         - name: coder-workspaces
           hostPath:
             path: /mnt/coder-workspaces/private-workspace/others/c/coder-workspaces
@@ -58,9 +64,16 @@ spec:
                   name: cbox-box-password
                   key: password
           volumeMounts:
+            - name: system
+              mountPath: /mnt/coder-workspaces/public-workspace/system
+
             - name: coder-workspaces
-              subPath: public-workspace/system/zsh # .zhistory is not suitable for symbolic link
+              subPath: public-workspace/user/zsh
               mountPath: /home/box/.zsh
+
+            - name: coder-workspaces
+              subPath: private-workspace/ssh
+              mountPath: /home/box/.ssh
 
             - name: coder-workspaces
               mountPath: /mnt/coder-workspaces
