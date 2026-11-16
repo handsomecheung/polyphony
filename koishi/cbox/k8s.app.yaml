@@ -80,6 +80,11 @@ spec:
               mountPath: /home/box/.ssh
 
             - name: coder-workspaces
+              subPath: private-workspace/kube
+              mountPath: /home/box/.kube
+              readOnly: true
+
+            - name: coder-workspaces
               mountPath: /mnt/coder-workspaces
             - name: coder-sharepoint
               mountPath: /mnt/coder-sharepoint

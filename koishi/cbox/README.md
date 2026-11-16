@@ -15,6 +15,47 @@ Create a local `.env` beside `run.arondo-runner.sh` containing
 `ARONDO_HOST_SERVER` (the server hostname) and `ARONDO_RUNNER_TOKEN`.
 Keep credentials out of version control.
 
+Before deploying the box, generate its kubeconfig once from a machine with
+`kubectl`, Python 3, and administrator access to the intended cluster:
+
+```bash
+bash setup-kubeconfig.cbox-user.sh
+```
+
+This applies `k8s.cbox-user.yaml`, removes the old `cbox-user-binding`
+ClusterRoleBinding, and generates a long-lived ServiceAccount token. The
+`ck-dev` and `builder` namespaces must already exist. The administrator's
+kubectl authentication may prompt during this setup; subsequent cbox kubectl
+commands use the generated token directly without an exec authentication script.
+The script checks access in both namespaces and rejects unexpected access to
+Secrets in `default`, `others`, or `kube-system`, or to Nodes.
+
+The RoleBindings grant full management of namespaced resources in `ck-dev`
+and `builder`, including Secrets and namespace RBAC. They do not grant access
+to other namespaces or cluster-scoped resources. Other existing RBAC bindings
+can grant additional permissions and must be reviewed if setup detects
+unexpected access.
+
+The kubeconfig is saved with mode `600`, outside this repository, at
+`/mnt/coder-workspaces/private-workspace/others/c/coder-workspaces/private-workspace/kube/config`
+on the host. The deployment mounts that directory read-only at
+`/home/box/.kube`. Run setup as the OS user whose UID matches the container's
+`box` user so the file remains readable by that user. An optional first
+argument overrides the output path, and `KUBECTL_BIN` selects the kubectl
+executable; a different output directory also requires updating the mount.
+
+Inside cbox:
+
+```bash
+kubectl get pods -n ck-dev
+kubectl get pods -n builder
+```
+
+The default namespace is `ck-dev`. This token has no automatic expiry; protect
+the kubeconfig like a password. To revoke it, delete the
+`kube-system/cbox-user-token` Secret with administrator credentials. Re-running
+setup reuses an existing token; delete the Secret first when rotating it.
+
 Deploy with the repository's deployment helper available in `PATH`:
 
 ```bash
