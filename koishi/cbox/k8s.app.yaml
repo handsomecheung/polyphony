@@ -52,6 +52,10 @@ spec:
           hostPath:
             path: /mnt/coder-workspaces/private-workspace/repos/local/polyphony
             type: Directory
+        - name: mystatic
+          hostPath:
+            path: /home/box/private-workspace/repos/local/mystatic
+            type: Directory
       containers:
         - name: app
           image: cloudpublic/default/devbox:latest
@@ -82,6 +86,8 @@ spec:
 
             - name: polyphony
               mountPath: /mnt/coder-workspaces/private-workspace/repos/local/polyphony
+            - name: mystatic
+              mountPath: /mnt/coder-workspaces/private-workspace/repos/local/mystatic
 
             - name: polyphony
               subPath: koishi/cbox/default.nix
