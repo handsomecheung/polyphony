@@ -8,7 +8,7 @@ Tacet consists of two primary binaries:
 - `tacet`: A stateless CLI client for reading secrets, injecting environment variables, and masking output.
 - `tacetd`: An `axum`-powered background daemon listening on a Unix Domain Socket (`tacetd.sock`), managing authenticated sessions, encrypted vault cache, and in-memory key custody.
 
-## Current Status (MVP Phase 1 & 2)
+## Current Status (MVP Phase 1, 2 & 3)
 
 ### Phase 1: Core Crypto, Upstream Client & Storage
 - **Crypto (`crypto`):**
@@ -39,6 +39,24 @@ Tacet consists of two primary binaries:
   - Fail-fast disambiguation error listing matching UUIDs and folders when multiple items match.
   - RFC 6238 TOTP code generation from `otpauth://` URIs or raw base32 seeds.
   - Nested JSON evaluation and modifier pipelines.
+
+### Phase 3: `tacetd` Axum HTTP-over-UDS Daemon
+- **UDS Transport & Security (`daemon`):**
+  - Strict Unix Domain Socket listening (`$XDG_RUNTIME_DIR/tacet/tacetd.sock` with `/tmp/tacet-$UID/` fallback, directory `0700`, socket `0600`).
+  - No TCP exposure to prevent CSRF and DNS rebinding attacks.
+  - Connecting peer UID validation (`SO_PEERCRED`) rejecting non-owner processes with HTTP 403 Forbidden.
+  - Stale socket detection and automatic cleanup.
+- **Key Custody & Auto-Lock:**
+  - In-memory `Zeroize`-protected key custody.
+  - Inactivity monitor with configurable `idle_ttl` (default: 30 minutes) auto-locking key custody.
+- **REST Endpoints:**
+  - `GET /v1/status`: Daemon health, lock state, and cached item counts.
+  - `POST /v1/login`: Upstream authentication, initial sync, and daemon unlocking.
+  - `POST /v1/unlock`: Master password derivation and key restoration.
+  - `POST /v1/lock`: Immediate in-memory key zeroization.
+  - `POST /v1/logout`: Key zeroization and disk token/cache purging.
+  - `POST /v1/sync`: OAuth token refresh and vault resynchronization.
+  - `POST /v1/resolve`: Batch `tacet://` URI resolution (401 on lock, 404/409 on item/field resolution errors).
 
 ## Testing
 

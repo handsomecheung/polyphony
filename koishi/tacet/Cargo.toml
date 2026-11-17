@@ -10,6 +10,10 @@ reqwest = { version = "0.12", default-features = false, features = ["json", "rus
 axum = "0.8"
 tower = "0.5"
 hyper = { version = "1", features = ["full"] }
+hyper-util = { version = "0.1", features = ["full"] }
+http-body-util = "0.1"
+bytes = "1.0"
+libc = "0.2"
 
 # Serialization & CLI
 percent-encoding = "2.3"
