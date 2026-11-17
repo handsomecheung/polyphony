@@ -74,12 +74,22 @@ pub struct SyncResponse {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
+pub struct ProfileOrganizationResponse {
+    pub id: String,
+    pub name: String,
+    pub key: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct ProfileResponse {
     pub id: String,
     pub name: Option<String>,
     pub email: String,
     pub key: Option<String>,
     pub private_key: Option<String>,
+    #[serde(default)]
+    pub organizations: Vec<ProfileOrganizationResponse>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -103,6 +113,8 @@ pub struct CipherResponse {
     pub id: String,
     pub organization_id: Option<String>,
     pub folder_id: Option<String>,
+    #[serde(default)]
+    pub collection_ids: Vec<String>,
     #[serde(rename = "type")]
     pub cipher_type: u8,
     pub name: String,

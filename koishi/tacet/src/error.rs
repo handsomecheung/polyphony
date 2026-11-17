@@ -11,6 +11,12 @@ pub enum TacetError {
     #[error("Storage error: {0}")]
     Storage(#[from] StorageError),
 
+    #[error("URI error: {0}")]
+    Uri(#[from] UriError),
+
+    #[error("Resolver error: {0}")]
+    Resolver(#[from] ResolverError),
+
     #[error("IO error: {0}")]
     Io(#[from] std::io::Error),
 }
@@ -85,4 +91,52 @@ pub enum StorageError {
 
     #[error("Vault cache not found")]
     VaultCacheNotFound,
+}
+
+#[derive(Error, Debug, PartialEq, Eq)]
+pub enum UriError {
+    #[error("Invalid scheme: URI must start with 'tacet://'")]
+    InvalidScheme,
+
+    #[error("Invalid scope '{0}'")]
+    InvalidScope(String),
+
+    #[error("Missing URI component: {0}")]
+    MissingComponent(&'static str),
+
+    #[error("Invalid modifier: {0}")]
+    InvalidModifier(String),
+}
+
+#[derive(Error, Debug)]
+pub enum ResolverError {
+    #[error("Item '{item}' not found in scope '{scope}'")]
+    ItemNotFound { item: String, scope: String },
+
+    #[error("Field '{field}' not found in item '{item}'")]
+    FieldNotFound { field: String, item: String },
+
+    #[error("Folder '{folder}' not found")]
+    FolderNotFound { folder: String },
+
+    #[error("Organization '{org}' not found")]
+    OrganizationNotFound { org: String },
+
+    #[error("Collection '{collection}' not found in organization '{org}'")]
+    CollectionNotFound { collection: String, org: String },
+
+    #[error("Ambiguous match for '{item}': multiple items matched [{matches}]")]
+    AmbiguousMatch { item: String, matches: String },
+
+    #[error("TOTP generation error: {0}")]
+    TotpError(String),
+
+    #[error("JSON modifier path error: {0}")]
+    JsonPathError(String),
+
+    #[error("Cryptographic operation failed during resolution: {0}")]
+    Crypto(#[from] CryptoError),
+
+    #[error("Organization key not available for '{0}'")]
+    MissingOrgKey(String),
 }
