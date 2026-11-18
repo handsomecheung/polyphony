@@ -168,15 +168,16 @@ tacet://<scope>/<item>/<field>[?<modifiers>]
 | Scope | Target |
 |---|---|
 | `personal` or `_` | Personal vault (`organizationId == null`), ignoring folder hierarchy |
-| `personal/<folder>` | Items inside a specific personal folder |
-| `org/<org_name>/<collection>` | Shared items inside an Organization's collection |
+| `personal/<folder>` | Items inside a specific personal folder (nested paths like `folder/subfolder` supported) |
+| `org/<org_name>/<collection>` | Shared items inside an Organization's collection (nested paths like `col1/col2` supported) |
 | `*` | Search all accessible vaults (fails fast if ambiguous) |
 
 ### 2. `<item>` Rules
 
 - Case-insensitive search by item `name` (e.g., `GitHub`, `Postgres DB`).
 - Supports exact 36-character item `UUID` (e.g., `d3b07384-d113-46fb-9c88-e9f02c61e808`).
-- Spaces can be preserved inside quotes; literal `/` slashes can be escaped using `%2F`.
+- Nested collections and folders support standard `/` slashes directly (e.g. `tacet://org/Default/DevOps/Infrastructure/Database/username`) or `%2F` URL encoding.
+- Spaces can be preserved inside quotes.
 - If multiple items match the query, Tacet returns a disambiguation error listing matching UUIDs and folders.
 
 ### 3. `<field>` Mapping

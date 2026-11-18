@@ -36,6 +36,19 @@ fn test_parse_organization_scope() {
     );
     assert_eq!(uri.item, "prod-db");
     assert_eq!(uri.field, CipherFieldTarget::Password);
+
+    // Nested collection using unescaped raw slashes
+    let uri_nested =
+        TacetUri::parse("tacet://org/Default/DevOps/Infrastructure/Database/username").unwrap();
+    assert_eq!(
+        uri_nested.scope,
+        Scope::Organization {
+            org_name: "Default".to_string(),
+            collection: "DevOps/Infrastructure".to_string(),
+        }
+    );
+    assert_eq!(uri_nested.item, "Database");
+    assert_eq!(uri_nested.field, CipherFieldTarget::Username);
 }
 
 #[test]
