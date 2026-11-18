@@ -1,6 +1,6 @@
 use std::fs;
 use std::time::Duration;
-use tacet::cli::commands::{execute_inject, execute_run};
+use tacet::cli::commands::{execute_inject, execute_list, execute_run};
 use tacet::cli::masker::StreamMasker;
 use tacet::crypto::symmetric_key::SymmetricKey;
 use tacet::daemon::{bind_unix_socket, run_server, DaemonClient, DaemonState};
@@ -125,6 +125,63 @@ API_KEY={{ tacet://personal/AppConfig/notes?json=api.key }}
     assert!(
         !bad_output_file.exists(),
         "Must NOT write output file on failure"
+    );
+
+    let _ = shutdown_tx.send(());
+    let _ = server_handle.await;
+}
+
+#[tokio::test]
+async fn test_cli_list() {
+    let tmp = tempdir().unwrap();
+    let socket_path = tmp.path().join("list.sock");
+    let storage_paths = StoragePaths::custom(tmp.path().join("cfg"), tmp.path().join("cache"));
+
+    let user_key = SymmetricKey::new([33u8; 64]);
+    let vault = SyncResponse {
+        profile: Some(ProfileResponse {
+            id: "u1".to_string(),
+            name: None,
+            email: "test@example.com".to_string(),
+            key: None,
+            private_key: None,
+            organizations: vec![],
+        }),
+        folders: vec![],
+        collections: vec![],
+        ciphers: vec![CipherResponse {
+            id: "22222222-2222-2222-2222-222222222222".to_string(),
+            organization_id: None,
+            folder_id: None,
+            collection_ids: vec![],
+            cipher_type: 1,
+            name: user_key.encrypt_type2_string("AppConfig").unwrap(),
+            notes: None,
+            favorite: None,
+            login: None,
+            fields: None,
+        }],
+    };
+
+    let listener = bind_unix_socket(&socket_path).await.unwrap();
+    let state = DaemonState::new(storage_paths, Duration::from_secs(1800));
+    *state.symmetric_key.write().await = Some(user_key);
+    *state.vault.write().await = Some(vault);
+
+    let (shutdown_tx, shutdown_rx) = broadcast::channel(1);
+    let server_handle = tokio::spawn(async move {
+        run_server(listener, state, shutdown_rx).await.unwrap();
+    });
+
+    let client = DaemonClient::new(&socket_path);
+
+    // List execution in table and json mode
+    assert!(execute_list(&client, None, None, false).await.is_ok());
+    assert!(execute_list(&client, None, None, true).await.is_ok());
+    assert!(
+        execute_list(&client, Some("personal".into()), Some("App".into()), false)
+            .await
+            .is_ok()
     );
 
     let _ = shutdown_tx.send(());

@@ -94,7 +94,22 @@ Inspect authentication status, server endpoint, lock state, and cached item coun
 tacet status
 ```
 
-### 3. Read a Secret
+### 3. List Vault Items
+List items, folders, and URI prefixes in a formatted table or JSON:
+
+```bash
+# List all items
+tacet list
+
+# Filter by scope or search query
+tacet list personal
+tacet list -q "github"
+
+# JSON output
+tacet list --json
+```
+
+### 4. Read a Secret
 Fetch a single secret to standard output:
 
 ```bash
@@ -105,7 +120,7 @@ tacet read "tacet://personal/GitHub/password"
 tacet read "tacet://personal/AWS/totp"
 ```
 
-### 4. Template Injection
+### 5. Template Injection
 Replace `{{ tacet://... }}` placeholders in configuration templates without writing secrets to disk:
 
 ```bash
@@ -116,7 +131,7 @@ tacet inject -i config.template.json -o config.json
 cat template.env | tacet inject > .env
 ```
 
-### 5. Run Commands with Secret Injection
+### 6. Run Commands with Secret Injection
 Pass secrets directly into environment variables with real-time output redaction:
 
 ```bash
@@ -127,7 +142,7 @@ tacet run --env-file .env -- npm start
 DATABASE_URL="tacet://personal/Database/uri" tacet run -- ./migrate.sh
 ```
 
-### 6. Lock and Unlock
+### 7. Lock and Unlock
 Lock key custody manually, or restore session using your Master Password:
 
 ```bash
@@ -204,9 +219,12 @@ tacet status
 tacet sync
 ```
 
-### Secret Consumption
+### Vault Exploration & Secret Consumption
 
 ```bash
+# List vault items (table or json)
+tacet list [scope] [-q <query>] [--json]
+
 # Output secret value
 tacet read <uri> [--no-newline]
 

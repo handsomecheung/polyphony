@@ -255,6 +255,12 @@ async fn test_daemon_full_rest_lifecycle() {
     assert!(sync_resp.synced);
     assert_eq!(sync_resp.item_count, 1);
 
+    // Test list endpoint
+    let list_resp = client.list(None, None).await.expect("List failed");
+    assert_eq!(list_resp.total, 1);
+    assert_eq!(list_resp.items[0].name, "Production API Key");
+    assert_eq!(list_resp.items[0].cipher_type, "Login");
+
     // H. Logout
     let logout_resp = client.logout().await.expect("Logout failed");
     assert!(logout_resp.logged_out);

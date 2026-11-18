@@ -4,8 +4,9 @@ use crate::crypto::kdf::{
 };
 use crate::crypto::symmetric_key::SymmetricKey;
 use crate::daemon::models::{
-    ErrorResponse, LockResponse, LoginRequest, LoginResponse, LogoutResponse, ResolveRequest,
-    ResolveResponse, StatusResponse, SyncStatusResponse, UnlockRequest, UnlockResponse,
+    ErrorResponse, ListQuery, ListResponse, LockResponse, LoginRequest, LoginResponse,
+    LogoutResponse, ResolveRequest, ResolveResponse, StatusResponse, SyncStatusResponse,
+    UnlockRequest, UnlockResponse,
 };
 use crate::daemon::state::DaemonState;
 use crate::error::ResolverError;
@@ -15,7 +16,7 @@ use crate::storage::vault_cache::EncryptedVaultCache;
 use crate::upstream::models::TwoFactorCredentials;
 use crate::upstream::UpstreamClient;
 use crate::uri::parser::TacetUri;
-use axum::extract::State;
+use axum::extract::{Query, State};
 use axum::http::StatusCode;
 use axum::response::IntoResponse;
 use axum::routing::{get, post};
@@ -32,6 +33,7 @@ pub fn create_router(state: DaemonState) -> Router {
         .route("/v1/logout", post(logout_handler))
         .route("/v1/sync", post(sync_handler))
         .route("/v1/resolve", post(resolve_handler))
+        .route("/v1/list", get(list_handler))
         .with_state(state)
 }
 
@@ -475,4 +477,46 @@ async fn resolve_handler(
     }
 
     Ok(Json(ResolveResponse { secrets }))
+}
+
+async fn list_handler(
+    State(state): State<DaemonState>,
+    Query(query): Query<ListQuery>,
+) -> Result<Json<ListResponse>, (StatusCode, Json<ErrorResponse>)> {
+    state.touch_activity();
+
+    // 1. Vault must be unlocked
+    let sym_key_guard = state.symmetric_key.read().await;
+    let sym_key = sym_key_guard.as_ref().ok_or_else(|| {
+        (
+            StatusCode::UNAUTHORIZED,
+            Json(ErrorResponse::new(
+                "Vault is locked. Run 'tacet unlock' first.",
+            )),
+        )
+    })?;
+
+    // 2. Vault data must be present
+    let vault_guard = state.vault.read().await;
+    let vault = vault_guard.as_ref().ok_or_else(|| {
+        (
+            StatusCode::BAD_REQUEST,
+            Json(ErrorResponse::new("Vault cache is empty. Please run sync.")),
+        )
+    })?;
+
+    let rsa_guard = state.rsa_private_key.read().await;
+    let resolver = VaultResolver::new(vault, sym_key, rsa_guard.as_ref());
+
+    let items = resolver
+        .list_items(query.scope.as_deref(), query.search.as_deref())
+        .map_err(|e| {
+            (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(ErrorResponse::new(format!("Failed to list items: {e}"))),
+            )
+        })?;
+
+    let total = items.len();
+    Ok(Json(ListResponse { items, total }))
 }

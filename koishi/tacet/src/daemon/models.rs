@@ -73,3 +73,15 @@ impl ErrorResponse {
         Self { error: msg.into() }
     }
 }
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct ListQuery {
+    pub scope: Option<String>,
+    pub search: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ListResponse {
+    pub items: Vec<crate::resolver::VaultItemSummary>,
+    pub total: usize,
+}

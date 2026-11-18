@@ -43,6 +43,20 @@ pub enum Commands {
     /// Fetch latest encrypted vault from server
     Sync,
 
+    /// List vault items and URI prefixes
+    List {
+        /// Optional scope filter (e.g. personal, personal/Dev, or org/<org>/<collection>)
+        scope: Option<String>,
+
+        /// Filter items by name or ID substring
+        #[arg(short = 'q', long = "search")]
+        search: Option<String>,
+
+        /// Output raw JSON instead of tabular view
+        #[arg(long)]
+        json: bool,
+    },
+
     /// Print single resolved secret to stdout
     Read {
         /// Target secret URI (e.g. tacet://personal/github/password)

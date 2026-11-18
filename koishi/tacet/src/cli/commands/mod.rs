@@ -1,4 +1,5 @@
 pub mod inject;
+pub mod list;
 pub mod lock;
 pub mod login;
 pub mod logout;
@@ -9,6 +10,7 @@ pub mod sync;
 pub mod unlock;
 
 pub use inject::execute_inject;
+pub use list::execute_list;
 pub use lock::execute_lock;
 pub use login::execute_login;
 pub use logout::execute_logout;

@@ -68,16 +68,16 @@ koishi/tacet/
 │   ├── daemon/                 # HTTP-over-UDS server (axum)
 │   │   ├── mod.rs
 │   │   ├── app.rs              # axum router setup
-│   │   ├── routes.rs           # REST endpoints (/v1/status, login, unlock, lock, logout, sync, resolve)
+│   │   ├── routes.rs           # REST endpoints (/v1/status, login, unlock, lock, logout, sync, resolve, list)
 │   │   ├── server.rs           # UnixListener bind, socket permission enforcement & peer UID check
 │   │   └── state.rs            # In-memory custody state and idle auto-lock background timer
 │   └── cli/                    # CLI execution & process management
 │       ├── mod.rs
 │       ├── client.rs           # HTTP client over Unix Domain Socket
-│       ├── commands.rs         # Subcommand dispatch (login, unlock, lock, logout, status, sync, read, inject, run)
+│       ├── commands/           # Subcommands (login, unlock, lock, logout, status, sync, list, read, inject, run)
 │       ├── masker.rs           # Real-time stdout/stderr secret stream redaction
 │       ├── run.rs              # Process spawn, env injection, and streaming output handler
-│       └── spawner.rs          # Automatic background daemon spawning wrapper
+│       └── autospawn.rs        # Automatic background daemon spawning wrapper
 └── tests/                      # Integration test suites
     ├── cli_tests.rs
     ├── crypto_tests.rs
@@ -164,6 +164,7 @@ All cryptographic operations strictly adhere to the Bitwarden Cryptographic Spec
 | `POST /v1/logout` | None | `{"logged_out": true}` | — | Zeroizes keys and purges local storage |
 | `POST /v1/sync` | None | `{"synced": true, "item_count": u32}` | 401, 502 | Refreshes token & updates vault cache |
 | `POST /v1/resolve` | `{"uris": [string]}` | `{"secrets": {string: string}}` | 400, 401, 404, 409 | Batch secret resolution |
+| `GET /v1/list` | None (Query: `?scope=..&search=..`) | `{"items": [{"id": "..", "name": "..", "scope": "..", "folder": "..", "cipher_type": "..", "uri_prefix": ".."}], "total": usize}` | 401, 500 | Lists item summaries with decrypted names |
 
 ---
 

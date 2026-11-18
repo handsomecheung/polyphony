@@ -8,7 +8,18 @@ use crate::uri::parser::{CipherFieldTarget, Encoding, Scope, TacetUri};
 use base64::engine::general_purpose::STANDARD as BASE64_STANDARD;
 use base64::Engine;
 use rsa::RsaPrivateKey;
+use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct VaultItemSummary {
+    pub id: String,
+    pub name: String,
+    pub scope: String,
+    pub folder: Option<String>,
+    pub cipher_type: String,
+    pub uri_prefix: String,
+}
 
 pub struct VaultResolver<'a> {
     vault: &'a SyncResponse,
@@ -92,6 +103,190 @@ impl<'a> VaultResolver<'a> {
         let uri = TacetUri::parse(uri_str)?;
         let secret = self.resolve(&uri)?;
         Ok(secret)
+    }
+
+    /// Lists vault item summaries with optional scope and search filters.
+    pub fn list_items(
+        &self,
+        scope_filter: Option<&str>,
+        search_filter: Option<&str>,
+    ) -> Result<Vec<VaultItemSummary>, ResolverError> {
+        // Pre-decrypt all personal folder names
+        let mut folder_names: HashMap<String, String> = HashMap::new();
+        for f in &self.vault.folders {
+            if let Ok(name) = self.user_key.decrypt_type2_string(&f.name) {
+                folder_names.insert(f.id.clone(), name);
+            }
+        }
+
+        // Map organization names
+        let mut org_names: HashMap<String, String> = HashMap::new();
+        if let Some(profile) = &self.vault.profile {
+            for org in &profile.organizations {
+                org_names.insert(org.id.clone(), org.name.clone());
+            }
+        }
+
+        // Pre-decrypt collection names
+        let mut col_names: HashMap<String, String> = HashMap::new();
+        for col in &self.vault.collections {
+            let org_key = self
+                .org_keys
+                .get(&col.organization_id)
+                .unwrap_or(self.user_key);
+            if let Ok(name) = org_key
+                .decrypt_type2_string(&col.name)
+                .or_else(|_| self.user_key.decrypt_type2_string(&col.name))
+            {
+                col_names.insert(col.id.clone(), name);
+            }
+        }
+
+        let mut items = Vec::new();
+
+        for cipher in &self.vault.ciphers {
+            let is_personal = cipher.organization_id.is_none();
+            let key = if let Some(org_id) = &cipher.organization_id {
+                match self.org_keys.get(org_id) {
+                    Some(k) => k,
+                    None => continue,
+                }
+            } else {
+                self.user_key
+            };
+
+            let dec_name = match key.decrypt_type2_string(&cipher.name) {
+                Ok(n) => n,
+                Err(_) => continue,
+            };
+
+            let folder_name = cipher
+                .folder_id
+                .as_ref()
+                .and_then(|fid| folder_names.get(fid).cloned());
+
+            let (scope_str, uri_prefix) = if is_personal {
+                let enc_name = dec_name.replace('/', "%2F");
+                let scope = match &folder_name {
+                    Some(f) => format!("personal/{f}"),
+                    None => "personal".to_string(),
+                };
+                let prefix = match &folder_name {
+                    Some(f) => format!("personal/{}/{}", f.replace('/', "%2F"), enc_name),
+                    None => format!("tacet://personal/{}", enc_name),
+                };
+                let uri_prefix = if prefix.starts_with("tacet://") {
+                    prefix
+                } else {
+                    format!("tacet://{prefix}")
+                };
+                (scope, uri_prefix)
+            } else {
+                let org_id = cipher.organization_id.as_deref().unwrap_or_default();
+                let org_name = org_names
+                    .get(org_id)
+                    .cloned()
+                    .unwrap_or_else(|| org_id.to_string());
+
+                let col_name = cipher
+                    .collection_ids
+                    .first()
+                    .and_then(|cid| col_names.get(cid))
+                    .cloned()
+                    .unwrap_or_else(|| "default".to_string());
+
+                let scope = format!("org/{org_name}/{col_name}");
+                let enc_org = org_name.replace('/', "%2F");
+                let enc_col = col_name.replace('/', "%2F");
+                let enc_name = dec_name.replace('/', "%2F");
+                let prefix = format!("tacet://org/{enc_org}/{enc_col}/{enc_name}");
+                (scope, prefix)
+            };
+
+            // Apply scope filter if specified
+            if let Some(scope_req) = scope_filter {
+                let trimmed = scope_req.trim();
+                if !trimmed.is_empty() && trimmed != "*" {
+                    if trimmed.eq_ignore_ascii_case("personal") || trimmed == "_" {
+                        if !is_personal {
+                            continue;
+                        }
+                    } else if let Some(subfolder) = trimmed.strip_prefix("personal/") {
+                        if !is_personal {
+                            continue;
+                        }
+                        match &folder_name {
+                            Some(fn_str) if fn_str.eq_ignore_ascii_case(subfolder) => {}
+                            _ => continue,
+                        }
+                    } else if let Some(org_filter) = trimmed.strip_prefix("org/") {
+                        if is_personal {
+                            continue;
+                        }
+                        if let Some((target_org, target_col)) = org_filter.split_once('/') {
+                            if !scope_str
+                                .eq_ignore_ascii_case(&format!("org/{target_org}/{target_col}"))
+                            {
+                                continue;
+                            }
+                        } else if !scope_str
+                            .to_lowercase()
+                            .starts_with(&format!("org/{}", org_filter.to_lowercase()))
+                        {
+                            continue;
+                        }
+                    } else {
+                        let matches_folder = folder_name
+                            .as_ref()
+                            .map(|f| f.eq_ignore_ascii_case(trimmed))
+                            .unwrap_or(false);
+                        let matches_scope = scope_str.eq_ignore_ascii_case(trimmed);
+                        if !matches_folder && !matches_scope {
+                            continue;
+                        }
+                    }
+                }
+            }
+
+            // Apply search filter if specified
+            if let Some(query) = search_filter {
+                let q = query.trim().to_lowercase();
+                if !q.is_empty() {
+                    let name_match = dec_name.to_lowercase().contains(&q);
+                    let id_match = cipher.id.to_lowercase().contains(&q);
+                    let folder_match = folder_name
+                        .as_ref()
+                        .map(|f| f.to_lowercase().contains(&q))
+                        .unwrap_or(false);
+                    let scope_match = scope_str.to_lowercase().contains(&q);
+
+                    if !name_match && !id_match && !folder_match && !scope_match {
+                        continue;
+                    }
+                }
+            }
+
+            let type_str = match cipher.cipher_type {
+                1 => "Login",
+                2 => "SecureNote",
+                3 => "Card",
+                4 => "Identity",
+                _ => "Other",
+            }
+            .to_string();
+
+            items.push(VaultItemSummary {
+                id: cipher.id.clone(),
+                name: dec_name,
+                scope: scope_str,
+                folder: folder_name,
+                cipher_type: type_str,
+                uri_prefix,
+            });
+        }
+
+        items.sort_by(|a, b| a.name.to_lowercase().cmp(&b.name.to_lowercase()));
+        Ok(items)
     }
 
     fn filter_scope<'s>(

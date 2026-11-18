@@ -379,3 +379,39 @@ fn test_modifiers() {
         .unwrap();
     assert!(!trimmed.ends_with('\n'));
 }
+
+#[test]
+fn test_list_items() {
+    let (vault, user_key, rsa_priv, _) = setup_test_vault();
+    let resolver = VaultResolver::new(&vault, &user_key, Some(&rsa_priv));
+
+    // 1. List all items
+    let all = resolver.list_items(None, None).unwrap();
+    assert_eq!(all.len(), 5);
+
+    // 2. Filter by personal scope
+    let personal = resolver.list_items(Some("personal"), None).unwrap();
+    assert_eq!(personal.len(), 4);
+    for item in &personal {
+        assert!(item.scope.starts_with("personal"));
+    }
+
+    // 3. Filter by folder
+    let dev = resolver
+        .list_items(Some("personal/Development"), None)
+        .unwrap();
+    assert_eq!(dev.len(), 1);
+    assert_eq!(dev[0].name, "Postgres Dev");
+
+    // 4. Filter by org
+    let org = resolver.list_items(Some("org/AcmeCorp"), None).unwrap();
+    assert_eq!(org.len(), 1);
+    assert_eq!(org[0].name, "Prod Database");
+
+    // 5. Filter by search query
+    let searched_github = resolver.list_items(None, Some("GitHub")).unwrap();
+    assert_eq!(searched_github.len(), 1);
+
+    let searched_dup = resolver.list_items(None, Some("Duplicate")).unwrap();
+    assert_eq!(searched_dup.len(), 2);
+}

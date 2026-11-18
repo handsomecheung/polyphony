@@ -1,6 +1,7 @@
 use crate::daemon::models::{
-    ErrorResponse, LockResponse, LoginRequest, LoginResponse, LogoutResponse, ResolveRequest,
-    ResolveResponse, StatusResponse, SyncStatusResponse, UnlockRequest, UnlockResponse,
+    ErrorResponse, ListResponse, LockResponse, LoginRequest, LoginResponse, LogoutResponse,
+    ResolveRequest, ResolveResponse, StatusResponse, SyncStatusResponse, UnlockRequest,
+    UnlockResponse,
 };
 use bytes::Bytes;
 use http_body_util::{BodyExt, Full};
@@ -131,6 +132,35 @@ impl DaemonClient {
     pub async fn resolve(&self, uris: Vec<String>) -> Result<ResolveResponse, DaemonClientError> {
         let req = ResolveRequest { uris };
         self.send_json(Method::POST, "/v1/resolve", Some(&req))
+            .await
+    }
+
+    pub async fn list(
+        &self,
+        scope: Option<&str>,
+        search: Option<&str>,
+    ) -> Result<ListResponse, DaemonClientError> {
+        let mut params = Vec::new();
+        if let Some(s) = scope {
+            params.push(format!(
+                "scope={}",
+                percent_encoding::utf8_percent_encode(s, percent_encoding::NON_ALPHANUMERIC)
+            ));
+        }
+        if let Some(q) = search {
+            params.push(format!(
+                "search={}",
+                percent_encoding::utf8_percent_encode(q, percent_encoding::NON_ALPHANUMERIC)
+            ));
+        }
+
+        let path = if params.is_empty() {
+            "/v1/list".to_string()
+        } else {
+            format!("/v1/list?{}", params.join("&"))
+        };
+
+        self.send_json::<(), ListResponse>(Method::GET, &path, None)
             .await
     }
 }
