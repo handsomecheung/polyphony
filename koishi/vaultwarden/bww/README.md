@@ -34,7 +34,7 @@ BWW (BitWarden for Webapp) is a Go-based application that wraps the Bitwarden CL
 ### 6. Sync Cache
 - **URL**: `UPDATE /sync`
 - **Method**: `UPDATE`
-- **Description**: Triggers `bw sync` and reloads all items into memory.
+- **Description**: Triggers `bw sync` and reloads all items into memory. Syncs are serialized; if `bw sync` fails (e.g. the access token expired and `bw` logged itself out), it logs in and unlocks again and retries once.
 
 ### 7. Render Template
 - **URL**: `POST /render`

@@ -55,6 +55,7 @@ var (
 	cache            = make(map[string]Item)
 	collectionsCache = make(map[string]string) // ID -> Name
 	cacheMutex       sync.RWMutex
+	syncMutex        sync.Mutex
 	secretKey        []byte
 )
 
@@ -155,14 +156,42 @@ func bwCommand(args ...string) *exec.Cmd {
 	return exec.Command("bw", args...)
 }
 
-func syncCache() error {
-	if err := ensureUnlocked(); err != nil {
-		return err
+// tailString returns at most the last n bytes of s.
+func tailString(s string, n int) string {
+	s = strings.TrimSpace(s)
+	if len(s) > n {
+		return "..." + s[len(s)-n:]
 	}
+	return s
+}
 
-	log.Println("Syncing with server...")
-	if output, err := bwCommand("sync").CombinedOutput(); err != nil {
-		return fmt.Errorf("sync failed: %s, %v", string(output), err)
+// runSync runs `bw sync`. If it fails (typically because the access token expired and bw
+// logged itself out), it re-logins/unlocks via ensureUnlocked and retries once.
+func runSync() error {
+	var lastErr error
+	for attempt := 1; attempt <= 2; attempt++ {
+		if err := ensureUnlocked(); err != nil {
+			return err
+		}
+		log.Printf("Syncing with server (attempt %d)...", attempt)
+		output, err := bwCommand("sync").CombinedOutput()
+		if err == nil {
+			return nil
+		}
+		lastErr = fmt.Errorf("sync failed: %s, %v", tailString(string(output), 500), err)
+		log.Printf("bw sync attempt %d failed: %v", attempt, lastErr)
+		time.Sleep(time.Second)
+	}
+	return lastErr
+}
+
+func syncCache() error {
+	// Serialize syncs so concurrent requests do not run overlapping bw processes.
+	syncMutex.Lock()
+	defer syncMutex.Unlock()
+
+	if err := runSync(); err != nil {
+		return err
 	}
 
 	log.Println("Fetching collections...")
