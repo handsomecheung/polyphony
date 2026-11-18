@@ -61,7 +61,10 @@ Tacet is built with a decoupled client-daemon architecture:
 Prerequisites: Rust 1.80+ (Cargo).
 
 ```bash
-# Build both tacet CLI and tacetd daemon
+# Option 1: Build release binaries and install to ~/bin/
+./scripts/build.sh
+
+# Option 2: Build with cargo directly
 cargo build --release
 
 # The compiled binaries will be located at:
@@ -219,6 +222,7 @@ tacet run [--env-file <file>] [--no-mask] -- <command> [args...]
 ## Storage & Security Model
 
 - **Configuration:** `~/.config/tacet/session.json` (mode `0600`) stores server URL, email, and user public/private key metadata.
+- **Device ID:** `~/.config/tacet/device_id` (mode `0600`) stores a persistent UUIDv4 to identify the client installation to Vaultwarden and Bitwarden servers.
 - **Cache:** `~/.cache/tacet/vault.cache` (mode `0600`) caches encrypted CipherStrings directly from Bitwarden.
 - **Socket:** `$XDG_RUNTIME_DIR/tacet/tacetd.sock` (mode `0600`, directory `0700`) enforces local peer UID validation via `SO_PEERCRED`. No TCP sockets are bound, preventing DNS-rebinding and browser-based CSRF attacks.
 - **Key Custody:** Symmetric keys reside strictly within `tacetd` memory inside zeroizing allocations (`ZeroizeOnDrop`) and are wiped on idle timeout (default: 30 minutes) or explicit lock/logout.

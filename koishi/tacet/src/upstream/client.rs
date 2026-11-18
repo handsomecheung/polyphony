@@ -13,6 +13,25 @@ pub struct UpstreamClient {
     client: Client,
 }
 
+fn current_device_type() -> &'static str {
+    #[cfg(target_os = "linux")]
+    {
+        "25"
+    }
+    #[cfg(target_os = "macos")]
+    {
+        "24"
+    }
+    #[cfg(target_os = "windows")]
+    {
+        "23"
+    }
+    #[cfg(not(any(target_os = "linux", target_os = "macos", target_os = "windows")))]
+    {
+        "25"
+    }
+}
+
 impl UpstreamClient {
     pub fn new(server_url: &str) -> Result<Self, UpstreamError> {
         let endpoints = BitwardenEndpoints::resolve(server_url)?;
@@ -61,6 +80,7 @@ impl UpstreamClient {
         email: &str,
         master_password_hash: &str,
         two_factor: Option<TwoFactorCredentials>,
+        device_identifier: Option<&str>,
     ) -> Result<TokenResponse, UpstreamError> {
         let url = self.endpoints.token_url()?;
         let mut form = HashMap::new();
@@ -69,6 +89,14 @@ impl UpstreamClient {
         form.insert("password", master_password_hash.to_string());
         form.insert("scope", "api offline_access".to_string());
         form.insert("client_id", "web".to_string());
+
+        let dev_id = match device_identifier {
+            Some(id) if !id.trim().is_empty() => id.trim().to_string(),
+            _ => uuid::Uuid::new_v4().to_string(),
+        };
+        form.insert("deviceType", current_device_type().to_string());
+        form.insert("deviceIdentifier", dev_id);
+        form.insert("deviceName", "tacet-cli".to_string());
 
         let provider_str;
         let remember_str;

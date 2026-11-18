@@ -32,6 +32,8 @@ This document outlines the architecture, cryptographic pipelines, security invar
 ```text
 koishi/tacet/
 ├── Cargo.toml
+├── scripts/
+│   └── build.sh                # Release build and ~/bin/ installation script
 ├── src/
 │   ├── lib.rs
 │   ├── bin/
@@ -127,8 +129,10 @@ All cryptographic operations strictly adhere to the Bitwarden Cryptographic Spec
    - Parameters: PBKDF2 iterations (default: 600,000) or Argon2id iterations, memory (MB), and parallelism.
 2. **Master Key Derivation (32 Bytes):**
    - Derived using `master_password` with `email.trim().to_lowercase()` as the salt.
-3. **Master Password Hash (for upstream authentication):**
+3. **Master Password Hash & Upstream Authentication:**
    - `Base64(PBKDF2-SHA256(password = MasterKey, salt = master_password, iterations = 1, dkLen = 32))`
+   - Authenticates against `POST {server}/identity/connect/token` via `grant_type=password`.
+   - Submits client device parameters required by Vaultwarden/Bitwarden: `deviceType` (`25` on Linux), `deviceIdentifier` (persistent UUID from `~/.config/tacet/device_id`), and `deviceName` (`tacet-cli`).
 4. **Stretched Master Key (64 Bytes):**
    - HKDF-Expand with SHA-256: `EncKey = HKDF(MasterKey, info = b"enc", 32)` and `MacKey = HKDF(MasterKey, info = b"mac", 32)`.
 5. **Decryption of User Symmetric Key:**

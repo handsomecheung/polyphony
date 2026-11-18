@@ -123,7 +123,7 @@ async fn test_upstream_login_success() {
 
     let client = UpstreamClient::new(&mock_server.uri()).unwrap();
     let token_resp = client
-        .login("user@example.com", "hashed_pw", None)
+        .login("user@example.com", "hashed_pw", None, None)
         .await
         .expect("Login failed");
 
@@ -159,7 +159,7 @@ async fn test_upstream_login_2fa_required() {
 
     let client = UpstreamClient::new(&mock_server.uri()).unwrap();
     let err = client
-        .login("user@example.com", "hashed_pw", None)
+        .login("user@example.com", "hashed_pw", None, None)
         .await
         .unwrap_err();
 
@@ -195,7 +195,7 @@ async fn test_upstream_login_with_2fa_token() {
     };
 
     let token_resp = client
-        .login("user@example.com", "hashed_pw", Some(tf))
+        .login("user@example.com", "hashed_pw", Some(tf), None)
         .await
         .expect("Login with 2FA failed");
 

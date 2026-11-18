@@ -48,6 +48,28 @@ impl StoragePaths {
         self.cache_dir.join("vault.cache")
     }
 
+    pub fn device_id_file(&self) -> PathBuf {
+        self.config_dir.join("device_id")
+    }
+
+    /// Retrieves or generates a persistent UUID for device tracking with Bitwarden/Vaultwarden.
+    pub fn get_or_create_device_id(&self) -> Result<String, StorageError> {
+        self.ensure_dirs()?;
+        let file = self.device_id_file();
+        if file.exists() {
+            if let Ok(content) = fs::read_to_string(&file) {
+                let id = content.trim();
+                if !id.is_empty() {
+                    return Ok(id.to_string());
+                }
+            }
+        }
+
+        let new_id = uuid::Uuid::new_v4().to_string();
+        Self::write_secure_file(&file, new_id.as_bytes())?;
+        Ok(new_id)
+    }
+
     /// Ensures config and cache directories exist with mode 0700 on Unix.
     pub fn ensure_dirs(&self) -> Result<(), StorageError> {
         fs::create_dir_all(&self.config_dir)?;

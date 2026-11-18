@@ -106,9 +106,21 @@ async fn login_handler(
         remember: true,
     });
 
+    let device_id = state.storage_paths.get_or_create_device_id().map_err(|e| {
+        (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(ErrorResponse::new(e.to_string())),
+        )
+    })?;
+
     // 4. Authenticate upstream
     let token_resp = client
-        .login(&req.email, &master_password_hash, two_factor)
+        .login(
+            &req.email,
+            &master_password_hash,
+            two_factor,
+            Some(&device_id),
+        )
         .await
         .map_err(|e| {
             (
