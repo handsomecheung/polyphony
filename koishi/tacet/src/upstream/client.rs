@@ -144,6 +144,62 @@ impl UpstreamClient {
         })
     }
 
+    /// Authenticates with `POST {identity}/connect/token` via OAuth2 Client Credentials grant (API key).
+    pub async fn login_api_key(
+        &self,
+        client_id: &str,
+        client_secret: &str,
+        device_identifier: Option<&str>,
+    ) -> Result<TokenResponse, UpstreamError> {
+        let url = self.endpoints.token_url()?;
+
+        let trimmed_client_id = client_id.trim().trim_matches('"').trim_matches('\'');
+        let normalized_client_id = if !trimmed_client_id.starts_with("user.")
+            && !trimmed_client_id.starts_with("organization.")
+        {
+            format!("user.{trimmed_client_id}")
+        } else {
+            trimmed_client_id.to_string()
+        };
+
+        let trimmed_client_secret = client_secret.trim().trim_matches('"').trim_matches('\'');
+
+        let scope = if normalized_client_id.starts_with("organization.") {
+            "api.organization"
+        } else {
+            "api"
+        };
+
+        let mut form = HashMap::new();
+        form.insert("grant_type", "client_credentials".to_string());
+        form.insert("client_id", normalized_client_id);
+        form.insert("client_secret", trimmed_client_secret.to_string());
+        form.insert("scope", scope.to_string());
+
+        let dev_id = match device_identifier {
+            Some(id) if !id.trim().is_empty() => id.trim().to_string(),
+            _ => uuid::Uuid::new_v4().to_string(),
+        };
+        form.insert("deviceType", current_device_type().to_string());
+        form.insert("deviceIdentifier", dev_id);
+        form.insert("deviceName", "tacet-cli".to_string());
+
+        let resp = self.client.post(url).form(&form).send().await?;
+        let status = resp.status();
+
+        if status.is_success() {
+            let token_resp = resp.json::<TokenResponse>().await?;
+            return Ok(token_resp);
+        }
+
+        let body_bytes = resp.bytes().await?;
+        let error_msg = String::from_utf8_lossy(&body_bytes).to_string();
+        Err(UpstreamError::HttpStatusError {
+            status: status.as_u16(),
+            message: error_msg,
+        })
+    }
+
     /// Refreshes access token via `grant_type=refresh_token`.
     pub async fn refresh_token(&self, refresh_token: &str) -> Result<TokenResponse, UpstreamError> {
         let url = self.endpoints.token_url()?;

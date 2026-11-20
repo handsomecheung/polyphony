@@ -85,6 +85,10 @@ tacet login --email user@example.com
 
 # Self-Hosted Vaultwarden
 tacet login --server https://vault.example.com --email user@example.com
+
+# API Key Login (Headless / CI/CD)
+tacet login --apikey --client-id "user.xxxx" --client-secret "yyyy"
+# Or with environment variables: TACET_CLIENT_ID, TACET_CLIENT_SECRET, TACET_PASSWORD
 ```
 
 ### 2. Check Daemon Status
@@ -211,8 +215,8 @@ tacet [--socket <path>] <subcommand>
 ### Session Management
 
 ```bash
-tacet login [--server <url>] [--email <email>]
-tacet unlock
+tacet login [--server <url>] [--email <email>] [--apikey] [--client-id <id>] [--client-secret <secret>] [--password <pwd>]
+tacet unlock [--password <pwd>]
 tacet lock
 tacet logout
 tacet status

@@ -13,12 +13,54 @@ pub struct StatusResponse {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct LoginRequest {
     pub server_url: String,
-    pub email: String,
-    pub master_password: String,
+    #[serde(default)]
+    pub email: Option<String>,
+    #[serde(default)]
+    pub master_password: Option<String>,
     #[serde(default)]
     pub two_factor_provider: Option<u8>,
     #[serde(default)]
     pub two_factor_token: Option<String>,
+    #[serde(default)]
+    pub client_id: Option<String>,
+    #[serde(default)]
+    pub client_secret: Option<String>,
+}
+
+impl LoginRequest {
+    pub fn password(
+        server_url: impl Into<String>,
+        email: impl Into<String>,
+        master_password: impl Into<String>,
+    ) -> Self {
+        Self {
+            server_url: server_url.into(),
+            email: Some(email.into()),
+            master_password: Some(master_password.into()),
+            two_factor_provider: None,
+            two_factor_token: None,
+            client_id: None,
+            client_secret: None,
+        }
+    }
+
+    pub fn api_key(
+        server_url: impl Into<String>,
+        client_id: impl Into<String>,
+        client_secret: impl Into<String>,
+        master_password: Option<String>,
+        email: Option<String>,
+    ) -> Self {
+        Self {
+            server_url: server_url.into(),
+            email,
+            master_password,
+            two_factor_provider: None,
+            two_factor_token: None,
+            client_id: Some(client_id.into()),
+            client_secret: Some(client_secret.into()),
+        }
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

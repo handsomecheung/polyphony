@@ -68,8 +68,194 @@ async fn login_handler(
         )
     })?;
 
+    let device_id = state.storage_paths.get_or_create_device_id().map_err(|e| {
+        (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(ErrorResponse::new(e.to_string())),
+        )
+    })?;
+
+    let is_api_key_login = req.client_id.is_some() && req.client_secret.is_some();
+
+    if is_api_key_login {
+        let client_id = req.client_id.as_deref().unwrap();
+        let client_secret = req.client_secret.as_deref().unwrap();
+
+        let token_resp = client
+            .login_api_key(client_id, client_secret, Some(&device_id))
+            .await
+            .map_err(|e| {
+                (
+                    StatusCode::UNAUTHORIZED,
+                    Json(ErrorResponse::new(e.to_string())),
+                )
+            })?;
+
+        // Initial Sync to retrieve profile (email, protected keys) and vault ciphers
+        let sync_resp = client.sync(&token_resp.access_token).await.map_err(|e| {
+            (
+                StatusCode::BAD_GATEWAY,
+                Json(ErrorResponse::new(e.to_string())),
+            )
+        })?;
+
+        let email = match req
+            .email
+            .as_deref()
+            .or_else(|| sync_resp.profile.as_ref().map(|p| p.email.as_str()))
+        {
+            Some(e) if !e.trim().is_empty() => e.trim().to_string(),
+            _ => {
+                return Err((
+                    StatusCode::BAD_GATEWAY,
+                    Json(ErrorResponse::new(
+                        "API key authentication succeeded, but could not determine user email from vault profile. Please provide email explicitly.",
+                    )),
+                ));
+            }
+        };
+
+        let prelogin = client.prelogin(&email).await.map_err(|e| {
+            (
+                StatusCode::BAD_GATEWAY,
+                Json(ErrorResponse::new(e.to_string())),
+            )
+        })?;
+
+        let kdf_params = match prelogin.kdf {
+            1 => KdfParams::argon2id(
+                prelogin.kdf_iterations,
+                prelogin.kdf_memory.unwrap_or(64),
+                prelogin.kdf_parallelism.unwrap_or(4),
+            ),
+            _ => KdfParams::pbkdf2(prelogin.kdf_iterations),
+        };
+
+        let protected_key = sync_resp.profile.as_ref().and_then(|p| p.key.clone());
+        let protected_rsa_private_key = sync_resp
+            .profile
+            .as_ref()
+            .and_then(|p| p.private_key.clone());
+
+        let (sym_key, rsa_priv, unlocked) = if let Some(master_pwd) = &req.master_password {
+            if !master_pwd.is_empty() {
+                let prot_key_str = protected_key.as_deref().ok_or_else(|| {
+                    (
+                        StatusCode::BAD_GATEWAY,
+                        Json(ErrorResponse::new(
+                            "Server did not return account key in profile",
+                        )),
+                    )
+                })?;
+
+                let master_key =
+                    derive_master_key(master_pwd, &email, &kdf_params).map_err(|e| {
+                        (
+                            StatusCode::INTERNAL_SERVER_ERROR,
+                            Json(ErrorResponse::new(e.to_string())),
+                        )
+                    })?;
+
+                let stretched = stretch_master_key(&master_key).map_err(|e| {
+                    (
+                        StatusCode::INTERNAL_SERVER_ERROR,
+                        Json(ErrorResponse::new(e.to_string())),
+                    )
+                })?;
+
+                let sk =
+                    SymmetricKey::from_protected_key(prot_key_str, &stretched).map_err(|_| {
+                        (
+                            StatusCode::UNAUTHORIZED,
+                            Json(ErrorResponse::new("Invalid master password")),
+                        )
+                    })?;
+
+                let rsa = if let Some(pk_str) = &protected_rsa_private_key {
+                    if let Ok(raw_pk) = sk.decrypt_type2(pk_str) {
+                        parse_rsa_private_key(&raw_pk).ok()
+                    } else {
+                        None
+                    }
+                } else {
+                    None
+                };
+
+                (Some(sk), rsa, true)
+            } else {
+                (None, None, false)
+            }
+        } else {
+            (None, None, false)
+        };
+
+        let expires_at = Utc::now() + Duration::seconds(token_resp.expires_in as i64);
+
+        let session_meta = SessionMetadata {
+            server_url: req.server_url.clone(),
+            email: email.clone(),
+            access_token: token_resp.access_token.clone(),
+            refresh_token: token_resp.refresh_token.clone(),
+            expires_at: Some(expires_at),
+            kdf_params,
+            protected_symmetric_key: protected_key,
+            protected_rsa_private_key,
+            user_id: sync_resp.profile.as_ref().map(|p| p.id.clone()),
+            last_synced: Some(Utc::now()),
+        };
+
+        session_meta.save(&state.storage_paths).map_err(|e| {
+            (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(ErrorResponse::new(format!(
+                    "Failed to persist session: {e}"
+                ))),
+            )
+        })?;
+
+        let vault_cache = EncryptedVaultCache::new(sync_resp.clone());
+        vault_cache.save(&state.storage_paths).map_err(|e| {
+            (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(ErrorResponse::new(format!(
+                    "Failed to persist vault cache: {e}"
+                ))),
+            )
+        })?;
+
+        let item_count = sync_resp.ciphers.len() as u32;
+
+        *state.session.write().await = Some(session_meta);
+        *state.vault.write().await = Some(sync_resp);
+        *state.symmetric_key.write().await = sym_key;
+        *state.rsa_private_key.write().await = rsa_priv;
+        *state.upstream_client.write().await = Some(client);
+
+        return Ok(Json(LoginResponse {
+            unlocked,
+            item_count,
+        }));
+    }
+
+    // Password login flow
+    let email = req.email.as_deref().ok_or_else(|| {
+        (
+            StatusCode::BAD_REQUEST,
+            Json(ErrorResponse::new("Password login requires 'email'")),
+        )
+    })?;
+
+    let master_password = req.master_password.as_deref().ok_or_else(|| {
+        (
+            StatusCode::BAD_REQUEST,
+            Json(ErrorResponse::new(
+                "Password login requires 'master_password'",
+            )),
+        )
+    })?;
+
     // 2. Prelogin to obtain KDF parameters
-    let prelogin = client.prelogin(&req.email).await.map_err(|e| {
+    let prelogin = client.prelogin(email).await.map_err(|e| {
         (
             StatusCode::BAD_GATEWAY,
             Json(ErrorResponse::new(e.to_string())),
@@ -86,16 +272,15 @@ async fn login_handler(
     };
 
     // 3. Derive keys
-    let master_key =
-        derive_master_key(&req.master_password, &req.email, &kdf_params).map_err(|e| {
-            (
-                StatusCode::INTERNAL_SERVER_ERROR,
-                Json(ErrorResponse::new(e.to_string())),
-            )
-        })?;
+    let master_key = derive_master_key(master_password, email, &kdf_params).map_err(|e| {
+        (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(ErrorResponse::new(e.to_string())),
+        )
+    })?;
 
-    let master_password_hash = derive_master_password_hash(&master_key, &req.master_password)
-        .map_err(|e| {
+    let master_password_hash =
+        derive_master_password_hash(&master_key, master_password).map_err(|e| {
             (
                 StatusCode::INTERNAL_SERVER_ERROR,
                 Json(ErrorResponse::new(e.to_string())),
@@ -108,21 +293,9 @@ async fn login_handler(
         remember: true,
     });
 
-    let device_id = state.storage_paths.get_or_create_device_id().map_err(|e| {
-        (
-            StatusCode::INTERNAL_SERVER_ERROR,
-            Json(ErrorResponse::new(e.to_string())),
-        )
-    })?;
-
     // 4. Authenticate upstream
     let token_resp = client
-        .login(
-            &req.email,
-            &master_password_hash,
-            two_factor,
-            Some(&device_id),
-        )
+        .login(email, &master_password_hash, two_factor, Some(&device_id))
         .await
         .map_err(|e| {
             (
@@ -176,7 +349,7 @@ async fn login_handler(
 
     let session_meta = SessionMetadata {
         server_url: req.server_url.clone(),
-        email: req.email.clone(),
+        email: email.to_string(),
         access_token: token_resp.access_token.clone(),
         refresh_token: token_resp.refresh_token.clone(),
         expires_at: Some(expires_at),

@@ -325,3 +325,64 @@ async fn test_upstream_http_status_error() {
         other => panic!("Expected HttpStatusError, got {other:?}"),
     }
 }
+
+#[tokio::test]
+async fn test_upstream_login_api_key_success() {
+    let mock_server = MockServer::start().await;
+
+    let token_body = json!({
+        "access_token": "api_key_oauth_access_token",
+        "expires_in": 3600,
+        "token_type": "Bearer"
+    });
+
+    Mock::given(method("POST"))
+        .and(path("/identity/connect/token"))
+        .respond_with(ResponseTemplate::new(200).set_body_json(token_body))
+        .mount(&mock_server)
+        .await;
+
+    let client = UpstreamClient::new(&mock_server.uri()).unwrap();
+    let token_resp = client
+        .login_api_key(
+            "user.11111111-2222-3333-4444-555555555555",
+            "super_secret_client_key_123",
+            Some("device-id-test"),
+        )
+        .await
+        .expect("API key login failed");
+
+    assert_eq!(token_resp.access_token, "api_key_oauth_access_token");
+    assert_eq!(token_resp.expires_in, 3600);
+    assert_eq!(token_resp.token_type, "Bearer");
+}
+
+#[tokio::test]
+async fn test_upstream_login_api_key_normalization() {
+    let mock_server = MockServer::start().await;
+
+    let token_body = json!({
+        "access_token": "normalized_token",
+        "expires_in": 3600,
+        "token_type": "Bearer"
+    });
+
+    Mock::given(method("POST"))
+        .and(path("/identity/connect/token"))
+        .respond_with(ResponseTemplate::new(200).set_body_json(token_body))
+        .mount(&mock_server)
+        .await;
+
+    let client = UpstreamClient::new(&mock_server.uri()).unwrap();
+    // Test raw UUID without user. prefix and with surrounding spaces and quotes
+    let token_resp = client
+        .login_api_key(
+            "  \"43b602af-98fe-4320-b446-4fa469ea6d04\"  ",
+            "  client_secret_xyz  ",
+            Some("device-id-test"),
+        )
+        .await
+        .expect("Normalized API key login failed");
+
+    assert_eq!(token_resp.access_token, "normalized_token");
+}

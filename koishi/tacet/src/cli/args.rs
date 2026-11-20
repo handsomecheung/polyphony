@@ -20,16 +20,36 @@ pub enum Commands {
     /// Interactive login, initial sync & daemon start
     Login {
         /// Bitwarden / Vaultwarden server URL (default: https://vault.bitwarden.com)
-        #[arg(short, long)]
+        #[arg(short, long, env = "TACET_SERVER")]
         server: Option<String>,
 
         /// Account email address
-        #[arg(short, long)]
+        #[arg(short, long, env = "TACET_EMAIL")]
         email: Option<String>,
+
+        /// Authenticate using Bitwarden API Key (client_id and client_secret)
+        #[arg(long)]
+        apikey: bool,
+
+        /// API Client ID (e.g. user.xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx)
+        #[arg(long, env = "TACET_CLIENT_ID")]
+        client_id: Option<String>,
+
+        /// API Client Secret
+        #[arg(long, env = "TACET_CLIENT_SECRET")]
+        client_secret: Option<String>,
+
+        /// Master password for unlock (useful for non-interactive / CI environments)
+        #[arg(long, env = "TACET_PASSWORD")]
+        password: Option<String>,
     },
 
     /// Prompt Master Password to unlock tacetd
-    Unlock,
+    Unlock {
+        /// Master password (useful for non-interactive / script unlock)
+        #[arg(long, env = "TACET_PASSWORD")]
+        password: Option<String>,
+    },
 
     /// Wipe keys in tacetd memory immediately
     Lock,

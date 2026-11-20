@@ -21,8 +21,26 @@ async fn main() {
     };
 
     let result = match cli.command {
-        Commands::Login { server, email } => execute_login(&client, server, email).await,
-        Commands::Unlock => execute_unlock(&client).await,
+        Commands::Login {
+            server,
+            email,
+            apikey,
+            client_id,
+            client_secret,
+            password,
+        } => {
+            execute_login(
+                &client,
+                server,
+                email,
+                apikey,
+                client_id,
+                client_secret,
+                password,
+            )
+            .await
+        }
+        Commands::Unlock { password } => execute_unlock(&client, password).await,
         Commands::Lock => execute_lock(&client).await,
         Commands::Logout => execute_logout(&client).await,
         Commands::Status => execute_status(&client).await,

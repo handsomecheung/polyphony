@@ -163,7 +163,7 @@ All cryptographic operations strictly adhere to the Bitwarden Cryptographic Spec
 | Method & Path | Request Body | Success Response (`200 OK`) | Error Codes | Notes |
 |---|---|---|---|---|
 | `GET /v1/status` | None | `{"running": true, "logged_in": bool, "unlocked": bool, "server_url": string, "item_count": u32}` | — | Health and state check |
-| `POST /v1/login` | `{"server_url": string, "email": string, "master_password": string, "two_factor_token": string?}` | `{"unlocked": true, "item_count": u32}` | 400, 401, 502 | Upstream auth, initial sync, unlock |
+| `POST /v1/login` | `{"server_url": string, "email": string?, "master_password": string?, "client_id": string?, "client_secret": string?, "two_factor_token": string?}` | `{"unlocked": bool, "item_count": u32}` | 400, 401, 502 | Upstream password or API key auth, sync, unlock |
 | `POST /v1/unlock` | `{"master_password": string}` | `{"unlocked": true}` | 400, 401 | Restores SymmetricKey into memory |
 | `POST /v1/lock` | None | `{"locked": true}` | — | Zeroizes SymmetricKey immediately |
 | `POST /v1/logout` | None | `{"logged_out": true}` | — | Zeroizes keys and purges local storage |

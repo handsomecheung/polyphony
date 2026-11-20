@@ -15,4 +15,9 @@ echo "Installing binaries to ${TARGET_BIN_DIR}..."
 install -m 755 "${PROJECT_DIR}/target/release/tacet" "${TARGET_BIN_DIR}/tacet"
 install -m 755 "${PROJECT_DIR}/target/release/tacetd" "${TARGET_BIN_DIR}/tacetd"
 
+# Terminate running daemon so next invocation auto-spawns the updated binary
+if pkill -x tacetd 2>/dev/null; then
+    echo "Terminated existing tacetd daemon (will auto-spawn on next command)."
+fi
+
 echo "Build and installation complete: ${TARGET_BIN_DIR}/tacet and ${TARGET_BIN_DIR}/tacetd"

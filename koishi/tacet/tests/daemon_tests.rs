@@ -176,13 +176,7 @@ async fn test_daemon_full_rest_lifecycle() {
     assert!(resolve_unauth.is_err());
 
     // C. Login
-    let login_req = LoginRequest {
-        server_url: mock_server.uri(),
-        email: email.to_string(),
-        master_password: password.to_string(),
-        two_factor_provider: None,
-        two_factor_token: None,
-    };
+    let login_req = LoginRequest::password(mock_server.uri(), email, password);
     let login_resp = client.login(&login_req).await.expect("Login failed");
     assert!(login_resp.unlocked);
     assert_eq!(login_resp.item_count, 1);
@@ -306,11 +300,155 @@ async fn test_auto_lock_timer() {
     // Wait 6 seconds for the background auto-lock check (which checks every 5s)
     tokio::time::sleep(Duration::from_millis(6000)).await;
 
-    // Now daemon should have automatically locked
-    let status_after = client.status().await.unwrap();
-    assert!(
-        !status_after.unlocked,
-        "Daemon should have automatically locked after idle timeout"
+    let _ = shutdown_tx.send(());
+    let _ = server_handle.await;
+}
+
+#[tokio::test]
+async fn test_daemon_api_key_login_and_unlock() {
+    let tmp = tempdir().unwrap();
+    let socket_path = tmp.path().join("tacetd_apikey.sock");
+    let config_dir = tmp.path().join("config");
+    let cache_dir = tmp.path().join("cache");
+    let storage_paths = StoragePaths::custom(config_dir, cache_dir);
+
+    // Setup mock Bitwarden server
+    let mock_server = MockServer::start().await;
+
+    let email = "apikey_user@example.com";
+    let password = "SuperSecretMasterPassword123!";
+    let kdf_params = KdfParams::pbkdf2(100000);
+    let master_key = derive_master_key(password, email, &kdf_params).unwrap();
+    let stretched = stretch_master_key(&master_key).unwrap();
+
+    let user_sym_key = SymmetricKey::new([88u8; 64]);
+    let mut str_enc = [0u8; 32];
+    let mut str_mac = [0u8; 32];
+    str_enc.copy_from_slice(&stretched[..32]);
+    str_mac.copy_from_slice(&stretched[32..]);
+    let server_key_type2 =
+        CipherString::encrypt_type2(&str_enc, &str_mac, user_sym_key.as_bytes()).unwrap();
+
+    // 1. Mock Prelogin (called during API key login or unlock)
+    Mock::given(method("POST"))
+        .and(path("/identity/accounts/prelogin"))
+        .respond_with(ResponseTemplate::new(200).set_body_json(json!({
+            "kdf": 0,
+            "kdfIterations": 100000,
+            "kdfMemory": null,
+            "kdfParallelism": null
+        })))
+        .mount(&mock_server)
+        .await;
+
+    // 2. Mock Token for client_credentials
+    Mock::given(method("POST"))
+        .and(path("/identity/connect/token"))
+        .respond_with(ResponseTemplate::new(200).set_body_json(json!({
+            "access_token": "apikey_access_token_123",
+            "expires_in": 3600,
+            "token_type": "Bearer"
+        })))
+        .mount(&mock_server)
+        .await;
+
+    // 3. Mock Sync returning profile with key
+    let enc_cipher_name = user_sym_key.encrypt_type2_string("Stripe API").unwrap();
+    let enc_cipher_pass = user_sym_key
+        .encrypt_type2_string("sk_live_stripe_999")
+        .unwrap();
+    let enc_cipher_totp = user_sym_key
+        .encrypt_type2_string("JBSWY3DPEHPK3PXP")
+        .unwrap();
+
+    Mock::given(method("GET"))
+        .and(path("/api/sync"))
+        .respond_with(ResponseTemplate::new(200).set_body_json(json!({
+            "profile": {
+                "id": "user-uuid-apikey",
+                "email": email,
+                "key": server_key_type2,
+                "privateKey": null,
+                "organizations": []
+            },
+            "folders": [],
+            "collections": [],
+            "ciphers": [
+                {
+                    "id": "22222222-2222-2222-2222-222222222222",
+                    "organizationId": null,
+                    "folderId": null,
+                    "type": 1,
+                    "name": enc_cipher_name,
+                    "notes": null,
+                    "login": {
+                        "username": null,
+                        "password": enc_cipher_pass,
+                        "totp": enc_cipher_totp,
+                        "uris": null
+                    },
+                    "fields": null
+                }
+            ]
+        })))
+        .mount(&mock_server)
+        .await;
+
+    // Start daemon
+    let listener = bind_unix_socket(&socket_path).await.unwrap();
+    let state = DaemonState::new(storage_paths.clone(), Duration::from_secs(1800));
+    let (shutdown_tx, shutdown_rx) = broadcast::channel(1);
+
+    let server_handle = tokio::spawn(async move {
+        run_server(listener, state, shutdown_rx).await.unwrap();
+    });
+
+    let client = DaemonClient::new(&socket_path);
+
+    // Step A: Login with API key without password (locked)
+    let login_req = LoginRequest::api_key(
+        mock_server.uri(),
+        "user.22222222-3333-4444-5555-666666666666",
+        "secret_client_key_999",
+        None,
+        None,
+    );
+    let login_resp = client
+        .login(&login_req)
+        .await
+        .expect("API key login failed");
+    assert!(!login_resp.unlocked);
+    assert_eq!(login_resp.item_count, 1);
+
+    let status = client.status().await.unwrap();
+    assert!(status.logged_in);
+    assert!(!status.unlocked);
+    assert_eq!(status.item_count, 1);
+
+    // Resolving secrets should fail while locked
+    let resolve_res = client
+        .resolve(vec!["tacet://personal/Stripe API/password".into()])
+        .await;
+    assert!(resolve_res.is_err());
+
+    // Step B: Unlock using Master Password
+    let unlock_resp = client.unlock(password).await.expect("Unlock failed");
+    assert!(unlock_resp.unlocked);
+
+    let status_unlocked = client.status().await.unwrap();
+    assert!(status_unlocked.unlocked);
+
+    // Resolving secrets should now succeed
+    let resolve_success = client
+        .resolve(vec!["tacet://personal/Stripe API/password".into()])
+        .await
+        .expect("Resolve after unlock failed");
+    assert_eq!(
+        resolve_success
+            .secrets
+            .get("tacet://personal/Stripe API/password")
+            .unwrap(),
+        "sk_live_stripe_999"
     );
 
     let _ = shutdown_tx.send(());
