@@ -18,10 +18,11 @@ fn test_parse_personal_scope() {
     assert_eq!(uri2.item, "aws_root");
     assert_eq!(uri2.field, CipherFieldTarget::Totp);
 
-    let uri3 = TacetUri::parse("tacet://_/stripe/user").unwrap();
-    assert_eq!(uri3.scope, Scope::Personal { folder: None });
-    assert_eq!(uri3.item, "stripe");
-    assert_eq!(uri3.field, CipherFieldTarget::Username);
+    // Underscore shorthand is not supported
+    assert_eq!(
+        TacetUri::parse("tacet://_/stripe/username").unwrap_err(),
+        UriError::InvalidScope("_".to_string())
+    );
 }
 
 #[test]
@@ -49,7 +50,7 @@ fn test_parse_all_scope() {
 #[test]
 fn test_parse_escaped_characters() {
     // Escaped spaces and literal %2F slashes
-    let uri = TacetUri::parse("tacet://personal/prod%2Fcluster/k8s%20token/pass").unwrap();
+    let uri = TacetUri::parse("tacet://personal/prod%2Fcluster/k8s%20token/password").unwrap();
     assert_eq!(
         uri.scope,
         Scope::Personal {
@@ -62,77 +63,100 @@ fn test_parse_escaped_characters() {
 
 #[test]
 fn test_parse_field_variants() {
+    // Canonical built-in fields
     assert_eq!(
-        TacetUri::parse("tacet://_/item/username").unwrap().field,
+        TacetUri::parse("tacet://personal/item/username")
+            .unwrap()
+            .field,
         CipherFieldTarget::Username
     );
     assert_eq!(
-        TacetUri::parse("tacet://_/item/user").unwrap().field,
-        CipherFieldTarget::Username
-    );
-    assert_eq!(
-        TacetUri::parse("tacet://_/item/password").unwrap().field,
+        TacetUri::parse("tacet://personal/item/password")
+            .unwrap()
+            .field,
         CipherFieldTarget::Password
     );
     assert_eq!(
-        TacetUri::parse("tacet://_/item/pass").unwrap().field,
-        CipherFieldTarget::Password
-    );
-    assert_eq!(
-        TacetUri::parse("tacet://_/item/totp").unwrap().field,
+        TacetUri::parse("tacet://personal/item/totp").unwrap().field,
         CipherFieldTarget::Totp
     );
     assert_eq!(
-        TacetUri::parse("tacet://_/item/otp").unwrap().field,
-        CipherFieldTarget::Totp
-    );
-    assert_eq!(
-        TacetUri::parse("tacet://_/item/totp_secret").unwrap().field,
+        TacetUri::parse("tacet://personal/item/totp_secret")
+            .unwrap()
+            .field,
         CipherFieldTarget::TotpSecret
     );
     assert_eq!(
-        TacetUri::parse("tacet://_/item/notes").unwrap().field,
+        TacetUri::parse("tacet://personal/item/notes")
+            .unwrap()
+            .field,
         CipherFieldTarget::Notes
     );
     assert_eq!(
-        TacetUri::parse("tacet://_/item/note").unwrap().field,
-        CipherFieldTarget::Notes
-    );
-    assert_eq!(
-        TacetUri::parse("tacet://_/item/uri").unwrap().field,
+        TacetUri::parse("tacet://personal/item/uri").unwrap().field,
         CipherFieldTarget::Uri(0)
     );
     assert_eq!(
-        TacetUri::parse("tacet://_/item/url").unwrap().field,
+        TacetUri::parse("tacet://personal/item/uri.0")
+            .unwrap()
+            .field,
         CipherFieldTarget::Uri(0)
     );
     assert_eq!(
-        TacetUri::parse("tacet://_/item/uri.2").unwrap().field,
+        TacetUri::parse("tacet://personal/item/uri.2")
+            .unwrap()
+            .field,
         CipherFieldTarget::Uri(2)
     );
+
+    // Former aliases are now parsed as named custom fields (no collision with built-ins)
     assert_eq!(
-        TacetUri::parse("tacet://_/item/fields/custom_key")
+        TacetUri::parse("tacet://personal/item/user").unwrap().field,
+        CipherFieldTarget::Named("user".to_string())
+    );
+    assert_eq!(
+        TacetUri::parse("tacet://personal/item/pass").unwrap().field,
+        CipherFieldTarget::Named("pass".to_string())
+    );
+    assert_eq!(
+        TacetUri::parse("tacet://personal/item/otp").unwrap().field,
+        CipherFieldTarget::Named("otp".to_string())
+    );
+    assert_eq!(
+        TacetUri::parse("tacet://personal/item/note").unwrap().field,
+        CipherFieldTarget::Named("note".to_string())
+    );
+    assert_eq!(
+        TacetUri::parse("tacet://personal/item/url").unwrap().field,
+        CipherFieldTarget::Named("url".to_string())
+    );
+
+    // Custom fields
+    assert_eq!(
+        TacetUri::parse("tacet://personal/item/fields/custom_key")
             .unwrap()
             .field,
         CipherFieldTarget::CustomField("custom_key".to_string())
     );
     assert_eq!(
-        TacetUri::parse("tacet://_/item/custom_key").unwrap().field,
+        TacetUri::parse("tacet://personal/item/custom_key")
+            .unwrap()
+            .field,
         CipherFieldTarget::Named("custom_key".to_string())
     );
 }
 
 #[test]
 fn test_parse_modifiers() {
-    let uri1 = TacetUri::parse("tacet://_/item/notes?encoding=base64").unwrap();
+    let uri1 = TacetUri::parse("tacet://personal/item/notes?encoding=base64").unwrap();
     assert_eq!(uri1.modifiers.encoding, Some(Encoding::Base64));
     assert!(uri1.modifiers.trim);
 
-    let uri2 = TacetUri::parse("tacet://_/item/notes?encoding=hex&trim=false").unwrap();
+    let uri2 = TacetUri::parse("tacet://personal/item/notes?encoding=hex&trim=false").unwrap();
     assert_eq!(uri2.modifiers.encoding, Some(Encoding::Hex));
     assert!(!uri2.modifiers.trim);
 
-    let uri3 = TacetUri::parse("tacet://_/item/notes?json=database.password").unwrap();
+    let uri3 = TacetUri::parse("tacet://personal/item/notes?json=database.password").unwrap();
     assert_eq!(uri3.modifiers.json.as_deref(), Some("database.password"));
     assert!(uri3.modifiers.trim);
 }
@@ -140,19 +164,23 @@ fn test_parse_modifiers() {
 #[test]
 fn test_invalid_uris() {
     assert_eq!(
-        TacetUri::parse("https://personal/item/pass").unwrap_err(),
+        TacetUri::parse("https://personal/item/password").unwrap_err(),
         UriError::InvalidScheme
     );
     assert_eq!(
-        TacetUri::parse("tacet://unknown_scope/item/pass").unwrap_err(),
+        TacetUri::parse("tacet://unknown_scope/item/password").unwrap_err(),
         UriError::InvalidScope("unknown_scope".to_string())
+    );
+    assert_eq!(
+        TacetUri::parse("tacet://_/item/password").unwrap_err(),
+        UriError::InvalidScope("_".to_string())
     );
     assert!(matches!(
         TacetUri::parse("tacet://personal").unwrap_err(),
         UriError::MissingComponent(_)
     ));
     assert!(matches!(
-        TacetUri::parse("tacet://_/item/pass?encoding=invalid").unwrap_err(),
+        TacetUri::parse("tacet://personal/item/password?encoding=invalid").unwrap_err(),
         UriError::InvalidModifier(_)
     ));
 }

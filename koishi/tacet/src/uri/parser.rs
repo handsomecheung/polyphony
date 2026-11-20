@@ -5,7 +5,7 @@ use std::str::FromStr;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Scope {
-    /// `personal` or `_`: Personal vault (organizationId == null), ignoring folder hierarchy
+    /// `personal`: Personal vault (organizationId == null)
     Personal { folder: Option<String> },
     /// `org/<org_name>/<collection>`: Shared items inside an Organization's collection
     Organization {
@@ -55,12 +55,12 @@ impl FromStr for CipherFieldTarget {
 
         let lower = trimmed.to_lowercase();
         match lower.as_str() {
-            "username" | "user" => Ok(CipherFieldTarget::Username),
-            "password" | "pass" => Ok(CipherFieldTarget::Password),
-            "totp" | "otp" => Ok(CipherFieldTarget::Totp),
+            "username" => Ok(CipherFieldTarget::Username),
+            "password" => Ok(CipherFieldTarget::Password),
+            "totp" => Ok(CipherFieldTarget::Totp),
             "totp_secret" => Ok(CipherFieldTarget::TotpSecret),
-            "notes" | "note" => Ok(CipherFieldTarget::Notes),
-            "uri" | "url" | "uri.0" => Ok(CipherFieldTarget::Uri(0)),
+            "notes" => Ok(CipherFieldTarget::Notes),
+            "uri" | "uri.0" => Ok(CipherFieldTarget::Uri(0)),
             other => {
                 if let Some(idx_str) = other.strip_prefix("uri.") {
                     if let Ok(idx) = idx_str.parse::<usize>() {
@@ -243,19 +243,6 @@ impl TacetUri {
                         field_str,
                     )
                 }
-            }
-            "_" => {
-                if segments.len() < 3 {
-                    return Err(UriError::MissingComponent("URI requires item and field"));
-                }
-                let scope = Scope::Personal { folder: None };
-                let item = segments[1].clone();
-                let field_str = if segments[2] == "fields" && segments.len() >= 4 {
-                    format!("fields/{}", segments[3..].join("/"))
-                } else {
-                    segments[2..].join("/")
-                };
-                (scope, item, field_str)
             }
             "*" => {
                 if segments.len() < 3 {

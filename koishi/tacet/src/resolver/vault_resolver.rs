@@ -207,7 +207,7 @@ impl<'a> VaultResolver<'a> {
             if let Some(scope_req) = scope_filter {
                 let trimmed = scope_req.trim();
                 if !trimmed.is_empty() && trimmed != "*" {
-                    if trimmed.eq_ignore_ascii_case("personal") || trimmed == "_" {
+                    if trimmed.eq_ignore_ascii_case("personal") {
                         if !is_personal {
                             continue;
                         }
@@ -535,20 +535,16 @@ impl<'a> VaultResolver<'a> {
                 .and_then(|cs| key.decrypt_type2_string(cs).map_err(ResolverError::Crypto)),
             CipherFieldTarget::CustomField(name) => self.find_custom_field(cipher, key, name),
             CipherFieldTarget::Named(name) => {
-                // Checks built-in fields first, then falls back to custom field
+                // Checks built-in canonical fields first, then falls back to custom field
                 match name.to_lowercase().as_str() {
-                    "username" | "user" => {
-                        self.extract_field(cipher, key, &CipherFieldTarget::Username)
-                    }
-                    "password" | "pass" => {
-                        self.extract_field(cipher, key, &CipherFieldTarget::Password)
-                    }
-                    "totp" | "otp" => self.extract_field(cipher, key, &CipherFieldTarget::Totp),
+                    "username" => self.extract_field(cipher, key, &CipherFieldTarget::Username),
+                    "password" => self.extract_field(cipher, key, &CipherFieldTarget::Password),
+                    "totp" => self.extract_field(cipher, key, &CipherFieldTarget::Totp),
                     "totp_secret" => {
                         self.extract_field(cipher, key, &CipherFieldTarget::TotpSecret)
                     }
-                    "notes" | "note" => self.extract_field(cipher, key, &CipherFieldTarget::Notes),
-                    "uri" | "url" => self.extract_field(cipher, key, &CipherFieldTarget::Uri(0)),
+                    "notes" => self.extract_field(cipher, key, &CipherFieldTarget::Notes),
+                    "uri" => self.extract_field(cipher, key, &CipherFieldTarget::Uri(0)),
                     _ => self.find_custom_field(cipher, key, name),
                 }
             }

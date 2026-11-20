@@ -167,9 +167,9 @@ tacet://<scope>/<item>/<field>[?<modifiers>]
 
 | Scope | Target |
 |---|---|
-| `personal` or `_` | Personal vault (`organizationId == null`), ignoring folder hierarchy |
-| `personal/<folder>` | Items inside a specific personal folder |
-| `org/<org_name>/<collection>` | Shared items inside an Organization's collection |
+| `personal` | Personal vault (`organizationId == null`), ignoring folder hierarchy |
+| `personal/<folder>` | Items inside a specific personal folder (nested paths like `folder/subfolder` use `%2F`) |
+| `org/<org_name>/<collection>` | Shared items inside an Organization's collection (nested paths like `col1/col2` use `%2F`) |
 | `*` | Search all accessible vaults (fails fast if ambiguous) |
 
 ### 2. `<item>` Rules
@@ -181,15 +181,15 @@ tacet://<scope>/<item>/<field>[?<modifiers>]
 
 ### 3. `<field>` Mapping
 
-| Bitwarden Field | URI Target | Alias | Description |
-|---|---|---|---|
-| `login.username` | `username` | `user` | Plaintext username |
-| `login.password` | `password` | `pass` | Plaintext password |
-| `login.totp` | `totp` | `otp` | Live 6-digit RFC 6238 TOTP code |
-| `login.totp` (raw) | `totp_secret` | — | Raw TOTP secret / `otpauth://` URI |
-| `login.uris[0].uri` | `uri` / `url` | `uri.0` | Primary URL (`uri.<n>` for index `n`) |
-| `notes` | `notes` | `note` | Secure note content |
-| `fields[name == X]` | `fields/<X>` or `<X>` | — | Custom field matching name `X` (falls back if built-in not matched) |
+| Bitwarden Field | URI Target | Description |
+|---|---|---|
+| `login.username` | `username` | Plaintext username |
+| `login.password` | `password` | Plaintext password |
+| `login.totp` | `totp` | Live 6-digit RFC 6238 TOTP code |
+| `login.totp` (raw) | `totp_secret` | Raw TOTP secret / `otpauth://` URI |
+| `login.uris[0].uri` | `uri` / `uri.0` | Primary URL (`uri.<n>` for index `n`) |
+| `notes` | `notes` | Secure note content |
+| `fields[name == X]` | `fields/<X>` or `<X>` | Custom field matching name `X` (falls back if built-in not matched) |
 
 ### 4. `[?<modifiers>]` (Optional Query Parameters)
 
