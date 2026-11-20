@@ -190,25 +190,15 @@ impl TacetUri {
                         "Organization URI requires: org/<org_name>/<collection>/<item>/<field>",
                     ));
                 }
-                let org_name = segments[1].clone();
-                let (collection, item, field_str) =
-                    if segments.len() >= 6 && segments[segments.len() - 2] == "fields" {
-                        // Pattern: org/<org_name>/<collection...>/<item>/fields/<custom_field>
-                        let field = format!("fields/{}", segments[segments.len() - 1]);
-                        let item = segments[segments.len() - 3].clone();
-                        let collection = segments[2..segments.len() - 3].join("/");
-                        (collection, item, field)
-                    } else {
-                        // Pattern: org/<org_name>/<collection...>/<item>/<field>
-                        let field = segments[segments.len() - 1].clone();
-                        let item = segments[segments.len() - 2].clone();
-                        let collection = segments[2..segments.len() - 2].join("/");
-                        (collection, item, field)
-                    };
-
                 let scope = Scope::Organization {
-                    org_name,
-                    collection,
+                    org_name: segments[1].clone(),
+                    collection: segments[2].clone(),
+                };
+                let item = segments[3].clone();
+                let field_str = if segments[4] == "fields" && segments.len() >= 6 {
+                    format!("fields/{}", segments[5..].join("/"))
+                } else {
+                    segments[4..].join("/")
                 };
                 (scope, item, field_str)
             }
@@ -218,30 +208,41 @@ impl TacetUri {
                         "Personal URI requires at least item and field",
                     ));
                 }
-                let (folder, item, field_str) =
-                    if segments.len() >= 4 && segments[segments.len() - 2] == "fields" {
-                        // Pattern: personal/[<folder...>/]<item>/fields/<custom_field>
-                        let field = format!("fields/{}", segments[segments.len() - 1]);
-                        let item = segments[segments.len() - 3].clone();
-                        let folder = if segments.len() > 4 {
-                            Some(segments[1..segments.len() - 3].join("/"))
-                        } else {
-                            None
-                        };
-                        (folder, item, field)
-                    } else if segments.len() == 3 {
-                        // Pattern: personal/<item>/<field>
-                        (None, segments[1].clone(), segments[2].clone())
+                if segments.len() == 3 {
+                    let scope = Scope::Personal { folder: None };
+                    let item = segments[1].clone();
+                    let field_str = segments[2].clone();
+                    (scope, item, field_str)
+                } else if segments.len() == 4 {
+                    if segments[2] == "fields" {
+                        let scope = Scope::Personal { folder: None };
+                        let item = segments[1].clone();
+                        let field_str = format!("fields/{}", segments[3]);
+                        (scope, item, field_str)
                     } else {
-                        // Pattern: personal/<folder...>/<item>/<field>
-                        let field = segments[segments.len() - 1].clone();
-                        let item = segments[segments.len() - 2].clone();
-                        let folder = Some(segments[1..segments.len() - 2].join("/"));
-                        (folder, item, field)
+                        let scope = Scope::Personal {
+                            folder: Some(segments[1].clone()),
+                        };
+                        let item = segments[2].clone();
+                        let field_str = segments[3].clone();
+                        (scope, item, field_str)
+                    }
+                } else {
+                    let folder = segments[1].clone();
+                    let item = segments[2].clone();
+                    let field_str = if segments[3] == "fields" && segments.len() >= 5 {
+                        format!("fields/{}", segments[4..].join("/"))
+                    } else {
+                        segments[3..].join("/")
                     };
-
-                let scope = Scope::Personal { folder };
-                (scope, item, field_str)
+                    (
+                        Scope::Personal {
+                            folder: Some(folder),
+                        },
+                        item,
+                        field_str,
+                    )
+                }
             }
             "_" => {
                 if segments.len() < 3 {
