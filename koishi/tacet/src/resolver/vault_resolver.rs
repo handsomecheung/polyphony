@@ -172,7 +172,7 @@ impl<'a> VaultResolver<'a> {
                     None => "personal".to_string(),
                 };
                 let prefix = match &folder_name {
-                    Some(f) => format!("personal/{}/{}", f.replace('/', "%2F"), enc_name),
+                    Some(f) => format!("personal/{f}/{enc_name}"),
                     None => format!("tacet://personal/{}", enc_name),
                 };
                 let uri_prefix = if prefix.starts_with("tacet://") {
@@ -197,9 +197,8 @@ impl<'a> VaultResolver<'a> {
 
                 let scope = format!("org/{org_name}/{col_name}");
                 let enc_org = org_name.replace('/', "%2F");
-                let enc_col = col_name.replace('/', "%2F");
                 let enc_name = dec_name.replace('/', "%2F");
-                let prefix = format!("tacet://org/{enc_org}/{enc_col}/{enc_name}");
+                let prefix = format!("tacet://org/{enc_org}/{col_name}/{enc_name}");
                 (scope, prefix)
             };
 

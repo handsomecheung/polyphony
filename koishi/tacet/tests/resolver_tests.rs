@@ -415,3 +415,33 @@ fn test_list_items() {
     let searched_dup = resolver.list_items(None, Some("Duplicate")).unwrap();
     assert_eq!(searched_dup.len(), 2);
 }
+
+#[test]
+fn test_list_nested_paths_resolve() {
+    let (mut vault, user_key, rsa_priv, org_key) = setup_test_vault();
+    vault.folders[0].name = user_key
+        .encrypt_type2_string("Network/Koishi/Infra")
+        .unwrap();
+    vault.collections[0].name = org_key
+        .encrypt_type2_string("Network/Koishi/Infra")
+        .unwrap();
+    let resolver = VaultResolver::new(&vault, &user_key, Some(&rsa_priv));
+
+    for scope in [
+        "personal/Network/Koishi/Infra",
+        "org/AcmeCorp/Network/Koishi/Infra",
+    ] {
+        let items = resolver.list_items(Some(scope), None).unwrap();
+        assert_eq!(items.len(), 1);
+        let prefix = &items[0].uri_prefix;
+        assert!(prefix.starts_with(&format!("tacet://{scope}/")));
+        let raw = resolver.resolve_str(&format!("{prefix}/password")).unwrap();
+        let encoded = resolver
+            .resolve_str(&format!(
+                "{}/password",
+                prefix.replace("Network/Koishi/Infra", "Network%2FKoishi%2FInfra")
+            ))
+            .unwrap();
+        assert_eq!(raw, encoded);
+    }
+}

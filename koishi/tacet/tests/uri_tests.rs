@@ -184,3 +184,41 @@ fn test_invalid_uris() {
         UriError::InvalidModifier(_)
     ));
 }
+
+#[test]
+fn test_nested_paths_match_encoded_paths() {
+    for (raw, encoded, item, field) in [
+        (
+            "org/Default/Network/Koishi/Infra/wireproxy/password",
+            "org/Default/Network%2FKoishi%2FInfra/wireproxy/password",
+            "wireproxy",
+            CipherFieldTarget::Password,
+        ),
+        (
+            "personal/Network/Koishi/Infra/wireproxy/password",
+            "personal/Network%2FKoishi%2FInfra/wireproxy/password",
+            "wireproxy",
+            CipherFieldTarget::Password,
+        ),
+        (
+            "org/Default/Network/Koishi/Infra/wire%2Fproxy/fields/api%2Fkey",
+            "org/Default/Network%2FKoishi%2FInfra/wire%2Fproxy/fields/api%2Fkey",
+            "wire/proxy",
+            CipherFieldTarget::CustomField("api/key".to_string()),
+        ),
+        (
+            "personal/Network/Koishi/Infra/wire%2Fproxy/fields/api%2Fkey",
+            "personal/Network%2FKoishi%2FInfra/wire%2Fproxy/fields/api%2Fkey",
+            "wire/proxy",
+            CipherFieldTarget::CustomField("api/key".to_string()),
+        ),
+    ] {
+        let raw = TacetUri::parse(&format!("tacet://{raw}")).unwrap();
+        let encoded = TacetUri::parse(&format!("tacet://{encoded}")).unwrap();
+        assert_eq!(raw.scope, encoded.scope);
+        assert_eq!(raw.item, item);
+        assert_eq!(raw.item, encoded.item);
+        assert_eq!(raw.field, field);
+        assert_eq!(raw.field, encoded.field);
+    }
+}

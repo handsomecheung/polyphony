@@ -113,6 +113,8 @@ tacet list -q "github"
 tacet list --json
 ```
 
+Listed URI prefixes preserve `/` in nested folder and collection paths. Append a field target such as `/password` to read a secret.
+
 ### 4. Read a Secret
 Fetch a single secret to standard output:
 
@@ -172,15 +174,17 @@ tacet://<scope>/<item>/<field>[?<modifiers>]
 | Scope | Target |
 |---|---|
 | `personal` | Personal vault (`organizationId == null`), ignoring folder hierarchy |
-| `personal/<folder>` | Items inside a specific personal folder (nested paths like `folder/subfolder` use `%2F`) |
-| `org/<org_name>/<collection>` | Shared items inside an Organization's collection (nested paths like `col1/col2` use `%2F`) |
+| `personal/<folder>` | Items inside a specific personal folder (nested paths like `folder/subfolder` use `/` directly) |
+| `org/<org_name>/<collection>` | Shared items inside an Organization's collection (nested paths like `col1/col2` use `/` directly) |
 | `*` | Search all accessible vaults (fails fast if ambiguous) |
 
 ### 2. `<item>` Rules
 
 - Case-insensitive search by item `name` (e.g., `GitHub`, `Postgres DB`).
 - Supports exact 36-character item `UUID` (e.g., `d3b07384-d113-46fb-9c88-e9f02c61e808`).
-- Spaces can be preserved inside quotes; literal `/` slashes can be escaped using `%2F`.
+- Nested collection and folder paths use `/` directly, e.g. `tacet://org/Default/Network/Koishi/Infra/wireproxy/password`. Existing `%2F`-encoded paths remain supported.
+- Paths are parsed from the end: `<item>/<field>` or `<item>/fields/<custom_field>`. The preceding path is the collection or folder. The `fields` segment immediately before the final segment introduces an explicit custom field.
+- Spaces can be preserved inside quotes; slashes inside organization, item, and field names must be encoded as `%2F`.
 - If multiple items match the query, Tacet returns a disambiguation error listing matching UUIDs and folders.
 
 ### 3. `<field>` Mapping

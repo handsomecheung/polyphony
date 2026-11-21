@@ -28,7 +28,7 @@ This document outlines the architecture, cryptographic pipelines, security invar
 4. **URI Design & Ergonomics Policy ("The 'One Obvious Way' Principle"):**
    - **Single Canonical Representation:** There should be one—and preferably only one—obvious way to reference any secret. Avoid introducing redundant aliases, alternative shorthands, or syntactic synonyms (e.g. no `_` shorthand for `personal`, and strictly canonical scopes `personal`, `org`, `*`).
    - **No Built-in Field Aliases (Prevent Custom Field Collisions):** Bitwarden custom field names allow arbitrary strings. Adding alias shortcuts (like `user`, `pass`, `otp`, `note`, `url`) hijacks those names from custom fields and causes user confusion. All built-in field targets must strictly adhere to Bitwarden's canonical field names: `username`, `password`, `totp`, `totp_secret`, `notes`, `uri` (`uri.<n>`). Any other keyword maps directly to a custom field.
-   - **Deterministic Delimiting via Percent-Encoding:** Use `%2F` percent-encoding for slashes within folder, collection, item, and field names. Never introduce heuristic or vault-dependent dynamic parsers; URI parsing must remain pure, static, and deterministic to prevent silent drift and namespace hijacking.
+   - **Deterministic Hierarchical Paths:** Allow `/` directly in folder and collection paths. Parse from the end using `<item>/<field>` or `<item>/fields/<custom_field>`; preceding segments form the folder or collection. Use `%2F` for slashes within organization, item, and field names. Existing encoded folder and collection paths remain supported. Never introduce heuristic or vault-dependent dynamic parsers; URI parsing must remain pure, static, and deterministic.
 
 ---
 
