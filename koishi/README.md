@@ -143,6 +143,17 @@ Vault data is backed up nightly by two mechanisms:
 - **Portwarden** CronJob (00:30 UTC): item-level encrypted exports.
 - **vaultwardendatabackup** Job: full data directory zip, GPG-encrypted with a SHA256-derived passphrase fetched from an internal endpoint.
 
+### Tacet CLI Wrapper
+
+`scripts/tacet-wrapper` loads credentials through `scripts/tacet-source-env`, which reads `scripts/.config/tacet/env` using `sudo`. Configure `TACET_SERVER`, `TACET_CLIENT_ID`, `TACET_CLIENT_SECRET`, and `TACET_PASSWORD` there; `scripts/.config/tacet/env.template` lists the required variables. Keep actual credentials out of version control. The `tacet` executable must be available on `PATH`.
+
+Before each command, the wrapper checks `tacet status`. It logs in with the API key and master password if no session exists, or unlocks an existing locked session. Status or authentication failures stop execution. Authentication messages go to stderr, and the requested command retains its arguments, output, and exit status.
+
+```bash
+scripts/tacet-wrapper list
+scripts/tacet-wrapper read "tacet://org/Default/Network/wireproxy/https"
+```
+
 ### MFA SSH
 
 SSH access to the devbox environment requires both a password (injected via Kubernetes Secret) and Google Authenticator TOTP (`libpam-google-authenticator`).

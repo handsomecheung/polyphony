@@ -1,0 +1,30 @@
+#!/usr/bin/env bash
+set -e
+
+DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &>/dev/null && pwd)
+
+source "${DIR}/tacet-source-env"
+
+export TACET_SERVER TACET_CLIENT_ID TACET_CLIENT_SECRET TACET_PASSWORD
+
+status=$(tacet status)
+if [[ $status =~ Logged\ in:[[:space:]]+No ]]; then
+    : "${TACET_SERVER:?TACET_SERVER is required}"
+    : "${TACET_CLIENT_ID:?TACET_CLIENT_ID is required}"
+    : "${TACET_CLIENT_SECRET:?TACET_CLIENT_SECRET is required}"
+    : "${TACET_PASSWORD:?TACET_PASSWORD is required}"
+    tacet login --apikey >&2
+elif [[ $status =~ Logged\ in:[[:space:]]+Yes ]]; then
+    if [[ $status =~ Status:[[:space:]]+Locked ]]; then
+        : "${TACET_PASSWORD:?TACET_PASSWORD is required}"
+        tacet unlock >&2
+    elif [[ ! $status =~ Status:[[:space:]]+Unlocked ]]; then
+        echo "Unrecognized tacet status." >&2
+        exit 1
+    fi
+else
+    echo "Unrecognized tacet login status." >&2
+    exit 1
+fi
+
+exec tacet "$@"
