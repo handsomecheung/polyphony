@@ -3,9 +3,9 @@
         {
             "type": "vmess",
             "tag": "node-Koishi",
-            "server": "x.__{{infra.domains:f:x}}__",
+            "server": "x.{{ tacet://*/infra.domains/x }}",
             "server_port": 443,
-            "uuid": "__{{v2ray.uuids:f:umbilical}}__",
+            "uuid": "{{ tacet://*/v2ray.uuids/umbilical }}",
             "alter_id": 0,
             "transport": {
                 "type": "ws",
@@ -13,7 +13,7 @@
             },
             "tls": {
                 "enabled": true,
-                "server_name": "x.__{{infra.domains:f:x}}__"
+                "server_name": "x.{{ tacet://*/infra.domains/x }}"
             },
             "detour": "BalancerJP"
         }

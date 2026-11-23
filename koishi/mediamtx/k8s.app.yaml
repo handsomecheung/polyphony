@@ -90,7 +90,7 @@ metadata:
   name: mediamtxbasicauth
   namespace: default
 data:
-  auth: __{{mediamtx.basicauth.hh:f:base64}}__
+  auth: {{ tacet://*/mediamtx.basicauth.hh/base64 }}
 
 ---
 apiVersion: traefik.io/v1alpha1
@@ -114,7 +114,7 @@ metadata:
 spec:
   ingressClassName: traefik
   rules:
-    - host: mediamtx.__{{infra.domains:f:x}}__
+    - host: mediamtx.{{ tacet://*/infra.domains/x }}
       http:
         paths:
           - path: /
@@ -126,5 +126,5 @@ spec:
                   name: hls
   tls:
     - hosts:
-        - mediamtx.__{{infra.domains:f:x}}__
+        - mediamtx.{{ tacet://*/infra.domains/x }}
       secretName: mediamtx-domainx

@@ -30,7 +30,7 @@ ports:
     protocol: TCP
 endpoints:
   - addresses:
-      - "__{{infra.machine.nur:f:ip}}__"
+      - "{{ tacet://*/infra.machine.nur/ip }}"
     conditions:
       ready: true
 
@@ -46,7 +46,7 @@ metadata:
 spec:
   ingressClassName: traefik
   rules:
-    - host: shutdown-nur.__{{infra.domains:f:x}}__
+    - host: shutdown-nur.{{ tacet://*/infra.domains/x }}
       http:
         paths:
           - path: /
@@ -58,7 +58,7 @@ spec:
                   name: default
   tls:
     - hosts:
-        - shutdown-nur.__{{infra.domains:f:x}}__
+        - shutdown-nur.{{ tacet://*/infra.domains/x }}
       secretName: shutdown-nur-domainx
 
 ---
@@ -73,14 +73,14 @@ metadata:
     gethomepage.dev/enabled: "true"
     gethomepage.dev/group: System
     gethomepage.dev/name: Shutdown nur
-    gethomepage.dev/href: https://shutdown-nur.__{{infra.domains:f:x}}__
-    gethomepage.dev/siteMonitor: https://shutdown-nur.__{{infra.domains:f:x}}__
+    gethomepage.dev/href: https://shutdown-nur.{{ tacet://*/infra.domains/x }}
+    gethomepage.dev/siteMonitor: https://shutdown-nur.{{ tacet://*/infra.domains/x }}
     gethomepage.dev/pod-selector: ""
     gethomepage.dev/weight: "20"
 spec:
   ingressClassName: traefik
   rules:
-    - host: shutdown-nur.__{{infra.domains:f:x}}__
+    - host: shutdown-nur.{{ tacet://*/infra.domains/x }}
       http:
         paths:
           - path: /
@@ -92,7 +92,7 @@ spec:
                   name: default
   tls:
     - hosts:
-        - shutdown-nur.__{{infra.domains:f:x}}__
+        - shutdown-nur.{{ tacet://*/infra.domains/x }}
       secretName: shutdown-nur-domainx
 
 ---
@@ -147,7 +147,7 @@ ports:
     protocol: TCP
 endpoints:
   - addresses:
-      - "__{{infra.machine.miniba:f:ip}}__"
+      - "{{ tacet://*/infra.machine.miniba/ip }}"
     conditions:
       ready: true
 
@@ -163,7 +163,7 @@ metadata:
 spec:
   ingressClassName: traefik
   rules:
-    - host: shutdown-miniba.__{{infra.domains:f:x}}__
+    - host: shutdown-miniba.{{ tacet://*/infra.domains/x }}
       http:
         paths:
           - path: /
@@ -175,7 +175,7 @@ spec:
                   name: default
   tls:
     - hosts:
-        - shutdown-miniba.__{{infra.domains:f:x}}__
+        - shutdown-miniba.{{ tacet://*/infra.domains/x }}
       secretName: shutdown-miniba-domainx
 
 ---
@@ -190,14 +190,14 @@ metadata:
     gethomepage.dev/enabled: "true"
     gethomepage.dev/group: System
     gethomepage.dev/name: Shutdown miniba
-    gethomepage.dev/href: https://shutdown-miniba.__{{infra.domains:f:x}}__
-    gethomepage.dev/siteMonitor: https://shutdown-miniba.__{{infra.domains:f:x}}__
+    gethomepage.dev/href: https://shutdown-miniba.{{ tacet://*/infra.domains/x }}
+    gethomepage.dev/siteMonitor: https://shutdown-miniba.{{ tacet://*/infra.domains/x }}
     gethomepage.dev/pod-selector: ""
     gethomepage.dev/weight: "40"
 spec:
   ingressClassName: traefik
   rules:
-    - host: shutdown-miniba.__{{infra.domains:f:x}}__
+    - host: shutdown-miniba.{{ tacet://*/infra.domains/x }}
       http:
         paths:
           - path: /
@@ -209,5 +209,5 @@ spec:
                   name: default
   tls:
     - hosts:
-        - shutdown-miniba.__{{infra.domains:f:x}}__
+        - shutdown-miniba.{{ tacet://*/infra.domains/x }}
       secretName: shutdown-miniba-domainx

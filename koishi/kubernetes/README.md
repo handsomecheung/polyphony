@@ -172,4 +172,4 @@ Traefik (3 replicas, spread across traefik-node=true hosts)
 - [`../scripts/`](../scripts/) — `my-k8s-build-image` Kaniko builder used by middleware, reschedule, and restart
 - [`../database/`](../database/) — PostgreSQL/Redis; depends on `volume/` NFS PVCs
 - [`../coder/`](../coder/) — uses `nfs-disk-coder-workspaces` and `nfs-disk-coder-sharepoint`
-- [`../vaultwarden/`](../vaultwarden/) — secret store; all `__{{...}}__` template placeholders resolve against it at deploy time
+- [`../vaultwarden/`](../vaultwarden/) — secret store; Tacet placeholders such as `{{ tacet://*/item-name/password }}` resolve against it at deploy time

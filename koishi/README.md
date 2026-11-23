@@ -7,7 +7,7 @@ Koishi is a personal home-lab Kubernetes cluster managed as a fully declarative 
 - **Web-First (Web >>> App)**: Every service that normally requires a desktop or mobile application is replaced with, or supplemented by, a browser-accessible equivalent—DBGate for databases, Coder/code-server for IDEs, Guacamole for remote desktops, openlist for file browsing, JupyterLab for notebooks. No specialized client is ever required.
 - **Access From Anywhere**: A layered connectivity stack (Cloudflare proxy, WireGuard, DDNS, Traefik ingress) ensures every internal service is reachable from any network without manual VPN configuration.
 - **HTTPS Everywhere**: TLS is mandatory and automatic. cert-manager issues wildcard and per-domain certificates via Let's Encrypt DNS-01 challenges resolved through the Cloudflare API. HTTP is globally redirected to HTTPS at the Traefik entrypoint.
-- **No Secrets in Code**: Sensitive values are never committed. All `__{{...}}__` placeholders in YAML and Dockerfile sources are rendered at deploy time by the `bww` client against a self-hosted Vaultwarden vault. The git history is clean by design; the `infra/` hooks enforce this with a pre-commit keyword blacklist.
+- **No Secrets in Code**: Sensitive values are never committed. All `{{ tacet://*/item-name/password }}` placeholders in YAML and Dockerfile sources are rendered at deploy time by Tacet through `tacet-wrapper` against a self-hosted Vaultwarden vault. The git history is clean by design; the `infra/` hooks enforce this with a pre-commit keyword blacklist.
 - **Infra as Code**: The entire cluster state—networking, storage, builds, schedules, RBAC, DNS—is defined in this repository and applied via `my-k8s-deploy`.
 
 ---
@@ -98,9 +98,9 @@ Five `traefik-forward-auth` instances in the `sso` namespace, one per domain gro
 
 `scripts/my-k8s-build-image` orchestrates builds without a privileged Docker daemon. It:
 
-1. Fetches registry credentials and secrets from Vaultwarden via `bwww`.
+1. Fetches registry credentials and secrets from Vaultwarden via `tacet-wrapper read`.
 2. Copies source to a shared build directory on `coder-sharepoint`.
-3. Renders all `__{{...}}__` placeholders in source files before build.
+3. Renders Tacet placeholders in source files with `tacet-wrapper inject` before build.
 4. Creates a Kaniko `Job` (`gcr.io/kaniko-project/executor:v1.24.0`) pinned to `nur`, with a randomised name (`kaniko-build-<timestamp>-<random>`).
 5. Pushes to `cloudpublic` (GitHub Container Registry) or `cloudprivate` (GCP Artifact Registry).
 
@@ -126,17 +126,18 @@ Runs via `docker-compose` on each node. Polls every 120 seconds, mounts `/var/ru
 
 ## Security
 
-### Secret Management: Vaultwarden + bww
+### Secret Management: Vaultwarden + Tacet
 
-Vaultwarden (`vaultwarden/server:latest`) is the cluster's secret backend, deployed in the `default-vaultwarden` namespace with a strict NetworkPolicy that blocks all pod egress. A custom Go API wrapper, **bww** (BitWarden for Webapp), wraps the Bitwarden CLI to provide an HTTP endpoint that renders template placeholders:
+Vaultwarden (`vaultwarden/server:latest`) is the cluster's secret backend, deployed in the `default-vaultwarden` namespace with a strict NetworkPolicy that blocks all pod egress. Tacet resolves passwords, custom fields, and attachments from the vault. Build and deployment tooling uses `tacet-wrapper read` for individual values and `tacet-wrapper inject` for template placeholders:
 
+```text
+{{ tacet://*/item-name/password }}                  → item password
+{{ tacet://*/item-name/field-name }}                → custom field value
+{{ tacet://*/item-name/filename }}                  → attachment content
+{{ tacet://*/item-name/password?encoding=base64 }}  → Base64-encoded password
+{{ tacet://*/item-name/field-name?encoding=base64 }} → Base64-encoded field
+{{ tacet://*/item-name/filename?encoding=base64 }}   → Base64-encoded attachment
 ```
-__{{item-name:f:field-name}}__        → custom field value
-__{{item-name:a:filename:a:b64}}__    → attachment, base64-encoded
-__{{item-name:f:field:f:b64}}__       → field value, base64-encoded
-```
-
-HMAC-SHA256 request authentication (headers `X-BWW-Timestamp` + `X-BWW-Signature`) with a 5-minute clock window prevents replay attacks. The `bwww` Ruby shell client signs requests and is invoked by `my-k8s-build-image` and `my-k8s-deploy` before any secrets touch disk.
 
 Vault data is backed up nightly by two mechanisms:
 
@@ -160,7 +161,7 @@ SSH access to the devbox environment requires both a password (injected via Kube
 
 ### Least Privilege
 
-The devbox operates as the unprivileged `box` user. `kubectl` and `docker` commands require `sudo`. The Kaniko build node credentials are gated behind `bwww-source-env`, which reads encrypted credentials via `sudo` to prevent plaintext exposure in shell history. RBAC is scoped per component (devbox has `cluster-admin` for operator workflows; reschedule/restart CronJobs have minimal patch-only permissions).
+The devbox operates as the unprivileged `box` user. `kubectl` and `docker` commands require `sudo`. The Kaniko builder retrieves registry credentials through `tacet-wrapper`, whose `tacet-source-env` helper reads the protected Tacet environment file via `sudo`. RBAC is scoped per component (devbox has `cluster-admin` for operator workflows; reschedule/restart CronJobs have minimal patch-only permissions).
 
 ---
 
@@ -209,9 +210,9 @@ Each service contains a `build.sh` and/or `deploy.sh`. The canonical pattern:
 ./deploy.sh                         # calls my-k8s-deploy --file=k8s.app.yaml
 ```
 
-`my-k8s-deploy` delegates to `deploy/deploy.rb`, which:
+`my-k8s-deploy` delegates to `kubernetes/deploy/deploy.rb`, which:
 
-- Substitutes `__{{...}}__` placeholders via Vaultwarden/bww.
+- Resolves Tacet placeholders against Vaultwarden with `tacet-wrapper inject`.
 - Rewrites `cloudpublic/` and `cloudprivate/` image prefixes to full registry URLs.
 - Injects `imagePullSecrets`, timezone, `terminationGracePeriodSeconds`, `nodeSelector` (defaulting to `amd64`; switches to `arm64` for ARM images), and `RollingUpdate` strategy.
 - Applies via `kubectl apply` and waits for rollout with a 300-second timeout.

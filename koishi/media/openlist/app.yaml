@@ -123,13 +123,13 @@ metadata:
     gethomepage.dev/group: Media
     gethomepage.dev/name: openlist
     gethomepage.dev/icon: https://docs.openlist.team/logo.svg
-    gethomepage.dev/href: https://openlist.__{{infra.domains:f:x}}__
-    gethomepage.dev/siteMonitor: https://openlist.__{{infra.domains:f:x}}__
+    gethomepage.dev/href: https://openlist.{{ tacet://*/infra.domains/x }}
+    gethomepage.dev/siteMonitor: https://openlist.{{ tacet://*/infra.domains/x }}
     gethomepage.dev/weight: "20"
 spec:
   ingressClassName: traefik
   rules:
-    - host: openlist.__{{infra.domains:f:x}}__
+    - host: openlist.{{ tacet://*/infra.domains/x }}
       http:
         paths:
           - path: /
@@ -141,5 +141,5 @@ spec:
                   name: default
   tls:
     - hosts:
-        - openlist.__{{infra.domains:f:x}}__
+        - openlist.{{ tacet://*/infra.domains/x }}
       secretName: openlist-domainx

@@ -3,7 +3,7 @@ services:
   watchtower:
     image: containrrr/watchtower:latest
     environment:
-      TZ: "__{{koishi.deploy.timezone}}__"
+      TZ: "{{ tacet://*/koishi.deploy.timezone/password }}"
       DOCKER_API_VERSION: "1.53"
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
@@ -12,18 +12,18 @@ services:
     restart: always
 
   comapi:
-    image: __{{koishi.deploy.cloudpublic_registry_host}}__/__{{koishi.deploy.cloudpublic_registry_id}}__/compose/comapi:latest
+    image: {{ tacet://*/koishi.deploy.cloudpublic_registry_host/password }}/{{ tacet://*/koishi.deploy.cloudpublic_registry_id/password }}/compose/comapi:latest
     environment:
-      TZ: "__{{koishi.deploy.timezone}}__"
-      KOISHI_IPV4_PREFIX: "__{{koishi.infra.infos:f:subnetv4}}__."
+      TZ: "{{ tacet://*/koishi.deploy.timezone/password }}"
+      KOISHI_IPV4_PREFIX: "{{ tacet://*/koishi.infra.infos/subnetv4 }}."
     pid: host
     network_mode: host # exposed port 37900
     restart: always
 
   shutdown:
-    image: __{{koishi.deploy.cloudpublic_registry_host}}__/__{{koishi.deploy.cloudpublic_registry_id}}__/compose/shutdown:latest
+    image: {{ tacet://*/koishi.deploy.cloudpublic_registry_host/password }}/{{ tacet://*/koishi.deploy.cloudpublic_registry_id/password }}/compose/shutdown:latest
     environment:
-      TZ: "__{{koishi.deploy.timezone}}__"
+      TZ: "{{ tacet://*/koishi.deploy.timezone/password }}"
       TERM: "xterm-256color"
       GOTTY_PORT: "37901"
       GOTTY_WS_ORIGIN: ".*"

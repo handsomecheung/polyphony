@@ -2,8 +2,11 @@
 set -e
 
 source run.env.sh
+
+cmd_tacet=tacet-wrapper
+
 if [[ ! -f "${QOSMON_GCS_CRED_FILE}" ]]; then
-    bwww get-attachment koishi-qosmon qosmon-gcs-upload.json >"${QOSMON_GCS_CRED_FILE}"
+    "${cmd_tacet}" read 'tacet://*/koishi-qosmon/qosmon-gcs-upload.json' >"${QOSMON_GCS_CRED_FILE}"
 fi
 
 
@@ -13,14 +16,18 @@ if [[ "$PUBLIC_IMAGE_NAME" != cloudpublic/* ]]; then
   exit 1
 fi
 
-GHCR_HOST=${GHCR_HOST:-"$(bwww get-password koishi.deploy.cloudpublic_registry_host)"}
-GHCR_OWNER=${GHCR_OWNER:-"$(bwww get-password koishi.deploy.cloudpublic_registry_id)"}
+ghcr_host=$(${cmd_tacet} read 'tacet://*/koishi.deploy.cloudpublic_registry_host/password')
+GHCR_HOST=${GHCR_HOST:-"${ghcr_host}"}
+
+ghcr_owner=$(${cmd_tacet} read 'tacet://*/koishi.deploy.cloudpublic_registry_id/password')
+GHCR_OWNER=${GHCR_OWNER:-"${ghcr_owner}"}
+
 export IMAGE_URI="${GHCR_HOST}/${GHCR_OWNER}/${PUBLIC_IMAGE_NAME#cloudpublic/}"
 
-export PROJECT_ID=$(bwww get-password koishi.deploy.cloudprivate_registry_id)
+export PROJECT_ID=$(${cmd_tacet} read 'tacet://*/koishi.deploy.cloudprivate_registry_id/password')
 if [ -z "$PROJECT_ID" ]; then
   echo "Error: GCP Project ID could not be determined. Please set it using 'gcloud config set project [PROJECT_ID]' or run 'gcloud auth login'."
   exit 1
 fi
 
-export RESULTS_BUCKET=$(bwww get-field koishi-qosmon gcs-bucket)
+export RESULTS_BUCKET=$(${cmd_tacet} read 'tacet://*/koishi-qosmon/gcs-bucket')

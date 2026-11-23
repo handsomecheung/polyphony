@@ -6,7 +6,7 @@ metadata:
   namespace: default
 type: Opaque
 data:
-  password: __{{koishi.container.devbox:_:b64}}__
+  password: "{{ tacet://*/koishi.container.devbox/password?encoding=base64 }}"
 
 ---
 apiVersion: apps/v1
@@ -228,7 +228,7 @@ spec:
   ipFamilyPolicy: SingleStack
   ports:
     - name: ssh
-      port: __{{koishi.container.devbox:f:ssh-port}}__
+      port: {{ tacet://*/koishi.container.devbox/ssh-port }}
       protocol: TCP
       targetPort: ssh
     - name: mosh-60000
@@ -306,13 +306,13 @@ metadata:
     gethomepage.dev/enabled: "true"
     gethomepage.dev/group: Development
     gethomepage.dev/icon: code-server
-    gethomepage.dev/href: https://devbox-nur-codeserver.__{{infra.domains:f:x}}__
-    gethomepage.dev/siteMonitor: https://devbox-nur-codeserver.__{{infra.domains:f:x}}__
+    gethomepage.dev/href: https://devbox-nur-codeserver.{{ tacet://*/infra.domains/x }}
+    gethomepage.dev/siteMonitor: https://devbox-nur-codeserver.{{ tacet://*/infra.domains/x }}
     gethomepage.dev/weight: "20"
 spec:
   ingressClassName: traefik
   rules:
-    - host: devbox-nur-codeserver.__{{infra.domains:f:x}}__
+    - host: devbox-nur-codeserver.{{ tacet://*/infra.domains/x }}
       http:
         paths:
           - path: /
@@ -324,5 +324,5 @@ spec:
                   name: codeserver
   tls:
     - hosts:
-        - devbox-nur-codeserver.__{{infra.domains:f:x}}__
+        - devbox-nur-codeserver.{{ tacet://*/infra.domains/x }}
       secretName: devbox-nurcodeserver

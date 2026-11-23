@@ -98,7 +98,7 @@ spec:
                 - name: POSTGRES_USER
                   value: postgres
                 - name: POSTGRES_PASSWORD
-                  value: "__{{database.postgres-local.accounts:f:postgres}}__"
+                  value: "{{ tacet://*/database.postgres-local.accounts/postgres }}"
               volumeMounts:
                 - name: backup-scripts
                   mountPath: /backup-scripts

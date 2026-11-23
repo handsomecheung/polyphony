@@ -11,15 +11,15 @@ metadata:
   name: common-envs
   namespace: ddns
 data:
-  DOMAIN_X: "__{{infra.domains:f:x}}__"
-  DOMAIN_Y: "__{{infra.domains:f:y}}__"
-  DOMAIN_P: "__{{infra.domains:f:p}}__"
-  DOMAIN_C: "__{{infra.domains:f:c}}__"
-  DOMAIN_D: "__{{infra.domains:f:d}}__"
-  DOMAIN_U: "__{{infra.domains:f:u}}__"
-  COMAPI_HOST_NUR: "http://__{{infra.machine.nur:f:ip}}__:__{{koishi.comapi.port}}__"
-  COMAPI_HOST_NIPPON: "http://__{{infra.machine.nippon:f:ip}}__:__{{koishi.comapi.port}}__"
-  COMAPI_HOST_MINIBA: "http://__{{infra.machine.miniba:f:ip}}__:__{{koishi.comapi.port}}__"
+  DOMAIN_X: "{{ tacet://*/infra.domains/x }}"
+  DOMAIN_Y: "{{ tacet://*/infra.domains/y }}"
+  DOMAIN_P: "{{ tacet://*/infra.domains/p }}"
+  DOMAIN_C: "{{ tacet://*/infra.domains/c }}"
+  DOMAIN_D: "{{ tacet://*/infra.domains/d }}"
+  DOMAIN_U: "{{ tacet://*/infra.domains/u }}"
+  COMAPI_HOST_NUR: "http://{{ tacet://*/infra.machine.nur/ip }}:{{ tacet://*/koishi.comapi.port/password }}"
+  COMAPI_HOST_NIPPON: "http://{{ tacet://*/infra.machine.nippon/ip }}:{{ tacet://*/koishi.comapi.port/password }}"
+  COMAPI_HOST_MINIBA: "http://{{ tacet://*/infra.machine.miniba/ip }}:{{ tacet://*/koishi.comapi.port/password }}"
   COMAPI_PATH_IPV6: "/ipv6"
 
 ---
@@ -46,7 +46,7 @@ spec:
                     name: common-envs
               env:
                 - name: CLOUDFLARE_API_TOKEN
-                  value: "__{{cloudflare.dns-update.token}}__"
+                  value: "{{ tacet://*/cloudflare.dns-update.token/password }}"
               command:
                 - python3
                 - -u
@@ -77,9 +77,9 @@ spec:
                     name: common-envs
               env:
                 - name: ACCESS_ID
-                  value: "__{{aliyun.dns-update.key:f:id}}__"
+                  value: "{{ tacet://*/aliyun.dns-update.key/id }}"
                 - name: ACCESS_SECRET
-                  value: "__{{aliyun.dns-update.key:f:secret}}__"
+                  value: "{{ tacet://*/aliyun.dns-update.key/secret }}"
               command:
                 - python3
                 - -u

@@ -107,7 +107,7 @@ metadata:
 spec:
   ingressClassName: traefik
   rules:
-    - host: gitnexus.__{{infra.domains:f:x}}__
+    - host: gitnexus.{{ tacet://*/infra.domains/x }}
       http:
         paths:
           - path: /api/
@@ -119,7 +119,7 @@ spec:
                   name: default
   tls:
     - hosts:
-        - gitnexus.__{{infra.domains:f:x}}__
+        - gitnexus.{{ tacet://*/infra.domains/x }}
       secretName: gitnexus-domainx
 
 ---
@@ -164,7 +164,7 @@ spec:
           imagePullPolicy: Always
           env:
             - name: GITNEXUS_BACKEND_URL
-              value: "https://gitnexus.__{{infra.domains:f:x}}__"
+              value: "https://gitnexus.{{ tacet://*/infra.domains/x }}"
           ports:
             - name: default
               containerPort: 4173
@@ -222,12 +222,12 @@ metadata:
     gethomepage.dev/enabled: "true"
     gethomepage.dev/group: Tool
     gethomepage.dev/name: GitNexus
-    gethomepage.dev/href: https://gitnexus.__{{infra.domains:f:x}}__
+    gethomepage.dev/href: https://gitnexus.{{ tacet://*/infra.domains/x }}
     gethomepage.dev/weight: "55"
 spec:
   ingressClassName: traefik
   rules:
-    - host: gitnexus.__{{infra.domains:f:x}}__
+    - host: gitnexus.{{ tacet://*/infra.domains/x }}
       http:
         paths:
           - path: /
@@ -239,5 +239,5 @@ spec:
                   name: default
   tls:
     - hosts:
-        - gitnexus.__{{infra.domains:f:x}}__
+        - gitnexus.{{ tacet://*/infra.domains/x }}
       secretName: gitnexus-domainx

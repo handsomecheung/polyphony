@@ -6,8 +6,8 @@ metadata:
   namespace: default
 data:
   hosts: |
-    __{{db.ci-jsf.newsub.aws.prod:f:ip}}__ __{{db.ci-jsf.newsub.aws.prod:f:host}}__
-    __{{db.ci-jsf.newsub.aws.dev:f:ip}}__ __{{db.ci-jsf.newsub.aws.dev:f:host}}__
+    {{ tacet://*/db.ci-jsf.newsub.aws.prod/ip }} {{ tacet://*/db.ci-jsf.newsub.aws.prod/host }}
+    {{ tacet://*/db.ci-jsf.newsub.aws.dev/ip }} {{ tacet://*/db.ci-jsf.newsub.aws.dev/host }}
 
 ---
 apiVersion: traefik.io/v1alpha1
@@ -85,7 +85,7 @@ spec:
             - name: USER_postgreslocal
               value: postgres
             - name: PASSWORD_postgreslocal
-              value: "__{{database.postgres-local.accounts:f:postgres}}__"
+              value: "{{ tacet://*/database.postgres-local.accounts/postgres }}"
             - name: ENGINE_postgreslocal
               value: postgres@dbgate-plugin-postgres
 
@@ -98,7 +98,7 @@ spec:
             - name: USER_postgresckdev
               value: postgres
             - name: PASSWORD_postgresckdev
-              value: "__{{database.postgres.ck-dev.accounts:f:postgres}}__"
+              value: "{{ tacet://*/database.postgres.ck-dev.accounts/postgres }}"
             - name: ENGINE_postgresckdev
               value: postgres@dbgate-plugin-postgres
 
@@ -111,7 +111,7 @@ spec:
             - name: USER_postgresckprod
               value: postgres
             - name: PASSWORD_postgresckprod
-              value: "__{{database.postgres.ck-prod.accounts:f:postgres}}__"
+              value: "{{ tacet://*/database.postgres.ck-prod.accounts/postgres }}"
             - name: ENGINE_postgresckprod
               value: postgres@dbgate-plugin-postgres
 
@@ -124,33 +124,33 @@ spec:
             - name: USER_pushionsprod
               value: pushions
             - name: PASSWORD_pushionsprod
-              value: "__{{pushion.db.pushions}}__"
+              value: "{{ tacet://*/pushion.db.pushions/password }}"
             - name: ENGINE_pushionsprod
               value: postgres@dbgate-plugin-postgres
 
             - name: LABEL_cijsfawsdev
               value: CI-JSF-Dev
             - name: SERVER_cijsfawsdev
-              value: __{{db.ci-jsf.newsub.aws.dev:f:host}}__
+              value: {{ tacet://*/db.ci-jsf.newsub.aws.dev/host }}
             - name: PORT_cijsfawsdev
               value: "3306"
             - name: USER_cijsfawsdev
               value: jsfnewsubuser
             - name: PASSWORD_cijsfawsdev
-              value: "__{{db.ci-jsf.newsub.aws.dev}}__"
+              value: "{{ tacet://*/db.ci-jsf.newsub.aws.dev/password }}"
             - name: ENGINE_cijsfawsdev
               value: mysql@dbgate-plugin-mysql
 
             - name: LABEL_cijsfawsprod
               value: CI-JSF-Prod
             - name: SERVER_cijsfawsprod
-              value: __{{db.ci-jsf.newsub.aws.prod:f:host}}__
+              value: {{ tacet://*/db.ci-jsf.newsub.aws.prod/host }}
             - name: PORT_cijsfawsprod
               value: "3306"
             - name: USER_cijsfawsprod
               value: jsfprodadmin
             - name: PASSWORD_cijsfawsprod
-              value: "__{{db.ci-jsf.newsub.aws.prod}}__"
+              value: "{{ tacet://*/db.ci-jsf.newsub.aws.prod/password }}"
             - name: ENGINE_cijsfawsprod
               value: mysql@dbgate-plugin-mysql
 
@@ -274,12 +274,12 @@ metadata:
     gethomepage.dev/group: Development
     gethomepage.dev/name: dbgate
     gethomepage.dev/icon: https://avatars.githubusercontent.com/u/78292618
-    gethomepage.dev/href: https://dbgate.__{{infra.domains:f:x}}__/
+    gethomepage.dev/href: https://dbgate.{{ tacet://*/infra.domains/x }}/
     gethomepage.dev/weight: "40"
 spec:
   ingressClassName: traefik
   rules:
-    - host: dbgate.__{{infra.domains:f:x}}__
+    - host: dbgate.{{ tacet://*/infra.domains/x }}
       http:
         paths:
           - path: /
@@ -291,7 +291,7 @@ spec:
                   name: default
   tls:
     - hosts:
-        - dbgate.__{{infra.domains:f:x}}__
+        - dbgate.{{ tacet://*/infra.domains/x }}
       secretName: dbgate-domainx
 
 ---
@@ -307,7 +307,7 @@ metadata:
 spec:
   ingressClassName: traefik
   rules:
-    - host: dbgate.__{{infra.domains:f:x}}__
+    - host: dbgate.{{ tacet://*/infra.domains/x }}
       http:
         paths:
           - path: /
@@ -319,7 +319,7 @@ spec:
                   name: default
   tls:
     - hosts:
-        - dbgate.__{{infra.domains:f:x}}__
+        - dbgate.{{ tacet://*/infra.domains/x }}
       secretName: dbgate-domainx
 
 ---
@@ -384,20 +384,20 @@ spec:
             - name: USER_postgresckdev
               value: postgres
             - name: PASSWORD_postgresckdev
-              value: "__{{database.postgres.ck-dev.accounts:f:postgres}}__"
+              value: "{{ tacet://*/database.postgres.ck-dev.accounts/postgres }}"
             - name: ENGINE_postgresckdev
               value: postgres@dbgate-plugin-postgres
 
             - name: LABEL_cijsfawsdev
               value: CI-JSF-Dev
             - name: SERVER_cijsfawsdev
-              value: __{{db.ci-jsf.newsub.aws.dev:f:host}}__
+              value: {{ tacet://*/db.ci-jsf.newsub.aws.dev/host }}
             - name: PORT_cijsfawsdev
               value: "3306"
             - name: USER_cijsfawsdev
               value: jsfnewsubuser
             - name: PASSWORD_cijsfawsdev
-              value: "__{{db.ci-jsf.newsub.aws.dev}}__"
+              value: "{{ tacet://*/db.ci-jsf.newsub.aws.dev/password }}"
             - name: ENGINE_cijsfawsdev
               value: mysql@dbgate-plugin-mysql
 
@@ -493,12 +493,12 @@ metadata:
     gethomepage.dev/group: Development
     gethomepage.dev/name: dbgate lite
     gethomepage.dev/icon: https://avatars.githubusercontent.com/u/78292618
-    gethomepage.dev/href: https://dbgate-lite.__{{infra.domains:f:x}}__/
+    gethomepage.dev/href: https://dbgate-lite.{{ tacet://*/infra.domains/x }}/
     gethomepage.dev/weight: "41"
 spec:
   ingressClassName: traefik
   rules:
-    - host: dbgate-lite.__{{infra.domains:f:x}}__
+    - host: dbgate-lite.{{ tacet://*/infra.domains/x }}
       http:
         paths:
           - path: /
@@ -510,7 +510,7 @@ spec:
                   name: default
   tls:
     - hosts:
-        - dbgate-lite.__{{infra.domains:f:x}}__
+        - dbgate-lite.{{ tacet://*/infra.domains/x }}
       secretName: dbgate-lite-domainx
 
 ---
@@ -526,7 +526,7 @@ metadata:
 spec:
   ingressClassName: traefik
   rules:
-    - host: dbgate-lite.__{{infra.domains:f:x}}__
+    - host: dbgate-lite.{{ tacet://*/infra.domains/x }}
       http:
         paths:
           - path: /
@@ -538,7 +538,7 @@ spec:
                   name: default
   tls:
     - hosts:
-        - dbgate-lite.__{{infra.domains:f:x}}__
+        - dbgate-lite.{{ tacet://*/infra.domains/x }}
       secretName: dbgate-lite-domainx
 
 ---
@@ -578,7 +578,7 @@ spec:
               app.kubernetes.io/name: traefik
     - to:
         - ipBlock:
-            cidr: __{{koishi.infra.infos:f:subnetv4}}__.0/24
+            cidr: {{ tacet://*/koishi.infra.infos/subnetv4 }}.0/24
 
     - to:
         - namespaceSelector:
@@ -606,13 +606,13 @@ spec:
     # Allow access to specific external IP addresses only
     - to:
         - ipBlock:
-            cidr: __{{db.ci-jsf.newsub.aws.prod:f:ip}}__/32
+            cidr: {{ tacet://*/db.ci-jsf.newsub.aws.prod/ip }}/32
       ports:
         - protocol: TCP
           port: 3306
     - to:
         - ipBlock:
-            cidr: __{{db.ci-jsf.newsub.aws.dev:f:ip}}__/32
+            cidr: {{ tacet://*/db.ci-jsf.newsub.aws.dev/ip }}/32
       ports:
         - protocol: TCP
           port: 3306

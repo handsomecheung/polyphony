@@ -13,14 +13,14 @@ metadata:
     gethomepage.dev/name: traefik
     gethomepage.dev/app: traefik
     gethomepage.dev/icon: traefik
-    gethomepage.dev/href: https://traefik.__{{infra.domains:f:x}}__/dashboard/
-    gethomepage.dev/siteMonitor: https://traefik.__{{infra.domains:f:x}}__/dashboard/
+    gethomepage.dev/href: https://traefik.{{ tacet://*/infra.domains/x }}/dashboard/
+    gethomepage.dev/siteMonitor: https://traefik.{{ tacet://*/infra.domains/x }}/dashboard/
     gethomepage.dev/weight: "10"
     gethomepage.dev/pod-selector: ""
 spec:
   ingressClassName: traefik
   rules:
-    - host: traefik.__{{infra.domains:f:x}}__
+    - host: traefik.{{ tacet://*/infra.domains/x }}
       http:
         paths:
           - path: /api
@@ -39,5 +39,5 @@ spec:
                   number: 8080
   tls:
     - hosts:
-        - traefik.__{{infra.domains:f:x}}__
+        - traefik.{{ tacet://*/infra.domains/x }}
       secretName: traefik-dashboard-domainx

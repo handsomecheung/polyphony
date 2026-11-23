@@ -84,9 +84,9 @@ spec:
             - name: LANG
               value: "C.UTF-8"
             - name: PLEX_CLAIM
-              value: "__{{plex.claim-token}}__"
+              value: "{{ tacet://*/plex.claim-token/password }}"
             - name: ADVERTISE_IP
-              value: "https://plex.__{{infra.domains:f:x}}__"
+              value: "https://plex.{{ tacet://*/infra.domains/x }}"
           volumeMounts:
             - name: plex-data
               mountPath: /config
@@ -230,13 +230,13 @@ metadata:
     gethomepage.dev/group: Media
     gethomepage.dev/name: Plex
     gethomepage.dev/icon: plex
-    gethomepage.dev/href: https://plex.__{{infra.domains:f:x}}__
-    gethomepage.dev/siteMonitor: https://plex.__{{infra.domains:f:x}}__
+    gethomepage.dev/href: https://plex.{{ tacet://*/infra.domains/x }}
+    gethomepage.dev/siteMonitor: https://plex.{{ tacet://*/infra.domains/x }}
     gethomepage.dev/weight: "4"
 spec:
   ingressClassName: traefik
   rules:
-    - host: plex.__{{infra.domains:f:x}}__
+    - host: plex.{{ tacet://*/infra.domains/x }}
       http:
         paths:
           - path: /
@@ -248,5 +248,5 @@ spec:
                   name: default
   tls:
     - hosts:
-        - plex.__{{infra.domains:f:x}}__
+        - plex.{{ tacet://*/infra.domains/x }}
       secretName: plex-domainx

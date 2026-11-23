@@ -9,8 +9,8 @@ The Vaultwarden ecosystem is designed around three core architectural goals:
 1. **Centralized Secret Store (Vaultwarden Server)**:
    A single, self-hosted source of truth for all secrets, credentials, and configuration values. By self-hosting a Bitwarden-compatible server, the home lab retains full control over its sensitive data without relying on third-party cloud managers.
 
-2. **Infrastructure as Code Integration (BWW)**:
-   BWW (BitWarden for Webapp) provides an authorized API layer that resolves templated secret placeholders at deployment time. This allows Kubernetes manifests, script configurations, and application templates to remain fully declarative while referencing secrets dynamically.
+2. **Infrastructure as Code Integration (Tacet)**:
+   Tacet reads secrets from Vaultwarden and resolves `{{ tacet://*/item-name/password }}` placeholders at deployment time through `tacet-wrapper inject`. Custom fields and attachments use their field name or filename in place of `password`; append `?encoding=base64` when encoded output is required. This allows Kubernetes manifests, script configurations, and application templates to remain fully declarative while referencing secrets dynamically.
 
 3. **Secure-by-Default Isolation & Resilience (Network Policies & Backups)**:
    - **Isolation**: Vaultwarden operates under strict, zero-egress network policies. Since the password manager does not need to connect to the external internet, all outbound connections are blocked to prevent data exfiltration.

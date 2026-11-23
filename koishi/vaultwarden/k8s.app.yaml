@@ -97,13 +97,13 @@ metadata:
     gethomepage.dev/group: Tool
     gethomepage.dev/name: Vaultwarden
     gethomepage.dev/icon: vaultwarden
-    gethomepage.dev/href: https://vaultwarden.__{{infra.domains:f:x}}__/
-    gethomepage.dev/siteMonitor: https://vaultwarden.__{{infra.domains:f:x}}__/
+    gethomepage.dev/href: https://vaultwarden.{{ tacet://*/infra.domains/x }}/
+    gethomepage.dev/siteMonitor: https://vaultwarden.{{ tacet://*/infra.domains/x }}/
     gethomepage.dev/weight: "30"
 spec:
   ingressClassName: traefik
   rules:
-    - host: vaultwarden.__{{infra.domains:f:x}}__
+    - host: vaultwarden.{{ tacet://*/infra.domains/x }}
       http:
         paths:
           - path: /
@@ -115,7 +115,7 @@ spec:
                   name: default
   tls:
     - hosts:
-        - vaultwarden.__{{infra.domains:f:x}}__
+        - vaultwarden.{{ tacet://*/infra.domains/x }}
       secretName: vaultwarden-domainx
 
 ---
@@ -132,13 +132,13 @@ metadata:
     gethomepage.dev/name: Vaultwarden Admin
     gethomepage.dev/app: vaultwarden
     gethomepage.dev/icon: vaultwarden
-    gethomepage.dev/href: https://vaultwarden.__{{infra.domains:f:x}}__/admin
-    gethomepage.dev/siteMonitor: https://vaultwarden.__{{infra.domains:f:x}}__/admin
+    gethomepage.dev/href: https://vaultwarden.{{ tacet://*/infra.domains/x }}/admin
+    gethomepage.dev/siteMonitor: https://vaultwarden.{{ tacet://*/infra.domains/x }}/admin
     gethomepage.dev/weight: "40"
 spec:
   ingressClassName: traefik
   rules:
-    - host: vaultwarden.__{{infra.domains:f:x}}__
+    - host: vaultwarden.{{ tacet://*/infra.domains/x }}
       http:
         paths:
           - path: /admin
@@ -150,7 +150,7 @@ spec:
                   name: default
   tls:
     - hosts:
-        - vaultwarden.__{{infra.domains:f:x}}__
+        - vaultwarden.{{ tacet://*/infra.domains/x }}
       secretName: vaultwarden-domainx
 
 ---
@@ -161,7 +161,7 @@ metadata:
   namespace: default-vaultwarden
 data:
   hosts: |
-    __{{infra.machine.nippon:f:ip}}__ vaultwarden.__{{infra.domains:f:x}}__
+    {{ tacet://*/infra.machine.nippon/ip }} vaultwarden.{{ tacet://*/infra.domains/x }}
 
 ---
 apiVersion: batch/v1
@@ -204,7 +204,7 @@ spec:
               imagePullPolicy: Always
               env:
                 - name: URL_VW
-                  value: https://vaultwarden.__{{infra.domains:f:x}}__
+                  value: https://vaultwarden.{{ tacet://*/infra.domains/x }}
                 - name: URL_PASS
                   value: http://fs-downserver-private.default.svc.cluster.local/private/thepassbase
               volumeMounts:
@@ -286,7 +286,7 @@ spec:
               app: vaultwarden
     - to:
         - ipBlock:
-            cidr: __{{koishi.infra.infos:f:subnetv4}}__.0/24
+            cidr: {{ tacet://*/koishi.infra.infos/subnetv4 }}.0/24
       ports:
         - protocol: TCP
           port: 80

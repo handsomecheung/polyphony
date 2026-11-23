@@ -30,7 +30,7 @@ ports:
     protocol: TCP
 endpoints:
   - addresses:
-      - "__{{infra.machine.nippon:f:ip}}__"
+      - "{{ tacet://*/infra.machine.nippon/ip }}"
     conditions:
       ready: true
 
@@ -46,7 +46,7 @@ metadata:
 spec:
   ingressClassName: traefik
   rules:
-    - host: wakeup.__{{infra.domains:f:x}}__
+    - host: wakeup.{{ tacet://*/infra.domains/x }}
       http:
         paths:
           - path: /
@@ -58,7 +58,7 @@ spec:
                   name: default
   tls:
     - hosts:
-        - wakeup.__{{infra.domains:f:x}}__
+        - wakeup.{{ tacet://*/infra.domains/x }}
       secretName: wakeup-domainx
 
 ---

@@ -61,13 +61,13 @@ metadata:
     gethomepage.dev/enabled: "true"
     gethomepage.dev/group: Fountain
     gethomepage.dev/name: Scanner Prod
-    gethomepage.dev/href: https://fountain.__{{infra.domains:f:c}}__/scanner
-    gethomepage.dev/siteMonitor: https://fountain.__{{infra.domains:f:c}}__/scanner
+    gethomepage.dev/href: https://fountain.{{ tacet://*/infra.domains/c }}/scanner
+    gethomepage.dev/siteMonitor: https://fountain.{{ tacet://*/infra.domains/c }}/scanner
     gethomepage.dev/weight: "10"
 spec:
   ingressClassName: traefik
   rules:
-    - host: fountain.__{{infra.domains:f:c}}__
+    - host: fountain.{{ tacet://*/infra.domains/c }}
       http:
         paths:
           - path: /scanner/
@@ -79,5 +79,5 @@ spec:
                   name: default
   tls:
     - hosts:
-        - fountain.__{{infra.domains:f:c}}__
+        - fountain.{{ tacet://*/infra.domains/c }}
       secretName: fountain-domainc

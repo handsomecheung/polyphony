@@ -78,7 +78,7 @@ spec:
           imagePullPolicy: Always
           env:
             - name: JELLYFIN_PublishedServerUrl
-              value: https://jellyfin.__{{infra.domains:f:x}}__
+              value: https://jellyfin.{{ tacet://*/infra.domains/x }}
           volumeMounts:
             - name: default-common
               mountPath: /config
@@ -148,13 +148,13 @@ metadata:
     gethomepage.dev/group: Media
     gethomepage.dev/name: Jellyfin
     gethomepage.dev/icon: jellyfin
-    gethomepage.dev/href: https://jellyfin.__{{infra.domains:f:x}}__
-    gethomepage.dev/siteMonitor: https://jellyfin.__{{infra.domains:f:x}}__
+    gethomepage.dev/href: https://jellyfin.{{ tacet://*/infra.domains/x }}
+    gethomepage.dev/siteMonitor: https://jellyfin.{{ tacet://*/infra.domains/x }}
     gethomepage.dev/weight: "10"
 spec:
   ingressClassName: traefik
   rules:
-    - host: jellyfin.__{{infra.domains:f:x}}__
+    - host: jellyfin.{{ tacet://*/infra.domains/x }}
       http:
         paths:
           - path: /
@@ -166,5 +166,5 @@ spec:
                   name: default
   tls:
     - hosts:
-        - jellyfin.__{{infra.domains:f:x}}__
+        - jellyfin.{{ tacet://*/infra.domains/x }}
       secretName: jellyfin-domainx

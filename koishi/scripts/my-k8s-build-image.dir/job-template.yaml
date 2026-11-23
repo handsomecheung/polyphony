@@ -37,7 +37,7 @@ spec:
             - --context=PLACEHOLDER_BUILD_CODE_DIR
             - --destination=PLACEHOLDER_IMAGE
             - --cache=true
-            - --cache-repo=__{{koishi.deploy.cloudprivate_registry_host}}__/__{{koishi.deploy.cloudprivate_registry_id}}__/docker/cache/kaniko
+            - --cache-repo={{ tacet://*/koishi.deploy.cloudprivate_registry_host/password }}/{{ tacet://*/koishi.deploy.cloudprivate_registry_id/password }}/docker/cache/kaniko
             - --cache-ttl=24h
             - --compressed-caching=false
             - --verbosity=info

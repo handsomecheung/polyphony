@@ -27,11 +27,11 @@ spec:
             - name: IP_FILTER1_FILE
               value: /root/ip_filter1_file.txt
             - name: IP_FILTER1_TEXT
-              value: "__{{koishi.middleware.infos:f:ip-filter1-text}}__"
+              value: "{{ tacet://*/koishi.middleware.infos/ip-filter1-text }}"
             - name: KV_FILTER1_KEY
-              value: "__{{koishi.middleware.infos:f:kv-filter1-key}}__"
+              value: "{{ tacet://*/koishi.middleware.infos/kv-filter1-key }}"
             - name: KV_FILTER1_VALUE
-              value: "__{{koishi.middleware.infos:f:kv-filter1-value}}__"
+              value: "{{ tacet://*/koishi.middleware.infos/kv-filter1-value }}"
           resources:
             requests:
               cpu: 50m

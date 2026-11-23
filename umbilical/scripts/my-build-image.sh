@@ -32,7 +32,7 @@ if [ -z "$NAME" ]; then
 fi
 
 if [[ "${NAME}" == "cloudpublic/"* ]]; then
-    host_cloudpublic=$(bwww get-password umbilical.deploy.cloudpublic_registry_host 2>/dev/null)
+    host_cloudpublic=$(tacet-wrapper read "tacet://*/umbilical.deploy.cloudpublic_registry_host/password")
 
     IMAGE="${NAME/cloudpublic/${host_cloudpublic}}"
 else

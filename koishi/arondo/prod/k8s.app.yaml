@@ -32,7 +32,7 @@ spec:
               mountPath: /home/node/.arondo
           env:
             - name: ALLOWED_DEV_ORIGINS
-              value: arondo.__{{infra.domains:f:x}}__
+              value: arondo.{{ tacet://*/infra.domains/x }}
             - name: ARONDO_SESSION_ARCHIVE_DAYS_DEFAULT
               value: "7"
             - name: ARONDO_FILE_SHOW_HIDDEN_DEFAULT
@@ -93,12 +93,12 @@ metadata:
     gethomepage.dev/enabled: "true"
     gethomepage.dev/group: AI
     gethomepage.dev/name: Arondo
-    gethomepage.dev/href: https://arondo.__{{infra.domains:f:x}}__/
+    gethomepage.dev/href: https://arondo.{{ tacet://*/infra.domains/x }}/
     gethomepage.dev/weight: "5"
 spec:
   ingressClassName: traefik
   rules:
-    - host: arondo.__{{infra.domains:f:x}}__
+    - host: arondo.{{ tacet://*/infra.domains/x }}
       http:
         paths:
           - path: /
@@ -110,7 +110,7 @@ spec:
                   name: default
   tls:
     - hosts:
-        - arondo.__{{infra.domains:f:x}}__
+        - arondo.{{ tacet://*/infra.domains/x }}
       secretName: arondo-domainx
 
 ---
@@ -125,7 +125,7 @@ metadata:
 spec:
   ingressClassName: traefik
   rules:
-    - host: arondo.home4p.__{{infra.domains:f:x}}__
+    - host: arondo.home4p.{{ tacet://*/infra.domains/x }}
       http:
         paths:
           - path: /
@@ -137,7 +137,7 @@ spec:
                   name: default
   tls:
     - hosts:
-        - arondo.home4p.__{{infra.domains:f:x}}__
+        - arondo.home4p.{{ tacet://*/infra.domains/x }}
       secretName: arondo-home4p-domainx
 
 ---
@@ -152,7 +152,7 @@ metadata:
 spec:
   ingressClassName: traefik
   rules:
-    - host: arondo.__{{infra.domains:f:x}}__
+    - host: arondo.{{ tacet://*/infra.domains/x }}
       http:
         paths:
           - path: /runner
@@ -164,7 +164,7 @@ spec:
                   name: default
   tls:
     - hosts:
-        - arondo.__{{infra.domains:f:x}}__
+        - arondo.{{ tacet://*/infra.domains/x }}
       secretName: arondo-domainx
 
 ---
@@ -180,7 +180,7 @@ metadata:
 spec:
   ingressClassName: traefik
   rules:
-    - host: arondo.__{{infra.domains:f:x}}__
+    - host: arondo.{{ tacet://*/infra.domains/x }}
       http:
         paths:
           - path: /manifest.webmanifest
@@ -255,5 +255,5 @@ spec:
                   name: default
   tls:
     - hosts:
-        - arondo.__{{infra.domains:f:x}}__
+        - arondo.{{ tacet://*/infra.domains/x }}
       secretName: arondo-domainx

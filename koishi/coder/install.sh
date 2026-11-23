@@ -6,7 +6,7 @@ my-k8s-deploy --meta=pullsecret-cloudprivate --namespace=default
 
 dir=$(mktemp -d -t k8s-deploy-coder-XXXXXX)
 cp values.yaml "${dir}"
-bwww render-file "${dir}"
+tacet-wrapper inject --in-place --in-dir "${dir}"
 
 helm repo add coder-v2 https://helm.coder.com/v2
 helm repo update

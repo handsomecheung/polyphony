@@ -1,9 +1,9 @@
 ---
 services:
   tunnel-ssh:
-    image: __{{umbilical.deploy.cloudpublic_registry_host}}__/umbilical/tunnel:latest
+    image: {{ tacet://*/umbilical.deploy.cloudpublic_registry_host/password }}/umbilical/tunnel:latest
     environment:
-      TZ: "__{{umbilical.deploy.timezone}}__"
+      TZ: "{{ tacet://*/umbilical.deploy.timezone/password }}"
     volumes:
       - ./tunnel-ssh/ssh:/tmp/ssh
       - ./tunnel-ssh/entrypoint.sh:/entrypoint.sh
@@ -11,11 +11,11 @@ services:
     restart: always
 
   shutdown:
-    image: __{{umbilical.deploy.cloudpublic_registry_host}}__/umbilical/shutdown:latest
+    image: {{ tacet://*/umbilical.deploy.cloudpublic_registry_host/password }}/umbilical/shutdown:latest
     privileged: true
     network_mode: host # exposed port 37901
     environment:
-      TZ: "__{{umbilical.deploy.timezone}}__"
+      TZ: "{{ tacet://*/umbilical.deploy.timezone/password }}"
       TERM: "xterm-256color"
       GOTTY_PORT: "37901"
       GOTTY_WS_ORIGIN: ".*"

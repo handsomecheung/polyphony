@@ -4,11 +4,11 @@ vouch:
   # logLevel: debug
 
   domains:
-    - __{{infra.domains:f:u}}__
+    - {{ tacet://*/infra.domains/u }}
 
   whiteList:
-    - __{{infra-emails:f:hh}}__
-    - __{{infra-emails:f:hz}}__
+    - {{ tacet://*/infra-emails/hh }}
+    - {{ tacet://*/infra-emails/hz }}
 
   cookie:
     # allow the jwt/cookie to be set into http://yourdomain.com (defaults to true, requiring https://yourdomain.com)
@@ -22,10 +22,10 @@ oauth:
   provider: google
   # get credentials from...
   # https://console.developers.google.com/apis/credentials
-  client_id: __{{umbilical.vouch.oauth.key:f:id}}__
-  client_secret: __{{umbilical.vouch.oauth.key:f:secret}}__
+  client_id: {{ tacet://*/umbilical.vouch.oauth.key/id }}
+  client_secret: {{ tacet://*/umbilical.vouch.oauth.key/secret }}
   # Google may require callback_urls (redirect URIs) to be 'https'
   callback_urls:
-    - https://vouch.__{{infra.domains:f:u}}__/auth
+    - https://vouch.{{ tacet://*/infra.domains/u }}/auth
   # preferredDomain: yourdomain.com  # be careful with this option, it may conflict with chrome on Android
   # endpoints are set from https://godoc.org/golang.org/x/oauth2/google

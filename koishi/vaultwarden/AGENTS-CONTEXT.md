@@ -16,42 +16,32 @@ This document complements [README.md](file:///mnt/coder-workspaces/private-works
   - **Resource requests**: 100m CPU, 50Mi memory.
   - **Network Policy**: Strict egress deny-all.
   - **Ingress routes**:
-    - Public: `vaultwarden.__{{infra.domains:f:x}}__/` (no authentication, weight 30).
-    - Admin: `vaultwarden.__{{infra.domains:f:x}}__/admin` (protected by `sso-domainx` middleware, weight 40).
+    - Public: `vaultwarden.{{ tacet://*/infra.domains/x }}/` (no authentication, weight 30).
+    - Admin: `vaultwarden.{{ tacet://*/infra.domains/x }}/admin` (protected by `sso-domainx` middleware, weight 40).
   - **TLS**: Auto-managed by cert-manager with DNS-01 Cloudflare challenge.
   - **Limits**: 525MB request body limit configured on Traefik buffering middleware.
 
-### BWW: BitWarden for Webapp (`bww/`)
+### Tacet Integration
 
-Exposes a custom API wrapping the Bitwarden CLI (`bw`) to serve secrets dynamically.
+Build and deployment tooling accesses Vaultwarden through `tacet-wrapper`:
 
-- **API Logic (`code/main.go`)**:
-  - Caches Bitwarden items in memory at startup.
-  - Requires HMAC-SHA256 signature (`X-BWW-Timestamp` and `X-BWW-Signature` headers) with a 5-minute window for all authenticated requests.
-- **Endpoints**:
-  - `GET /{name}/password`: Retrieve item password.
-  - `GET /{name}/field/{field_name}`: Retrieve custom field.
-  - `GET /{name}/field/{field_name}/base64`: Retrieve base64 custom field.
-  - `GET /{name}/attachment/{filename}`: Download attachment.
-  - `GET /{name}/attachment/{filename}/base64`: Download base64 attachment.
-  - `UPDATE /sync`: Sync CLI vault and reload cache.
-  - `POST /render`: Render files with secret placeholders.
-  - `GET /ok`: Public health check.
-- **Environment Settings**:
-  - `BW_URL`: Server endpoint.
-  - `BW_CLIENTID` / `BW_CLIENTSECRET`: API keys.
-  - `BW_PASSWORD`: Master password to unlock.
-  - `BWW_SECRET_KEY`: HMAC secret key.
-- **Placeholder Syntax for `/render`**:
+- `tacet-wrapper read "tacet://*/item-name/password"` retrieves an item password.
+- `tacet-wrapper read "tacet://*/item-name/field-name"` retrieves a custom field; a filename selects an attachment.
+- `tacet-wrapper inject` resolves placeholders in configuration templates.
+- `scripts/tacet-source-env` loads `TACET_SERVER`, `TACET_CLIENT_ID`, `TACET_CLIENT_SECRET`, and `TACET_PASSWORD` from the protected environment file. The wrapper logs in when needed and unlocks locked sessions before executing the command.
+
+### Tacet Template Syntax
+
+Build and deployment templates use `tacet-wrapper inject` with the following syntax:
 
 | Placeholder                  | Example                                                                     | Meaning                             |
 |:-----------------------------|:----------------------------------------------------------------------------|:------------------------------------|
-| `__{{name}}__`               | `__{{koishi.litellm}}__`                                                    | Password of item `name`             |
-| `__{{name:_:b64}}__`         | `__{{koishi.litellm:_:b64}}__`                                              | Base64-encoded password             |
-| `__{{name:f:field}}__`       | `__{{infra.common-users:f:hh}}__`                                           | Custom field `field` of item `name` |
-| `__{{name:f:field:f:b64}}__` | `__{{infra.common-users:f:hh:f:b64}}__`                                     | Base64-encoded custom field         |
-| `__{{name:a:file}}__`        | `__{{koishi.foldersync.sshkeys.system.files:a:ssh_host_ecdsa_key}}__`       | Attachment content                  |
-| `__{{name:a:file:a:b64}}__`  | `__{{koishi.foldersync.sshkeys.system.files:a:ssh_host_ecdsa_key:a:b64}}__` | Base64-encoded attachment           |
+| `{{ tacet://*/name/password }}`               | `{{ tacet://*/koishi.litellm/password }}`                                                    | Password of item `name`             |
+| `{{ tacet://*/name/password?encoding=base64 }}`         | `{{ tacet://*/koishi.litellm/password?encoding=base64 }}`                                              | Base64-encoded password             |
+| `{{ tacet://*/name/field }}`       | `{{ tacet://*/infra.common-users/hh }}`                                           | Custom field `field` of item `name` |
+| `{{ tacet://*/name/field?encoding=base64 }}` | `{{ tacet://*/infra.common-users/hh?encoding=base64 }}`                                     | Base64-encoded custom field         |
+| `{{ tacet://*/name/file }}`        | `{{ tacet://*/koishi.foldersync.sshkeys.system.files/ssh_host_ecdsa_key }}`       | Attachment content                  |
+| `{{ tacet://*/name/file?encoding=base64 }}`  | `{{ tacet://*/koishi.foldersync.sshkeys.system.files/ssh_host_ecdsa_key?encoding=base64 }}` | Base64-encoded attachment           |
 
 ### Portwarden Backup Tool (`portwarden/`)
 
@@ -92,7 +82,7 @@ Provides complete filesystem snapshot backup capability.
   - Port 80/443 to Traefik (internal proxy routing).
   - Cluster IP of `fs-downserver` in `default` namespace.
   - Cluster IP of `vaultwarden` in `default-vaultwarden` namespace.
-  - Subnet `__{{koishi.infra.infos:f:subnetv4}}__.0/24` for authorized local external interfaces.
+  - Subnet `{{ tacet://*/koishi.infra.infos/subnetv4 }}.0/24` for authorized local external interfaces.
 
 ---
 
@@ -101,7 +91,7 @@ Provides complete filesystem snapshot backup capability.
 - **Homepage Dashboard**:
   - Configures endpoints in `gethomepage` with custom weighting (public weight 30, admin weight 40).
 - **Cluster-wide Secret Source**:
-  - Workloads authenticate to BWW via HMAC to fetch secrets or perform template rendering.
+  - Build and deployment tooling resolves vault values and templates through `tacet-wrapper read` and `tacet-wrapper inject`.
 
 ---
 
@@ -109,10 +99,8 @@ Provides complete filesystem snapshot backup capability.
 
 ### Build Procedures
 
-Build all container images:
+Build the backup container images:
 ```bash
-./build.sh                           # Builds all subcomponents
-./bww/build.sh                       # Build bww only
 ./portwarden/build.sh                # Build portwarden only
 ./vaultwardendatabackup/build.sh     # Build vaultwardendatabackup only
 ```
@@ -125,7 +113,6 @@ Build all container images:
 Executes sequence:
 1. Apply `k8s.namespace.yaml`.
 2. Apply `k8s.app.yaml` (Deploys vaultwarden & portwarden).
-3. Execute `bww/deploy.sh` (Deploys BWW API wrapper).
 
 *All manifest deployment commands parse parameters via `my-k8s-deploy` to resolve placeholders.*
 
@@ -157,5 +144,5 @@ gpg --batch --passphrase "$key" -d backup.YYYYMMDD-HHMMSS.portwarden.decrypted.z
 ## Troubleshooting Details
 
 - **Vaultwarden Access**: Verify Traefik routing rules and check cert-manager logs for Cloudflare challenge status.
-- **BWW HMAC Errors**: Confirm `BWW_SECRET_KEY` consistency between generator and consumer, and inspect timezone/time skew (must be <5m offset).
+- **Tacet Authentication Errors**: Check `TACET_SERVER`, `TACET_CLIENT_ID`, `TACET_CLIENT_SECRET`, and `TACET_PASSWORD` in the protected environment file. Use `tacet status` to inspect the session, `tacet login --apikey` to authenticate again, and `tacet unlock` to unlock an existing session.
 - **Backup Failures**: Ensure `fs-downserver` is running and healthy. Confirm database volumes are correctly mounted read-only during data directory backups.

@@ -108,12 +108,12 @@ metadata:
     gethomepage.dev/group: Media
     gethomepage.dev/name: calibre-web
     gethomepage.dev/icon: calibre-web
-    gethomepage.dev/href: https://calibre.__{{infra.domains:f:x}}__
+    gethomepage.dev/href: https://calibre.{{ tacet://*/infra.domains/x }}
     gethomepage.dev/weight: "5"
 spec:
   ingressClassName: traefik
   rules:
-    - host: calibre.__{{infra.domains:f:x}}__
+    - host: calibre.{{ tacet://*/infra.domains/x }}
       http:
         paths:
           - path: /
@@ -125,5 +125,5 @@ spec:
                   name: default
   tls:
     - hosts:
-        - calibre.__{{infra.domains:f:x}}__
+        - calibre.{{ tacet://*/infra.domains/x }}
       secretName: calibre-domainx

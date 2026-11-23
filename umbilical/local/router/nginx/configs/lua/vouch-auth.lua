@@ -33,13 +33,13 @@ function to_string(v)
     return "unknown type"
 end
 
-local domain = "__{{infra.domains:f:u}}__"
+local domain = "{{ tacet://*/infra.domains/u }}"
 
 local users = {
-    ["__{{infra-emails:f:hh}}__"] = "*",
-    ["__{{infra-emails:f:hz}}__"] = Set {"@", "stable-diffusion"},
-    ["__{{infra-emails:f:cq}}__"] = Set {"@", "stable-diffusion"},
-    ["__{{infra-emails:f:ck}}__"] = Set {"@", "stable-diffusion"},
+    ["{{ tacet://*/infra-emails/hh }}"] = "*",
+    ["{{ tacet://*/infra-emails/hz }}"] = Set {"@", "stable-diffusion"},
+    ["{{ tacet://*/infra-emails/cq }}"] = Set {"@", "stable-diffusion"},
+    ["{{ tacet://*/infra-emails/ck }}"] = Set {"@", "stable-diffusion"},
 }
 
 ngx.log(ngx.ERR, "VOUCH USER: " .. ngx.var.auth_resp_x_vouch_user)

@@ -16,8 +16,8 @@ cp -va /tmp/foldersync-sshkeys-system/. /etc/ssh/
 chown -R root:root /etc/ssh/*
 chmod go-r /etc/ssh/*
 
-USER_HH="foldersync-__{{infra.common-users:f:hh}}__"
-USER_CC="foldersync-__{{infra.common-users:f:cc}}__"
+USER_HH="foldersync-{{ tacet://*/infra.common-users/hh }}"
+USER_CC="foldersync-{{ tacet://*/infra.common-users/cc }}"
 USER_001="foldersync-001"
 
 cp -r /tmp/foldersync-sshkeys-user-hh /home/${USER_HH}/.ssh

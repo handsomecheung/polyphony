@@ -3,21 +3,42 @@
 require 'yaml'
 require 'tmpdir'
 require File.join(File.expand_path(__dir__), 'common')
-require File.join(File.expand_path(__dir__), '../../', 'scripts', 'bwww')
 
 CMD_KUBECTL = "kubectl"
+CMD_TACET = "tacet-wrapper"
+
+# TACET_COLLECTION = "org/Default/Network/Koishi/Infra"
+TACET_COLLECTION = "*"
 
 CLOUDPRIVATE_REGISTRY_PREFIX = 'cloudprivate/'
 CLOUDPUBLIC_REGISTRY_PREFIX = 'cloudpublic/'
 CLOUDPRIVATE_REGISTRY_SECRET_NAME = 'dockersecret-cloudprivate'
 
 module Kubectl
+  def self.tacet_read(collection, item, filed)
+    run_command "#{CMD_TACET} read 'tacet://#{collection}/#{item}/#{filed}'"
+  end
+
+  def self.tacet_download(collection, item, filename)
+    output = File.join gen_tmpdir, filename
+    run_command "#{CMD_TACET} read 'tacet://#{collection}/#{item}/#{filename}' > #{output}"
+    output
+  end
+
+  def self.tacet_read_infra(item, filed)
+    self.tacet_read(TACET_COLLECTION, item, filed)
+  end
+
+  def self.tacet_download_infra(item, filename)
+    self.tacet_download(TACET_COLLECTION, item, filename)
+  end
+
   def self.get_secret_config_deploy(key)
-    BWWW.get_password "koishi.deploy.#{key}"
+    self.tacet_read_infra("koishi.deploy.#{key}", 'password')
   end
 
   def self.get_secret_config_domain(name)
-    BWWW.get_field("infra.domains", name)
+    self.tacet_read_infra("infra.domains", name)
   end
 
   def self.get_noindex_domains
@@ -77,8 +98,11 @@ module Kubectl
   end
 
   def self.rewrite_config(raw_config_file, options)
-    c = config_replace_placeholder(raw_config_file, options)
-    config_add_predefinition config_replace_secret(c)
+    raw_config_file_injected = File.join gen_tmpdir, "injected.yaml"
+    run_command "#{CMD_TACET} inject -i #{raw_config_file} -o #{raw_config_file_injected}"
+
+    c = config_replace_placeholder(raw_config_file_injected, options)
+    config_add_predefinition c
   end
 
   def self.config_replace_placeholder(raw_config_file, options)
@@ -90,20 +114,6 @@ module Kubectl
     end
 
     content
-  end
-
-  def self.bw_render_text(content)
-    BWWW.render_content content
-  end
-
-  def self.bw_download_attachment(secret_name, attachment_name)
-    filepath = File.join gen_tmpdir, attachment_name
-    content = BWWW.download_attachment secret_name, attachment_name, filepath
-    filepath
-  end
-
-  def self.config_replace_secret(content)
-    bw_render_text content
   end
 
   def self.write_docs_to_file(docs)
@@ -277,7 +287,7 @@ module Kubectl
   end
 
   def self.create_doc_pullsecret_cloudprivate(namespace)
-    key_file = bw_download_attachment 'gcp.files', 'pull-image.json'
+    key_file = self.tacet_download_infra('gcp.files', 'pull-image.json')
     email = get_secret_config_deploy "email"
     out = run_command %{#{CMD_KUBECTL} -n #{namespace} create secret docker-registry #{CLOUDPRIVATE_REGISTRY_SECRET_NAME} --docker-server #{get_cloudprivate_registry_host}  --docker-username _json_key --docker-email #{email} --docker-password="$(cat #{key_file})" --dry-run=client  -o yaml}
     YAML.safe_load out

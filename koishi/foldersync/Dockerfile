@@ -12,8 +12,8 @@ ADD configs/sshd_config /etc/ssh/sshd_config
 RUN chown -R root:root /etc/ssh/* && \
     chmod 600 /etc/ssh/*
 
-ENV USER_HH="foldersync-__{{infra.common-users:f:hh}}__"
-ENV USER_CC="foldersync-__{{infra.common-users:f:cc}}__"
+ENV USER_HH="foldersync-{{ tacet://*/infra.common-users/hh }}"
+ENV USER_CC="foldersync-{{ tacet://*/infra.common-users/cc }}"
 ENV USER_001="foldersync-001"
 
 RUN useradd -m -s /bin/bash "${USER_HH}" && \

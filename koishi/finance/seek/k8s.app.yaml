@@ -30,7 +30,7 @@ spec:
             - name: DB_USER
               value: "finance"
             - name: DB_PASS
-              value: "__{{database.postgres-local.accounts:f:finance}}__"
+              value: "{{ tacet://*/database.postgres-local.accounts/finance }}"
           livenessProbe:
             httpGet:
               path: /ok
@@ -65,7 +65,7 @@ metadata:
 spec:
   ingressClassName: traefik
   rules:
-    - host: finance-seek.home4p.__{{infra.domains:f:x}}__
+    - host: finance-seek.home4p.{{ tacet://*/infra.domains/x }}
       http:
         paths:
           - path: /
@@ -77,7 +77,7 @@ spec:
                   number: 80
   tls:
     - hosts:
-        - finance-seek.home4p.__{{infra.domains:f:x}}__
+        - finance-seek.home4p.{{ tacet://*/infra.domains/x }}
       secretName: finance-seek-home4p-domainx
 
 ---
@@ -91,14 +91,14 @@ spec:
   entryPoints:
     - websecure
   routes:
-    - match: Host(`finance-seek.__{{infra.domains:f:x}}__`) && Query(`key`, `__{{koishi.finance.seek:f:api-key}}__`)
+    - match: Host(`finance-seek.{{ tacet://*/infra.domains/x }}`) && Query(`key`, `{{ tacet://*/koishi.finance.seek/api-key }}`)
       kind: Rule
       services:
         - name: seek
           port: 80
   tls:
     domains:
-      - main: finance-seek.__{{infra.domains:f:x}}__
+      - main: finance-seek.{{ tacet://*/infra.domains/x }}
     secretName: finance-seek-domainx
 
 ---
@@ -110,7 +110,7 @@ metadata:
 spec:
   secretName: finance-seek-domainx
   dnsNames:
-    - finance-seek.__{{infra.domains:f:x}}__
+    - finance-seek.{{ tacet://*/infra.domains/x }}
   issuerRef:
     name: cluster-letsencrypt-dns-cloudflare
     kind: ClusterIssuer

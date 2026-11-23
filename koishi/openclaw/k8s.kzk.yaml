@@ -54,25 +54,25 @@ spec:
             - name: PATH
               value: "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/home/node/bin"
             - name: OPENCLAW_PUBLIC_DOMAIN
-              value: "openclaw-kzk.__{{infra.domains:f:x}}__"
+              value: "openclaw-kzk.{{ tacet://*/infra.domains/x }}"
             - name: OPENCLAW_GATEWAY_TOKEN
-              value: "__{{openclaw-kzk.infos:f:secret}}__"
+              value: "{{ tacet://*/openclaw-kzk.infos/secret }}"
             - name: NODE_OPTIONS
               value: "--max-old-space-size=1536"
             - name: LITELLM_API_KEY
-              value: "__{{koishi.litellm:f:master-key}}__"
+              value: "{{ tacet://*/koishi.litellm/master-key }}"
             - name: GOG_ACCOUNT
-              value: "__{{openclaw-kzk.infos:f:gog.email}}__"
+              value: "{{ tacet://*/openclaw-kzk.infos/gog.email }}"
             - name: GOG_KEYRING_PASSWORD
-              value: "__{{openclaw-kzk.infos:f:gog.keyring_password}}__"
+              value: "{{ tacet://*/openclaw-kzk.infos/gog.keyring_password }}"
             - name: VW_URL
-              value: https://vaultwarden.__{{infra.domains:f:x}}__
+              value: https://vaultwarden.{{ tacet://*/infra.domains/x }}
             - name: GEMINI_API_KEY
-              value: "__{{llm.api-keys:f:gemini-openclaw}}__"
+              value: "{{ tacet://*/llm.api-keys/gemini-openclaw }}"
             - name: LINE_CHANNEL_SECRET
-              value: "__{{linebridge:f:channel-secret}}__"
+              value: "{{ tacet://*/linebridge/channel-secret }}"
             - name: LINE_CHANNEL_ACCESS_TOKEN
-              value: "__{{linebridge:f:channel-access-token}}__"
+              value: "{{ tacet://*/linebridge/channel-access-token }}"
           ports:
             - name: gateway
               protocol: TCP
@@ -135,13 +135,13 @@ metadata:
     gethomepage.dev/group: AI
     gethomepage.dev/name: OpenClaw KZK
     gethomepage.dev/icon: https://openclaw.ai/apple-touch-icon.png
-    gethomepage.dev/href: https://openclaw-kzk.__{{infra.domains:f:x}}__
-    gethomepage.dev/siteMonitor: https://openclaw-kzk.__{{infra.domains:f:x}}__
+    gethomepage.dev/href: https://openclaw-kzk.{{ tacet://*/infra.domains/x }}
+    gethomepage.dev/siteMonitor: https://openclaw-kzk.{{ tacet://*/infra.domains/x }}
     gethomepage.dev/weight: "50"
 spec:
   ingressClassName: traefik
   rules:
-    - host: openclaw-kzk.__{{infra.domains:f:x}}__
+    - host: openclaw-kzk.{{ tacet://*/infra.domains/x }}
       http:
         paths:
           - path: /
@@ -153,7 +153,7 @@ spec:
                   name: gateway
   tls:
     - hosts:
-        - openclaw-kzk.__{{infra.domains:f:x}}__
+        - openclaw-kzk.{{ tacet://*/infra.domains/x }}
       secretName: openclaw-kzk-domainx
 
 ---
@@ -168,7 +168,7 @@ metadata:
 spec:
   ingressClassName: traefik
   rules:
-    - host: openclaw-kzk.__{{infra.domains:f:x}}__
+    - host: openclaw-kzk.{{ tacet://*/infra.domains/x }}
       http:
         paths:
           - path: /line/webhook
@@ -180,5 +180,5 @@ spec:
                   name: gateway
   tls:
     - hosts:
-        - openclaw-kzk.__{{infra.domains:f:x}}__
+        - openclaw-kzk.{{ tacet://*/infra.domains/x }}
       secretName: openclaw-kzk-domainx

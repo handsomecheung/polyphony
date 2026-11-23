@@ -20,10 +20,10 @@ The `turbopi` component is a Node.js Express application that proxies camera str
     - Example call: `[0, 255, 255, 255]` (turns on both LED headlights to white) or `[0, 0, 0, 0]` (turns them off).
 
 ### 2. Environment Variables & Templates
-In the Kubernetes deployment ([k8s.app.yaml](file:///mnt/coder-workspaces/private-workspace/repos/local/polyphony/koishi/turbopi/k8s.app.yaml)), target configurations use a double-underscore template syntax to fetch the physical machine's IP address dynamically at deploy-time:
-- `TURBOPI_IP`: `__{{infra.machine.r4b8gTurboPi:f:ip}}__`
-- `RPC_URL`: `http://__{{infra.machine.r4b8gTurboPi:f:ip}}__:9030`
-- `CAMERA_STREAM_URL`: `http://__{{infra.machine.r4b8gTurboPi:f:ip}}__:8080`
+In the Kubernetes deployment ([k8s.app.yaml](file:///mnt/coder-workspaces/private-workspace/repos/local/polyphony/koishi/turbopi/k8s.app.yaml)), target configurations use Tacet template syntax to fetch the physical machine's IP address dynamically at deploy-time:
+- `TURBOPI_IP`: `{{ tacet://*/infra.machine.r4b8gTurboPi/ip }}`
+- `RPC_URL`: `http://{{ tacet://*/infra.machine.r4b8gTurboPi/ip }}:9030`
+- `CAMERA_STREAM_URL`: `http://{{ tacet://*/infra.machine.r4b8gTurboPi/ip }}:8080`
 
 > [!WARNING]
 > Do not replace these placeholders with hardcoded IP addresses in the `k8s.app.yaml` file.

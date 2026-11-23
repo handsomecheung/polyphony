@@ -91,12 +91,12 @@ metadata:
     gethomepage.dev/group: Media
     gethomepage.dev/name: qBittorrent
     gethomepage.dev/icon: qbittorrent
-    gethomepage.dev/href: https://qbittorrent.__{{infra.domains:f:x}}__/
+    gethomepage.dev/href: https://qbittorrent.{{ tacet://*/infra.domains/x }}/
     gethomepage.dev/weight: "50"
 spec:
   ingressClassName: traefik
   rules:
-    - host: qbittorrent.__{{infra.domains:f:x}}__
+    - host: qbittorrent.{{ tacet://*/infra.domains/x }}
       http:
         paths:
           - path: /
@@ -108,5 +108,5 @@ spec:
                   name: default
   tls:
     - hosts:
-        - qbittorrent.__{{infra.domains:f:x}}__
+        - qbittorrent.{{ tacet://*/infra.domains/x }}
       secretName: qbittorrent-domainx

@@ -86,12 +86,12 @@ metadata:
     gethomepage.dev/group: Development
     gethomepage.dev/name: ScrCpy
     gethomepage.dev/icon: scrcpy
-    gethomepage.dev/href: https://scrcpy.__{{infra.domains:f:x}}__/
+    gethomepage.dev/href: https://scrcpy.{{ tacet://*/infra.domains/x }}/
     gethomepage.dev/weight: "65"
 spec:
   ingressClassName: traefik
   rules:
-    - host: scrcpy.__{{infra.domains:f:x}}__
+    - host: scrcpy.{{ tacet://*/infra.domains/x }}
       http:
         paths:
           - path: /
@@ -103,5 +103,5 @@ spec:
                   name: http
   tls:
     - hosts:
-        - scrcpy.__{{infra.domains:f:x}}__
+        - scrcpy.{{ tacet://*/infra.domains/x }}
       secretName: scrcpy-tls

@@ -60,13 +60,13 @@ metadata:
     gethomepage.dev/enabled: "true"
     gethomepage.dev/group: Media
     gethomepage.dev/name: Ariang
-    gethomepage.dev/icon: https://ariang.__{{infra.domains:f:x}}__/favicon.png
-    gethomepage.dev/href: https://ariang.__{{infra.domains:f:x}}__
+    gethomepage.dev/icon: https://ariang.{{ tacet://*/infra.domains/x }}/favicon.png
+    gethomepage.dev/href: https://ariang.{{ tacet://*/infra.domains/x }}
     gethomepage.dev/weight: "40"
 spec:
   ingressClassName: traefik
   rules:
-    - host: ariang.__{{infra.domains:f:x}}__
+    - host: ariang.{{ tacet://*/infra.domains/x }}
       http:
         paths:
           - path: /
@@ -78,5 +78,5 @@ spec:
                   name: default
   tls:
     - hosts:
-        - ariang.__{{infra.domains:f:x}}__
+        - ariang.{{ tacet://*/infra.domains/x }}
       secretName: ariang-domainx

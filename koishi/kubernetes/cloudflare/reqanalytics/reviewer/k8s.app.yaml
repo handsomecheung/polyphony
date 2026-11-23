@@ -84,12 +84,12 @@ metadata:
     gethomepage.dev/group: Kubernetes
     gethomepage.dev/name: Request Analytics
     gethomepage.dev/app: reqanalytics
-    gethomepage.dev/href: https://reqanalytics.__{{infra.domains:f:x}}__
+    gethomepage.dev/href: https://reqanalytics.{{ tacet://*/infra.domains/x }}
     gethomepage.dev/weight: "5"
 spec:
   ingressClassName: traefik
   rules:
-    - host: reqanalytics.__{{infra.domains:f:x}}__
+    - host: reqanalytics.{{ tacet://*/infra.domains/x }}
       http:
         paths:
           - path: /
@@ -101,5 +101,5 @@ spec:
                   name: default
   tls:
     - hosts:
-        - reqanalytics.__{{infra.domains:f:x}}__
+        - reqanalytics.{{ tacet://*/infra.domains/x }}
       secretName: reqanalytics-reviewer-domainx

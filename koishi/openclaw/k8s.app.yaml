@@ -120,25 +120,25 @@ spec:
             - name: PATH
               value: "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/home/node/bin"
             - name: OPENCLAW_PUBLIC_DOMAIN
-              value: "openclaw.__{{infra.domains:f:x}}__"
+              value: "openclaw.{{ tacet://*/infra.domains/x }}"
             - name: OPENCLAW_GATEWAY_TOKEN
-              value: "__{{openclaw.infos:f:secret}}__"
+              value: "{{ tacet://*/openclaw.infos/secret }}"
             - name: NODE_OPTIONS
               value: "--max-old-space-size=1536"
             - name: LITELLM_API_KEY
-              value: "__{{koishi.litellm:f:master-key}}__"
+              value: "{{ tacet://*/koishi.litellm/master-key }}"
             - name: GOG_ACCOUNT
-              value: "__{{openclaw.infos:f:gog.email}}__"
+              value: "{{ tacet://*/openclaw.infos/gog.email }}"
             - name: GOG_KEYRING_PASSWORD
-              value: "__{{openclaw.infos:f:gog.keyring_password}}__"
+              value: "{{ tacet://*/openclaw.infos/gog.keyring_password }}"
             - name: VW_URL
-              value: https://vaultwarden.__{{infra.domains:f:x}}__
+              value: https://vaultwarden.{{ tacet://*/infra.domains/x }}
             - name: GEMINI_API_KEY
-              value: "__{{llm.api-keys:f:gemini-openclaw}}__"
+              value: "{{ tacet://*/llm.api-keys/gemini-openclaw }}"
             - name: NOTION_API_KEY
-              value: "__{{openclaw.infos:f:NOTION_API_KEY}}__"
+              value: "{{ tacet://*/openclaw.infos/NOTION_API_KEY }}"
             - name: ELEVENLABS_API_KEY
-              value: "__{{openclaw.infos:f:ELEVENLABS_API_KEY}}__"
+              value: "{{ tacet://*/openclaw.infos/ELEVENLABS_API_KEY }}"
           ports:
             - name: gateway
               protocol: TCP
@@ -232,13 +232,13 @@ metadata:
     gethomepage.dev/group: AI
     gethomepage.dev/name: OpenClaw
     gethomepage.dev/icon: https://openclaw.ai/apple-touch-icon.png
-    gethomepage.dev/href: https://openclaw.__{{infra.domains:f:x}}__
-    gethomepage.dev/siteMonitor: https://openclaw.__{{infra.domains:f:x}}__
+    gethomepage.dev/href: https://openclaw.{{ tacet://*/infra.domains/x }}
+    gethomepage.dev/siteMonitor: https://openclaw.{{ tacet://*/infra.domains/x }}
     gethomepage.dev/weight: "30"
 spec:
   ingressClassName: traefik
   rules:
-    - host: openclaw.__{{infra.domains:f:x}}__
+    - host: openclaw.{{ tacet://*/infra.domains/x }}
       http:
         paths:
           - path: /caddy-workspace
@@ -257,5 +257,5 @@ spec:
                   name: oc-gateway
   tls:
     - hosts:
-        - openclaw.__{{infra.domains:f:x}}__
+        - openclaw.{{ tacet://*/infra.domains/x }}
       secretName: openclaw-domainx

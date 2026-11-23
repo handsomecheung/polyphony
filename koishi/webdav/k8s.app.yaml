@@ -40,10 +40,10 @@ data:
 
     	route /* {
     		basic_auth {
-    			__{{infra.common-users:f:hh}}__ __{{webdav.hh:f:hash}}__
-    			__{{infra.common-users:f:cc}}__ __{{webdav.cc:f:hash}}__
-    			__{{infra.common-users:f:hz73}}__ __{{webdav.hz73:f:hash}}__
-    			hifi __{{webdav.hifi:f:hash}}__
+                {{ tacet://*/infra.common-users/hh }} {{ tacet://*/webdav.hh/hash }}
+                {{ tacet://*/infra.common-users/cc }} {{ tacet://*/webdav.cc/hash }}
+                {{ tacet://*/infra.common-users/hz73 }} {{ tacet://*/webdav.hz73/hash }}
+                hifi {{ tacet://*/webdav.hifi/hash }}
     		}
 
     		request_body {
@@ -110,46 +110,46 @@ spec:
               mountPath: /etc/caddy
             - name: user-data-slight
               subPath: upload
-              mountPath: /data/__{{infra.common-users:f:hh}}__/user-data-slight/upload
+              mountPath: /data/{{ tacet://*/infra.common-users/hh }}/user-data-slight/upload
             - name: user-data-slight
               subPath: share-point
-              mountPath: /data/__{{infra.common-users:f:hh}}__/user-data-slight/share-point
+              mountPath: /data/{{ tacet://*/infra.common-users/hh }}/user-data-slight/share-point
             - name: user-data-slight
               subPath: private-data/hero
-              mountPath: /data/__{{infra.common-users:f:hh}}__/user-data-slight/private-data/hero
+              mountPath: /data/{{ tacet://*/infra.common-users/hh }}/user-data-slight/private-data/hero
             - name: user-data-slight
               subPath: private-data/hero-pending
-              mountPath: /data/__{{infra.common-users:f:hh}}__/user-data-slight/private-data/hero-pending
+              mountPath: /data/{{ tacet://*/infra.common-users/hh }}/user-data-slight/private-data/hero-pending
             - name: coder-sharepoint
-              mountPath: /data/__{{infra.common-users:f:hh}}__/coder-sharepoint
+              mountPath: /data/{{ tacet://*/infra.common-users/hh }}/coder-sharepoint
             - name: decrypted
-              mountPath: /data/__{{infra.common-users:f:hh}}__/decrypted
+              mountPath: /data/{{ tacet://*/infra.common-users/hh }}/decrypted
 
             - name: user-data-slight
               subPath: private-data/foldersync/gphoto/cc/pending
-              mountPath: /data/__{{infra.common-users:f:hh}}__/gphoto/cc-pending
+              mountPath: /data/{{ tacet://*/infra.common-users/hh }}/gphoto/cc-pending
             - name: user-data-slight
               subPath: private-data/foldersync/gphoto/cc/sync
-              mountPath: /data/__{{infra.common-users:f:hh}}__/gphoto/cc-sync
+              mountPath: /data/{{ tacet://*/infra.common-users/hh }}/gphoto/cc-sync
             - name: user-data-slight
               subPath: private-data/foldersync/gphoto/hh/from-cc
-              mountPath: /data/__{{infra.common-users:f:hh}}__/gphoto/hh-sync
+              mountPath: /data/{{ tacet://*/infra.common-users/hh }}/gphoto/hh-sync
 
             - name: coder-workspaces
               subPath: private-workspace/repos/local/mystatic
-              mountPath: /data/__{{infra.common-users:f:hh}}__/repos/local/mystatic
+              mountPath: /data/{{ tacet://*/infra.common-users/hh }}/repos/local/mystatic
 
             - name: user-data-slight
               subPath: share-point
-              mountPath: /data/__{{infra.common-users:f:hz73}}__/share-point
+              mountPath: /data/{{ tacet://*/infra.common-users/hz73 }}/share-point
 
             - name: user-data-slight
               subPath: share-point
-              mountPath: /data/__{{infra.common-users:f:cc}}__/share-point
+              mountPath: /data/{{ tacet://*/infra.common-users/cc }}/share-point
 
             - name: coder-workspaces
               subPath: private-workspace/repos/local/mystatic
-              mountPath: /data/__{{infra.common-users:f:cc}}__/repos/mystatic
+              mountPath: /data/{{ tacet://*/infra.common-users/cc }}/repos/mystatic
 
           resources:
             requests:
@@ -210,7 +210,7 @@ metadata:
 spec:
   ingressClassName: traefik
   rules:
-    - host: webdav.__{{infra.domains:f:x}}__
+    - host: webdav.{{ tacet://*/infra.domains/x }}
       http:
         paths:
           - path: /
@@ -222,5 +222,5 @@ spec:
                   name: default
   tls:
     - hosts:
-        - webdav.__{{infra.domains:f:x}}__
+        - webdav.{{ tacet://*/infra.domains/x }}
       secretName: webdav-domainx

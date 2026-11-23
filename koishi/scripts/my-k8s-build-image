@@ -9,18 +9,22 @@ current_dir=$(pwd)
 script_name="$(basename "${BASH_SOURCE[0]}")"
 script_dir="$(dirname "${BASH_SOURCE[0]}")"
 
-echo "set kubectl token with sudo ..."
-bash ~/.kube/get-token.devbox-user.sh session >/dev/null
+if [[ "$(hostname)" == "devbox" ]]; then
+	echo "running on devbox, set kubectl token with sudo ..."
+	bash ~/.kube/get-token.devbox-user.sh session >/dev/null
+fi
 
-echo "kubectl and bwww configured. start building image ..."
+echo "kubectl and tacet configured. start building image ..."
 
 cmd_kubectl="kubectl"
-host_cloudpublic=$(bwww get-password koishi.deploy.cloudpublic_registry_host 2>/dev/null)
-host_cloudprivate=$(bwww get-password koishi.deploy.cloudprivate_registry_host 2>/dev/null)
+cmd_tacet="tacet-wrapper"
 
-cloudpublic_registry_id=$(bwww get-password koishi.deploy.cloudpublic_registry_id 2>/dev/null)
-cloudprivate_registry_id=$(bwww get-password koishi.deploy.cloudprivate_registry_id 2>/dev/null)
-cloudpublic_registry_password=$(bwww get-password github.docker-image.token 2>/dev/null)
+host_cloudpublic=$(${cmd_tacet} read 'tacet://*/koishi.deploy.cloudpublic_registry_host/password')
+host_cloudprivate=$(${cmd_tacet} read 'tacet://*/koishi.deploy.cloudprivate_registry_host/password')
+
+cloudpublic_registry_id=$(${cmd_tacet} read 'tacet://*/koishi.deploy.cloudpublic_registry_id/password')
+cloudprivate_registry_id=$(${cmd_tacet} read 'tacet://*/koishi.deploy.cloudprivate_registry_id/password')
+cloudpublic_registry_password=$(${cmd_tacet} read 'tacet://*/github.docker-image.token/password')
 
 # for push cache layer and cloudprivate
 docker login "${host_cloudpublic}" --username "${cloudpublic_registry_id}" --password "${cloudpublic_registry_password}"
@@ -39,6 +43,7 @@ fi
 
 build_namespace=builder
 build_root_dir=/mnt/coder-sharepoint/build-image
+mkdir -p ${build_root_dir}
 build_work_dir=$(mktemp --tmpdir="${build_root_dir}" -d "$(date +%Y-%m-%d_%H%M).XXXXXX")
 
 build_code_dir=${build_work_dir}/code
@@ -47,10 +52,18 @@ mkdir "${build_code_dir}"
 build_config_dir=${build_work_dir}/config
 mkdir "${build_config_dir}"
 
+
 echo "build in direcotry ${build_code_dir}"
 # rsync is more powerful and flexible than cp and it can handle hidden files without any issues.
 rsync -aL --exclude='node_modules' . "${build_code_dir}"
-cd "${build_code_dir}"
+
+
+echo "render code files ..."
+"${cmd_tacet}" inject --in-dir "${build_code_dir}" --in-place
+
+echo "render config files ..."
+"${cmd_tacet}" inject --in-dir "${build_config_dir}" --in-place
+
 
 echo "build_code_dir is ${build_code_dir}"
 echo "image is ${image}"
@@ -68,11 +81,7 @@ sed -e "s|PLACEHOLDER_NAMESPACE|${build_namespace}|g" \
 	-e "s|PLACEHOLDER_CACHEBUST|${cachebust}|g" \
 	"${template_file}" >"${job_file}"
 
-echo "render code files ..."
-bwww render-file .
-
-echo "render config files ..."
-bwww render-file "${build_config_dir}"
+cd "${build_code_dir}"
 
 # Handle `FROM cloudpublic/` `FROM cloudprivate/` in Dockerfile
 echo "Processing Dockerfile FROM instructions..."

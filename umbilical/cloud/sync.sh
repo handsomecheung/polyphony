@@ -14,7 +14,7 @@ rsync -a "${source_dir_repo}/static/letsencrypt" "${source_dir_wip}/static"
 mkdir -p "${source_dir_wip}/umbilical/cloud"
 rsync -a "${source_dir_repo}/umbilical/cloud" "${source_dir_wip}/umbilical"
 
-bwww render-file "${source_dir_wip}"
+tacet-wrapper inject --in-place --in-dir "${source_dir_wip}"
 
 ssh "${server}" mkdir -p "${target_dir}"
 rsync -rvh --delete --progress "${source_dir_wip}" "${server}":"${target_dir}"

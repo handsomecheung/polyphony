@@ -34,9 +34,10 @@ To connect via SSH, you must provide:
 2. A 6-digit TOTP code from your Google Authenticator app.
 
 ### Privileges
-- **Implicit sudo**: Administrative tasks like `kubectl`, `bwww` or `docker` commands require `sudo`.
+- **Implicit sudo**: Administrative tasks like `kubectl` or `docker` commands require `sudo`.
 - **Explicit sudo**: The `sudo` command itself is **not available** in the environment. Instead, privileged commands are configured to prompt for a password implicitly when needed.
 - **User**: The environment runs as the unprivileged `box` user (UID 1000).
+- **Vault access**: Use `tacet-wrapper read` to retrieve secrets and `tacet-wrapper inject` to render templates. The wrapper loads credentials through `tacet-source-env`, which reads the protected environment file via `sudo`.
 
 ## Usage Notes
 

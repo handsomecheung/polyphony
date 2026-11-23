@@ -8,6 +8,4 @@ fi
 
 current="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-source "${current}/bwww-source-env"
-
-ruby "${current}/../deploy/deploy.rb" "$@"
+ruby "${current}/../kubernetes/deploy/deploy.rb" "$@"

@@ -35,7 +35,7 @@ spec:
           image: ghcr.io/wg-easy/wg-easy:latest
           env:
             - name: WG_HOST
-              value: home.__{{infra.domains:f:x}}__
+              value: home.{{ tacet://*/infra.domains/x }}
             - name: WG_PORT
               value: "37004"
             - name: WG_ALLOWED_IPS
@@ -45,7 +45,7 @@ spec:
             - name: WG_MTU
               value: "1280"
             - name: PASSWORD_HASH
-              value: "__{{wireguard.webui:f:password_hash}}__"
+              value: "{{ tacet://*/wireguard.webui/password_hash }}"
             - name: PORT
               value: "51821"
           securityContext:
@@ -141,14 +141,14 @@ metadata:
     gethomepage.dev/group: Network
     gethomepage.dev/name: WireGuard
     gethomepage.dev/icon: https://www.wireguard.com/img/icons/favicon-256.png
-    gethomepage.dev/href: https://wireguard.__{{infra.domains:f:x}}__
-    gethomepage.dev/siteMonitor: https://wireguard.__{{infra.domains:f:x}}__
+    gethomepage.dev/href: https://wireguard.{{ tacet://*/infra.domains/x }}
+    gethomepage.dev/siteMonitor: https://wireguard.{{ tacet://*/infra.domains/x }}
     gethomepage.dev/weight: "10"
     gethomepage.dev/app: wireguard
 spec:
   ingressClassName: traefik
   rules:
-    - host: wireguard.__{{infra.domains:f:x}}__
+    - host: wireguard.{{ tacet://*/infra.domains/x }}
       http:
         paths:
           - path: /
@@ -160,5 +160,5 @@ spec:
                   name: webui
   tls:
     - hosts:
-        - wireguard.__{{infra.domains:f:x}}__
+        - wireguard.{{ tacet://*/infra.domains/x }}
       secretName: wireguard-domainx

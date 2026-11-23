@@ -1,7 +1,7 @@
 FROM debian:bookworm
 
 ENV DEBIAN_FRONTEND=noninteractive
-ENV MY_TZ="__{{koishi.deploy.timezone}}__"
+ENV MY_TZ="{{ tacet://*/koishi.deploy.timezone/password }}"
 
 RUN apt-get update && \
 	ln -fs /usr/share/zoneinfo/${MY_TZ} /etc/localtime && \

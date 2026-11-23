@@ -52,7 +52,7 @@ The largest pillar. Koishi is a multi-node Kubernetes cluster built around a "We
 Key design decisions:
 
 - **Traefik** ingress with **cert-manager** and Cloudflare DNS-01 ACME for automatic wildcard TLS across multiple domains.
-- **Vaultwarden** (self-hosted Bitwarden) as the secret store; `__{{placeholder}}__` syntax is rendered at deploy time via the `bww` API and the `koishi/deploy` Ruby orchestrator.
+- **Vaultwarden** (self-hosted Bitwarden) as the secret store; `{{ tacet://*/item-name/password }}` syntax is rendered at deploy time via `tacet-wrapper inject` and the `koishi/kubernetes/deploy` Ruby orchestrator.
 - **Kaniko** for in-cluster container image builds — no privileged Docker daemon required.
 - **Calico** CNI for IPv6 and fine-grained `NetworkPolicy` isolation.
 - **Sablier** scale-to-zero middleware lets infrequently used services (JupyterLab, Coder, WebDAV, download stack, etc.) hibernate and wake on first HTTP request.

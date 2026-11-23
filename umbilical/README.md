@@ -1,6 +1,6 @@
 # umbilical
 
-Umbilical is the network boundary management layer for the polyphony home lab. It bridges on-premises machines (router node `r3b`, secondary machine `silver`) with a public cloud VM (`jserver`) through encrypted WireGuard VPN, autossh reverse tunnels, dynamic DNS, OAuth-gated ingress, transparent proxy routing via sing-box, and remote power management (Wake-on-LAN and shutdown). All configuration is templated with `__{{...}}__` placeholders and rendered at deploy time by the `bwww` tool, keeping secrets out of source control.
+Umbilical is the network boundary management layer for the polyphony home lab. It bridges on-premises machines (router node `r3b`, secondary machine `silver`) with a public cloud VM (`jserver`) through encrypted WireGuard VPN, autossh reverse tunnels, dynamic DNS, OAuth-gated ingress, transparent proxy routing via sing-box, and remote power management (Wake-on-LAN and shutdown). Configuration templates use Tacet placeholders such as `{{ tacet://*/item-name/password }}`, `{{ tacet://*/item-name/field-name }}`, and `{{ tacet://*/item-name/filename }}`, keeping secrets out of source control. Append `?encoding=base64` to a URI when Base64 output is required. Render these templates with `tacet-wrapper inject`.
 
 ## Directory Structure
 
@@ -36,7 +36,7 @@ The nginx config (`cloud/nginx/configs/nginx.conf`) terminates TLS using Let's E
 
 ## Router Stack (`local/router/`)
 
-The router runs the core of umbilical's network control logic. All containers use `network_mode: host` to avoid NetworkManager DNS conflicts on the Raspberry Pi 64-bit OS. The stack is deployed via `local/router/sync.sh` (rsync + `bwww render-file` to host `r3b`) and managed with `restart.sh` / `stop.sh`.
+The router runs the core of umbilical's network control logic. All containers use `network_mode: host` to avoid NetworkManager DNS conflicts on the Raspberry Pi 64-bit OS. The stack is deployed via `local/router/sync.sh` (rsync + `tacet-wrapper inject --in-place --in-dir "${source_dir_wip}"` to host `r3b`) and managed with `restart.sh` / `stop.sh`.
 
 ### Services
 
@@ -128,7 +128,7 @@ cd images/<name>
 | `shutdown`      | `umbilical/ubuntu:24.04`           | `tmux`, GoTTY v2.0.0-alpha.3 (amd64)                                      |
 | `ubuntu/24.04`  | `ubuntu:24.04`                     | shared base for shutdown image                                            |
 
-`my-build-image.sh` reads the private registry host from `bwww`, creates a named buildx builder, rsyncs sources to a temporary build directory under `/mnt/coder-sharepoint/build-image/`, and removes the directory after a successful push.
+`my-build-image.sh` reads the registry host with `tacet-wrapper read "tacet://*/umbilical.deploy.cloudpublic_registry_host/password"`, creates a named buildx builder, rsyncs sources to a temporary build directory under `/mnt/coder-sharepoint/build-image/`, and removes the directory after a successful push.
 
 ## Network Architecture
 
@@ -158,7 +158,7 @@ silver (on-premises)
 
 ### Prerequisites
 
-- `bwww` CLI for rendering `__{{...}}__` placeholders
+- `tacet` and `tacet-wrapper` for reading Vaultwarden secrets and rendering Tacet placeholders
 - SSH access to `jserver` (alias `umbilical-jserver`), `r3b`, and `silver`
 - Docker with buildx for multi-arch image builds
 

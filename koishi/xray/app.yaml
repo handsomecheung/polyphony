@@ -23,19 +23,19 @@ data:
             "clients": [
               {
                 // run uuidgen
-                "id": "__{{v2ray.uuids:f:gopya}}__",
+                "id": "{{ tacet://*/v2ray.uuids/gopya }}",
                 "alterId": 0
               },
               {
-                "id": "__{{v2ray.uuids:f:umbilical}}__",
+                "id": "{{ tacet://*/v2ray.uuids/umbilical }}",
                 "alterId": 0
               },
               {
-                "id": "__{{v2ray.uuids:f:sofmacpro}}__",
+                "id": "{{ tacet://*/v2ray.uuids/sofmacpro }}",
                 "alterId": 0
               },
               {
-                "id": "__{{v2ray.uuids:f:cupid}}__",
+                "id": "{{ tacet://*/v2ray.uuids/cupid }}",
                 "alterId": 0
               }
             ],
@@ -55,7 +55,7 @@ data:
           "settings": {
             "clients": [
               {
-                "id": "__{{v2ray.uuids:f:sofmacpro}}__",
+                "id": "{{ tacet://*/v2ray.uuids/sofmacpro }}",
                 "alterId": 0
               }
             ],
@@ -86,7 +86,7 @@ data:
                 "users": [
                   {
                     "user": "default",
-                    "pass": "__{{wireproxy:f:socks5}}__",
+                    "pass": "{{ tacet://*/wireproxy/socks5 }}",
                     "level": 0
                   }
                 ]
@@ -190,7 +190,7 @@ metadata:
 spec:
   ingressClassName: traefik
   rules:
-    - host: x.__{{infra.domains:f:x}}__
+    - host: x.{{ tacet://*/infra.domains/x }}
       http:
         paths:
           - path: /kaser
@@ -209,5 +209,5 @@ spec:
                   name: umbilical
   tls:
     - hosts:
-        - x.__{{infra.domains:f:x}}__
+        - x.{{ tacet://*/infra.domains/x }}
       secretName: x-domainx

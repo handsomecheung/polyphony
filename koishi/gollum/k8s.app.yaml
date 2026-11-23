@@ -91,12 +91,12 @@ metadata:
     traefik.ingress.kubernetes.io/router.middlewares: middleware-antimitm@kubernetescrd,sso-domainx@kubernetescrd,default-sabliergollum@kubernetescrd
     gethomepage.dev/enabled: "true"
     gethomepage.dev/group: Tool
-    gethomepage.dev/href: https://gollum.__{{infra.domains:f:x}}__
+    gethomepage.dev/href: https://gollum.{{ tacet://*/infra.domains/x }}
     gethomepage.dev/weight: "80"
 spec:
   ingressClassName: traefik
   rules:
-    - host: gollum.__{{infra.domains:f:x}}__
+    - host: gollum.{{ tacet://*/infra.domains/x }}
       http:
         paths:
           - path: /
@@ -108,5 +108,5 @@ spec:
                   name: default
   tls:
     - hosts:
-        - gollum.__{{infra.domains:f:x}}__
+        - gollum.{{ tacet://*/infra.domains/x }}
       secretName: gollum-domainx

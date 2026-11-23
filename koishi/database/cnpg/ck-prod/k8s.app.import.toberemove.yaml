@@ -7,4 +7,4 @@ metadata:
 type: Opaque
 stringData:
   username: postgres
-  password: "__{{database.postgres.ck-prod.accounts:f:postgres}}__"
+  password: "{{ tacet://*/database.postgres.ck-prod.accounts/postgres }}"

@@ -6,7 +6,7 @@ metadata:
 spec:
   acme:
     server: https://acme-v02.api.letsencrypt.org/directory
-    email: "__{{infra-emails:f:hh}}__"
+    email: "{{ tacet://*/infra-emails/hh }}"
     privateKeySecretRef:
       name: cluster-letsencrypt-dns-cloudflare
     solvers:

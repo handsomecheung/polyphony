@@ -6,10 +6,10 @@ metadata:
   namespace: sso
 type: Opaque
 data:
-  clientid: __{{traefik.oss.domainc.keys:f:gcp-clientid:f:b64}}__
-  clientsecret: __{{traefik.oss.domainc.keys:f:gcp-clientsecret:f:b64}}__
+  clientid: {{ tacet://*/traefik.oss.domainc.keys/gcp-clientid?encoding=base64 }}
+  clientsecret: {{ tacet://*/traefik.oss.domainc.keys/gcp-clientsecret?encoding=base64 }}
   # something random
-  secret: __{{traefik.oss.domainc.keys:f:secret:f:b64}}__
+  secret: {{ tacet://*/traefik.oss.domainc.keys/secret?encoding=base64 }}
 
 ---
 # https://github.com/thomseddon/traefik-forward-auth
@@ -52,15 +52,15 @@ spec:
                   name: domainc
                   key: secret
             - name: COOKIE_DOMAIN
-              value: __{{infra.domains:f:c}}__
+              value: {{ tacet://*/infra.domains/c }}
             - name: AUTH_HOST
-              value: gsso.__{{infra.domains:f:c}}__
+              value: gsso.{{ tacet://*/infra.domains/c }}
             - name: INSECURE_COOKIE
               value: "false"
             - name: URL_PATH
               value: /_oauth
             - name: WHITELIST
-              value: __{{infra-emails:f:hh}}__,__{{infra-emails:f:hz}}__,__{{infra-emails:f:cq}}__,__{{infra-emails:f:ck}}__,__{{infra-emails:f:ckwkk}}__
+              value: {{ tacet://*/infra-emails/hh }},{{ tacet://*/infra-emails/hz }},{{ tacet://*/infra-emails/cq }},{{ tacet://*/infra-emails/ck }},{{ tacet://*/infra-emails/ckwkk }}
             - name: LOG_LEVEL
               value: info
             - name: LIFETIME
@@ -109,7 +109,7 @@ metadata:
 spec:
   ingressClassName: traefik
   rules:
-    - host: gsso.__{{infra.domains:f:c}}__
+    - host: gsso.{{ tacet://*/infra.domains/c }}
       http:
         paths:
           - path: /
@@ -121,5 +121,5 @@ spec:
                   name: default
   tls:
     - hosts:
-        - gsso.__{{infra.domains:f:c}}__
+        - gsso.{{ tacet://*/infra.domains/c }}
       secretName: sso-domainc

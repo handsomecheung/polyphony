@@ -33,8 +33,8 @@ Finance services provide Kubernetes-deployed financial data ingestion, storage, 
 - **Service**: ClusterIP on port 80 → container port 8000
 - **Health Check**: HTTP liveness probe on `/ok` every 10 seconds
 - **Dual Ingress Routes**:
-  - **Internal** (Ingress): `finance-seek.home4p.__{{infra.domains:f:x}}__` with TLS via DNS-ACME challenge (cert-manager)
-  - **External** (IngressRoute): `finance-seek.__{{infra.domains:f:x}}__` with Query parameter API key matcher (`key=__{{koishi.finance.seek:f:api-key}}__`). Only requests with correct key pass.
+  - **Internal** (Ingress): `finance-seek.home4p.{{ tacet://*/infra.domains/x }}` with TLS via DNS-ACME challenge (cert-manager)
+  - **External** (IngressRoute): `finance-seek.{{ tacet://*/infra.domains/x }}` with Query parameter API key matcher (`key={{ tacet://*/koishi.finance.seek/api-key }}`). Only requests with correct key pass.
 - **Secrets**: Database credentials injected via environment variables (host, port, name, user, password from template variables).
 
 **Build**: `bash seek/build.sh` invokes `my-k8s-build-image cloudpublic/finance/seek:latest finance seek`, building the image in-cluster (Kaniko).
@@ -97,7 +97,7 @@ The top-level `deploy.sh` assumes `my-k8s-deploy` and `my-k8s-build-image` are a
 
 **User**: `finance`
 
-**Password**: Injected via template variable `__{{database.postgres-local.accounts:f:finance}}__` (resolved by the deployment system).
+**Password**: Injected via template variable `{{ tacet://*/database.postgres-local.accounts/finance }}` (resolved by the deployment system).
 
 **Table**: `financial_prices`
 - Columns: `time` (TIMESTAMPTZ), `symbol` (TEXT), `open`, `high`, `low`, `close`, `adj_close` (DOUBLE PRECISION), `volume` (BIGINT)
@@ -112,7 +112,7 @@ The top-level `deploy.sh` assumes `my-k8s-deploy` and `my-k8s-build-image` are a
 
 **External Access** (finance-seek.*):
 - Requires Traefik Query parameter matcher: `key=<api-key>`.
-- The API key is stored as a template variable `__{{koishi.finance.seek:f:api-key}}__` and is NOT committed to code (managed by Vaultwarden).
+- The API key is stored as a template variable `{{ tacet://*/koishi.finance.seek/api-key }}` and is NOT committed to code (managed by Vaultwarden).
 - Useful for exposing specific endpoints to external integrations while preventing unauthorized access.
 
 ## Architecture Notes

@@ -114,12 +114,12 @@ metadata:
     gethomepage.dev/group: Media
     gethomepage.dev/name: Bliss
     gethomepage.dev/icon: https://www.blisshq.com/android-icon-192x192.png
-    gethomepage.dev/href: https://bliss.__{{infra.domains:f:x}}__
+    gethomepage.dev/href: https://bliss.{{ tacet://*/infra.domains/x }}
     gethomepage.dev/weight: "30"
 spec:
   ingressClassName: traefik
   rules:
-    - host: bliss.__{{infra.domains:f:x}}__
+    - host: bliss.{{ tacet://*/infra.domains/x }}
       http:
         paths:
           - path: /
@@ -131,5 +131,5 @@ spec:
                   name: default
   tls:
     - hosts:
-        - bliss.__{{infra.domains:f:x}}__
+        - bliss.{{ tacet://*/infra.domains/x }}
       secretName: bliss-domainx

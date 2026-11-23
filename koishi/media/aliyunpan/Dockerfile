@@ -15,7 +15,7 @@ ADD scripts /root/scripts
 ADD encfs6.xml /config/encfs.xml
 
 ENV LANG "C.UTF-8"
-ENV ENCFS_PWD "__{{aliyunpan.encryption.encfs:f:password}}__"
+ENV ENCFS_PWD "{{ tacet://*/aliyunpan.encryption.encfs/password }}"
 ENV ENCFS6_CONFIG "/config/encfs.xml"
 
 WORKDIR /root/scripts

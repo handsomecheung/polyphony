@@ -4,13 +4,13 @@ Lightweight management services running on Kubernetes nodes via docker-compose: 
 
 ## Overview
 
-Each Kubernetes node (nur, miniba, nippon) runs a set of docker-compose services in host network mode, providing operational tooling and observability for the cluster. Services are deployed with secret templating via `bwww render-file`, rsync'd to nodes, and managed through per-node lifecycle scripts (restart.sh, stop.sh, rebuild.sh).
+Each Kubernetes node (nur, miniba, nippon) runs a set of docker-compose services in host network mode, providing operational tooling and observability for the cluster. Services are deployed with secret templating via `tacet-wrapper inject --in-place --in-dir "${source_dir_wip}"`, rsync'd to nodes, and managed through per-node lifecycle scripts (restart.sh, stop.sh, rebuild.sh).
 
 ## Architecture
 
 ### Service Deployment Model
 
-- **Secret templating**: Source templates in `nippon/local/`, `nur/local/`, `miniba/local/` contain placeholder variables (e.g., `__{{koishi.deploy.timezone}}__`) rendered by `sync.sh` using the `bwww` tool.
+- **Secret templating**: Source templates in `nippon/local/`, `nur/local/`, `miniba/local/` contain placeholder variables (e.g., `{{ tacet://*/koishi.deploy.timezone/password }}`) rendered by `sync.sh` using `tacet-wrapper inject`.
 - **Synchronization**: `sync.sh` copies rendered configs to live deployment directories on each node via rsync.
 - **Current state**: The `current/local/` directory contains example rendered configs with concrete values (registry IPs, timezone, subnet prefix).
 - **Service lifecycle**: Each node's `local/` directory includes `docker-compose.yml` plus `restart.sh`, `stop.sh`, and `rebuild.sh` scripts that use `sudo docker compose` to control services.
@@ -99,8 +99,8 @@ DNS server providing split-view domain resolution for machines and Kubernetes se
 - Disables IPv6 for split-view domains (replies with `::`)
 
 **Template placeholders**:
-- `__{{koishi.infra.infos:f:subnetv4}}__` — Subnet prefix 
-- `__{{infra.domains:f:x}}__`, `__{{infra.domains:f:t}}__`, etc. — Domain suffixes for different split-view zones
+- `{{ tacet://*/koishi.infra.infos/subnetv4 }}` — Subnet prefix
+- `{{ tacet://*/infra.domains/x }}`, `{{ tacet://*/infra.domains/t }}`, etc. — Domain suffixes for different split-view zones
 
 **Build**:
 - Base: dockurr/dnsmasq
@@ -126,7 +126,7 @@ Automatic container image update service with configurable interval.
 ```
 
 1. Copies entire directory to temporary staging directory
-2. Runs `bwww render-file` on staging directory to substitute secret placeholders
+2. Runs `tacet-wrapper inject --in-place --in-dir "${source_dir_wip}"` on staging directory to substitute secret placeholders
 3. For each node (nur, nippon, miniba): rsyncs rendered `{node}/` subtree to `{node}:current/` on target servers
 4. Cleans up staging directory
 
@@ -157,4 +157,4 @@ DNS names (dnsmasq):
 
 - Parent infrastructure: [../README.md](../README.md)
 - Kubernetes wrappers that surface these node endpoints in-cluster: [../external-services/](../external-services/)
-- Secret configuration system: Uses `bwww` tool from broader polyphony infrastructure
+- Secret configuration system: Uses `tacet-wrapper` from [the shared scripts](../scripts/) to resolve Vaultwarden secrets and render Tacet templates

@@ -2,9 +2,9 @@
 version: "3"
 services:
   nginx:
-    image: __{{umbilical.deploy.cloudpublic_registry_host}}__/umbilical/nginx:latest
+    image: {{ tacet://*/umbilical.deploy.cloudpublic_registry_host/password }}/umbilical/nginx:latest
     environment:
-      TZ: "__{{umbilical.deploy.timezone}}__"
+      TZ: "{{ tacet://*/umbilical.deploy.timezone/password }}"
     volumes:
       - /var/log/umbilical/nginx:/var/log/nginx
       - ../../static/letsencrypt:/etc/letsencrypt
@@ -15,11 +15,11 @@ services:
     restart: unless-stopped
 
   wireguard:
-    image: __{{umbilical.deploy.cloudpublic_registry_host}}__/umbilical/wireguard:latest
+    image: {{ tacet://*/umbilical.deploy.cloudpublic_registry_host/password }}/umbilical/wireguard:latest
     environment:
-      TZ: "__{{umbilical.deploy.timezone}}__"
-      WG_HOST: "wireguard.__{{infra.domains:f:u}}__"
-      PASSWORD_HASH: "__{{umbilical.wireguard:f:hash}}__"
+      TZ: "{{ tacet://*/umbilical.deploy.timezone/password }}"
+      WG_HOST: "wireguard.{{ tacet://*/infra.domains/u }}"
+      PASSWORD_HASH: "{{ tacet://*/umbilical.wireguard/hash }}"
       PORT: "51821"
       WG_PORT: "51820"
     cap_add:

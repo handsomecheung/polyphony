@@ -229,12 +229,12 @@ metadata:
     gethomepage.dev/enabled: "true"
     gethomepage.dev/group: Tool
     gethomepage.dev/name: Markviewer
-    gethomepage.dev/href: https://markviewer.__{{infra.domains:f:x}}__
+    gethomepage.dev/href: https://markviewer.{{ tacet://*/infra.domains/x }}
     gethomepage.dev/weight: "60"
 spec:
   ingressClassName: traefik
   rules:
-    - host: markviewer.__{{infra.domains:f:x}}__
+    - host: markviewer.{{ tacet://*/infra.domains/x }}
       http:
         paths:
           - path: /
@@ -246,5 +246,5 @@ spec:
                   name: default
   tls:
     - hosts:
-        - markviewer.__{{infra.domains:f:x}}__
+        - markviewer.{{ tacet://*/infra.domains/x }}
       secretName: markviewer-domainx

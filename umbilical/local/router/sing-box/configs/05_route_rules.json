@@ -35,7 +35,7 @@
         "outbound": "direct"
       },
       {
-        "domain_suffix": ["home.__{{infra.domains:f:x}}__"],
+        "domain_suffix": ["home.{{ tacet://*/infra.domains/x }}"],
         "outbound": "direct"
       }
     ]

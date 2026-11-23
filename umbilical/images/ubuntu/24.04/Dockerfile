@@ -1,7 +1,7 @@
 FROM ubuntu:24.04
 
 ENV DEBIAN_FRONTEND=noninteractive
-ENV MY_TZ="__{{umbilical.deploy.timezone}}__"
+ENV MY_TZ="{{ tacet://*/umbilical.deploy.timezone/password }}"
 
 RUN apt-get update && \
 	ln -fs /usr/share/zoneinfo/${MY_TZ} /etc/localtime && \

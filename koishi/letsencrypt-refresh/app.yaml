@@ -7,8 +7,8 @@ metadata:
 type: Opaque
 stringData:
   credentials.ini: |
-    dns_aliyun_access_key = __{{aliyun.letsencrypt-refresh.key:f:id}}__
-    dns_aliyun_access_key_secret = __{{aliyun.letsencrypt-refresh.key:f:secret}}__
+    dns_aliyun_access_key = {{ tacet://*/aliyun.letsencrypt-refresh.key/id }}
+    dns_aliyun_access_key_secret = {{ tacet://*/aliyun.letsencrypt-refresh.key/secret }}
 
 ---
 apiVersion: batch/v1
@@ -46,21 +46,21 @@ spec:
             - certonly
             - --non-interactive
             - --agree-tos
-            - --email=__{{infra-emails:f:hh}}__
+            - --email={{ tacet://*/infra-emails/hh }}
             - --authenticator=dns-aliyun
             - --dns-aliyun-credentials=/credentials.ini
             - -d
-            - "__{{infra.domains:f:u}}__"
+            - "{{ tacet://*/infra.domains/u }}"
             - -d
-            - "*.__{{infra.domains:f:u}}__"
+            - "*.{{ tacet://*/infra.domains/u }}"
             - -d
-            - "*.public.__{{infra.domains:f:u}}__"
+            - "*.public.{{ tacet://*/infra.domains/u }}"
             - -d
-            - "*.silver.__{{infra.domains:f:u}}__"
+            - "*.silver.{{ tacet://*/infra.domains/u }}"
             - -d
-            - "*.direct.__{{infra.domains:f:u}}__"
+            - "*.direct.{{ tacet://*/infra.domains/u }}"
             - -d
-            - "*.j.__{{infra.domains:f:u}}__"
+            - "*.j.{{ tacet://*/infra.domains/u }}"
           volumeMounts:
             - name: letsencrypt-etc
               mountPath: /etc/letsencrypt
@@ -79,7 +79,7 @@ spec:
             - -c
             - |
               set -e
-              domain="__{{infra.domains:f:u}}__"
+              domain="{{ tacet://*/infra.domains/u }}"
               mkdir -p "/data/certs/${domain}"
               chown 1000:1000 "/data/certs/${domain}"
               for file in cert.pem chain.pem fullchain.pem privkey.pem; do

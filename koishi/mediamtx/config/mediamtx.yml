@@ -51,9 +51,9 @@ authMethod: internal
 authInternalUsers:
   # Default unprivileged user.
   # Username. 'any' means any user, including anonymous ones.
-  - user: __{{infra.common-users:f:hh}}__
+  - user: {{ tacet://*/infra.common-users/hh }}
     # Password. Not used in case of 'any' user.
-    pass: argon2:__{{mediamtx.basicauth.hh:f:argon2}}__
+    pass: argon2:{{ tacet://*/mediamtx.basicauth.hh/argon2 }}
     # IPs or networks allowed to use this user. An empty list means any IP.
     ips: []
     # List of permissions.
