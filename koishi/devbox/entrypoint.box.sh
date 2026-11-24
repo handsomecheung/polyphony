@@ -35,9 +35,11 @@ EOF
 echo "install default.editor.nix ..."
 NIXPKGS_ALLOW_UNFREE=1 /home/box/.nix-profile/bin/nix-env -if /home/box/default.editor.nix
 
-echo "run code-server"
-/tmp/code-server/bin/code-server --user-data-dir /home/box/.config/code-server --install-extension vscodevim.vim --install-extension kahole.magit || true
-/tmp/code-server/bin/code-server --user-data-dir /home/box/.config/code-server /mnt/coder-workspaces/private-workspace/repos/local/polyphony >/dev/null 2>&1 &
+if [[ "${ENABLE_CODER}" != "0" ]]; then
+    echo "run code-server"
+    /tmp/code-server/bin/code-server --user-data-dir /home/box/.config/code-server --install-extension vscodevim.vim --install-extension kahole.magit || true
+    /tmp/code-server/bin/code-server --user-data-dir /home/box/.config/code-server /mnt/coder-workspaces/private-workspace/repos/local/polyphony >/dev/null 2>&1 &
+fi
 
 if [ -f /home/box/.nix-profile/etc/profile.d/nix.sh ]; then
     echo "load Nix profile ..."

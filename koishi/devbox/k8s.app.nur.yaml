@@ -72,6 +72,8 @@ spec:
                 secretKeyRef:
                   name: devbox-nur-box-password
                   key: password
+            - name: ENABLE_CODER
+              value: "0"
           volumeMounts:
             - name: user-data-slight
               mountPath: /mnt/user-data-slight

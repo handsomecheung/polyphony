@@ -17,7 +17,7 @@ echo "set password for box user"
 echo "box:${BOX_PASSWORD}" | chpasswd
 
 echo "run box entrypoint.sh"
-su - box -c "bash /home/box/entrypoint.box.sh"
+su - box -c "ENABLE_CODER=${ENABLE_CODER} bash /home/box/entrypoint.box.sh"
 
 echo "move kubernetes config to root dir"
 ln -s /mnt/coder-workspaces/private-workspace/workspace/encrypted-configs/.kube /root/.kube
