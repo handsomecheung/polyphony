@@ -45,4 +45,4 @@ if [ -f /home/box/.nix-profile/etc/profile.d/nix.sh ]; then
 fi
 
 echo "start arondo-runner ..."
-zsh -ic 'exec bash /mnt/coder-workspaces/private-workspace/repos/local/polyphony/koishi/arondo/prod/run.runner.prod.devbox.sh'
+zsh -ic 'exec nix-shell /home/box/default.nix --run "exec bash /mnt/coder-workspaces/private-workspace/repos/local/polyphony/koishi/devbox/run.arondo-runner.sh"'
