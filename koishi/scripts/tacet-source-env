@@ -3,7 +3,14 @@ set -e
 
 DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &>/dev/null && pwd)
 
-if ! env_content=$(sudo cat "${DIR}/.config/tacet/env"); then
+sudo_prefix=""
+
+if [ $(hostname) == "devbox" ]; then
+    sudo_prefix="sudo "
+fi
+
+cmd="${sudo_prefix}cat ${HOME}/secret-configs/env.tacet"
+if ! env_content=$(${cmd}); then
     echo "Failed to read environment file." >&2
     exit 1
 fi

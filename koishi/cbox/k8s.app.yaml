@@ -30,11 +30,6 @@ spec:
         kubernetes.io/hostname: nur
       hostname: cbox
       volumes:
-        - name: secret-config
-          hostPath:
-            path: /root/secret-config
-            type: DirectoryOrCreate
-
         - name: system
           hostPath:
             path: /mnt/coder-workspaces/public-workspace/system
@@ -106,9 +101,6 @@ spec:
               subPath: koishi/cbox/entrypoint.box.sh
               mountPath: /home/box/entrypoint.box.sh
               readOnly: true
-
-            - name: secret-config
-              mountPath: /root/secret-config
           ports:
             - name: ssh
               containerPort: 22
