@@ -39,10 +39,10 @@ spec:
           hostPath:
             path: /mnt/coder-workspaces/private-workspace/others/c/coder-workspaces
             type: Directory
-        - name: coder-sharepoint
+        - name: coder-sharepoint-build-image
           hostPath:
-            path: /mnt/coder-workspaces/private-workspace/others/c/coder-sharepoint
-            type: Directory
+            path: /mnt/coder-sharepoint/build-image/
+            type: DirectoryOrCreate
         - name: polyphony
           hostPath:
             path: /mnt/coder-workspaces/private-workspace/repos/local/polyphony
@@ -50,6 +50,10 @@ spec:
         - name: mystatic
           hostPath:
             path: /home/box/private-workspace/repos/local/mystatic
+            type: Directory
+        - name: docker-data
+          hostPath:
+            path: /mnt/coder-workspaces/private-workspace/workspace/encrypted-configs/.docker
             type: Directory
       containers:
         - name: app
@@ -65,6 +69,8 @@ spec:
           volumeMounts:
             - name: system
               mountPath: /mnt/coder-workspaces/public-workspace/system
+            - name: docker-data
+              mountPath: /home/box/.docker
 
             - name: coder-workspaces
               subPath: public-workspace/user/zsh
@@ -81,8 +87,8 @@ spec:
 
             - name: coder-workspaces
               mountPath: /mnt/coder-workspaces
-            - name: coder-sharepoint
-              mountPath: /mnt/coder-sharepoint
+            - name: coder-sharepoint-build-image
+              mountPath: /mnt/coder-sharepoint/build-image
 
             - name: polyphony
               mountPath: /mnt/coder-workspaces/private-workspace/repos/local/polyphony
