@@ -15,8 +15,9 @@ spec:
         kubernetes.io/hostname: nur
       volumes:
         - name: vaultwarden-encrypted
-          persistentVolumeClaim:
-            claimName: vaultwarden-encrypted
+          hostPath:
+            path: /mnt/runtime-data-app/vaultwarden
+            type: Directory
         - name: local
           hostPath:
             path: /mnt/user-data-others/ebackup/upload/local/vaultwarden/vaultwardendatabackup
