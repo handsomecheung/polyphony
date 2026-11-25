@@ -7,6 +7,6 @@ chown -R root:root /root/.ssh
 chmod -R 600 /root/.ssh
 chmod 700 /root/.ssh
 
-autossh -M 30000 -q -f -N -o "ServerAliveInterval 10" -o "ServerAliveCountMax 3" -R "eth0:37371:{{ tacet://*/infra.machine.silver/ip }}:3737" "root@jserver.public.{{ tacet://*/infra.domains/u }}"
+autossh -M 30000 -q -f -N -o "ServerAliveInterval 10" -o "ServerAliveCountMax 3" -R "eth0:37371:{{ tacet://org/Default/DevOps/Umbilical/infra.machine.silver/ip }}:3737" "root@jserver.public.{{ tacet://org/Default/DevOps/Base/infra-domains/u }}"
 
 tail -f /dev/null

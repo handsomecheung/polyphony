@@ -62,7 +62,7 @@ spec:
             - /bin/bash
             - -c
             - |
-              start.sh jupyter lab --LabApp.token='{{ tacet://*/jupyterlab.password/password }}' --LabApp.ip='0.0.0.0' --LabApp.allow_root=True
+              start.sh jupyter lab --LabApp.token='{{ tacet://org/Default/DevOps/Koishi/jupyterlab.password/password }}' --LabApp.ip='0.0.0.0' --LabApp.allow_root=True
           volumeMounts:
             - name: default-common
               mountPath: /home/jovyan
@@ -112,12 +112,12 @@ metadata:
     gethomepage.dev/group: Development
     gethomepage.dev/name: Jupyterlab Pytorch
     gethomepage.dev/icon: jupyter
-    gethomepage.dev/href: https://jupyterlab-torch.{{ tacet://*/infra.domains/x }}/
+    gethomepage.dev/href: https://jupyterlab-torch.{{ tacet://org/Default/DevOps/Base/infra-domains/x }}/
     gethomepage.dev/weight: "4"
 spec:
   ingressClassName: traefik
   rules:
-    - host: jupyterlab-torch.{{ tacet://*/infra.domains/x }}
+    - host: jupyterlab-torch.{{ tacet://org/Default/DevOps/Base/infra-domains/x }}
       http:
         paths:
           - path: /
@@ -129,7 +129,7 @@ spec:
                   name: default
   tls:
     - hosts:
-        - jupyterlab-torch.{{ tacet://*/infra.domains/x }}
+        - jupyterlab-torch.{{ tacet://org/Default/DevOps/Base/infra-domains/x }}
       secretName: jupyterlab-torch-domainx
 
 ---
@@ -180,7 +180,7 @@ spec:
             - /bin/bash
             - -c
             - |
-              start.sh jupyter lab --LabApp.token='{{ tacet://*/jupyterlab.password/password }}' --LabApp.ip='0.0.0.0' --LabApp.allow_root=True
+              start.sh jupyter lab --LabApp.token='{{ tacet://org/Default/DevOps/Koishi/jupyterlab.password/password }}' --LabApp.ip='0.0.0.0' --LabApp.allow_root=True
           volumeMounts:
             - name: default-common
               mountPath: /home/jovyan
@@ -230,12 +230,12 @@ metadata:
     gethomepage.dev/group: Development
     gethomepage.dev/name: Jupyterlab TensorFlow
     gethomepage.dev/icon: jupyter
-    gethomepage.dev/href: https://jupyterlab-tensor.{{ tacet://*/infra.domains/x }}/
+    gethomepage.dev/href: https://jupyterlab-tensor.{{ tacet://org/Default/DevOps/Base/infra-domains/x }}/
     gethomepage.dev/weight: "5"
 spec:
   ingressClassName: traefik
   rules:
-    - host: jupyterlab-tensor.{{ tacet://*/infra.domains/x }}
+    - host: jupyterlab-tensor.{{ tacet://org/Default/DevOps/Base/infra-domains/x }}
       http:
         paths:
           - path: /
@@ -247,5 +247,5 @@ spec:
                   name: default
   tls:
     - hosts:
-        - jupyterlab-tensor.{{ tacet://*/infra.domains/x }}
+        - jupyterlab-tensor.{{ tacet://org/Default/DevOps/Base/infra-domains/x }}
       secretName: jupyterlab-tensor-domainx

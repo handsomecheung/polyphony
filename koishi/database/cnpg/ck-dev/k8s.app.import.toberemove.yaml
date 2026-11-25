@@ -7,4 +7,4 @@ metadata:
 type: Opaque
 stringData:
   username: postgres
-  password: "{{ tacet://*/database.postgres.ck-dev.accounts/postgres }}"
+  password: "{{ tacet://org/Default/DevOps/Koishi/CK/Dev/database.postgres.ck-dev.accounts/postgres }}"

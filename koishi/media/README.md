@@ -103,7 +103,7 @@ All media pods draw from a common set of persistent volumes and hostPath mounts:
 - Roon uses `hostNetwork: true` to satisfy its low-latency audio transport requirements, with `ClusterFirstWithHostNet` DNS so cluster service resolution still works.
 - Bliss is additionally gated by Sablier (`default-sablierbliss@kubernetescrd`) with a 1-hour session window, keeping it at zero replicas when not in use.
 - All backup archives destined for cloud storage are encrypted before upload: rclone crypt (filename + directory name encryption) for pikpak and Google Drive, and encfs reverse encryption for Aliyun Drive.
-- Secrets (claim tokens, credentials, encryption passwords) are never stored in manifests; they are rendered at deploy time via the cluster-wide Vaultwarden-backed Tacet template system (`{{ tacet://*/item-name/password }}` syntax).
+- Secrets (claim tokens, credentials, encryption passwords) are never stored in manifests; they are rendered at deploy time via the cluster-wide Vaultwarden-backed Tacet template system (`{{ tacet://org/Default/DevOps/Koishi/item-name/password }}` syntax).
 
 ## Related
 

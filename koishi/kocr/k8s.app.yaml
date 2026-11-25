@@ -104,7 +104,7 @@ metadata:
 spec:
   ingressClassName: traefik
   rules:
-    - host: kocr.home4p.{{ tacet://*/infra.domains/x }}
+    - host: kocr.home4p.{{ tacet://org/Default/DevOps/Base/infra-domains/x }}
       http:
         paths:
           - path: /
@@ -116,5 +116,5 @@ spec:
                   name: default
   tls:
     - hosts:
-        - kocr.home4p.{{ tacet://*/infra.domains/x }}
+        - kocr.home4p.{{ tacet://org/Default/DevOps/Base/infra-domains/x }}
       secretName: kocr-home4p-tls

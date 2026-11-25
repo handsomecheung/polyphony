@@ -5,7 +5,7 @@ metadata:
   namespace: ck-prod
 type: Opaque
 stringData:
-  password: "{{ tacet://*/database.redis.ck-prod/password }}"
+  password: "{{ tacet://org/Default/DevOps/Koishi/CK/Prod/database.redis.ck-prod/password }}"
 
 ---
 apiVersion: apps/v1

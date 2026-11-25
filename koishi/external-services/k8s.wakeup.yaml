@@ -30,7 +30,7 @@ ports:
     protocol: TCP
 endpoints:
   - addresses:
-      - "{{ tacet://*/infra.machine.nippon/ip }}"
+      - "{{ tacet://org/Default/DevOps/Koishi/infra.machine.nippon/ip }}"
     conditions:
       ready: true
 
@@ -46,7 +46,7 @@ metadata:
 spec:
   ingressClassName: traefik
   rules:
-    - host: wakeup.{{ tacet://*/infra.domains/x }}
+    - host: wakeup.{{ tacet://org/Default/DevOps/Base/infra-domains/x }}
       http:
         paths:
           - path: /
@@ -58,7 +58,7 @@ spec:
                   name: default
   tls:
     - hosts:
-        - wakeup.{{ tacet://*/infra.domains/x }}
+        - wakeup.{{ tacet://org/Default/DevOps/Base/infra-domains/x }}
       secretName: wakeup-domainx
 
 ---

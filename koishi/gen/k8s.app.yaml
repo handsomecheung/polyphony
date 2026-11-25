@@ -48,7 +48,7 @@ spec:
             - name: LITELLM_API_BASE
               value: http://litellm.default
             - name: LITELLM_API_KEY
-              value: "{{ tacet://*/koishi.litellm/master-key }}"
+              value: "{{ tacet://org/Default/DevOps/Koishi/koishi.litellm/master-key }}"
 
             - name: GEN_MODEL_TIMEOUT_SECONDS
               value: "120"
@@ -117,12 +117,12 @@ metadata:
     gethomepage.dev/enabled: "true"
     gethomepage.dev/group: AI
     gethomepage.dev/name: Gen
-    gethomepage.dev/href: https://gen.{{ tacet://*/infra.domains/x }}/
+    gethomepage.dev/href: https://gen.{{ tacet://org/Default/DevOps/Base/infra-domains/x }}/
     gethomepage.dev/weight: "10"
 spec:
   ingressClassName: traefik
   rules:
-    - host: gen.{{ tacet://*/infra.domains/x }}
+    - host: gen.{{ tacet://org/Default/DevOps/Base/infra-domains/x }}
       http:
         paths:
           - path: /
@@ -134,5 +134,5 @@ spec:
                   name: default
   tls:
     - hosts:
-        - gen.{{ tacet://*/infra.domains/x }}
+        - gen.{{ tacet://org/Default/DevOps/Base/infra-domains/x }}
       secretName: gen-domainx

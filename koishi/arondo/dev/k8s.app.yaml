@@ -28,7 +28,7 @@ metadata:
 spec:
   ingressClassName: traefik
   rules:
-    - host: arondo.{{ tacet://*/infra.domains/d }}
+    - host: arondo.{{ tacet://org/Default/DevOps/Base/infra-domains/d }}
       http:
         paths:
           - path: /runner
@@ -40,7 +40,7 @@ spec:
                   name: default
   tls:
     - hosts:
-        - arondo.{{ tacet://*/infra.domains/d }}
+        - arondo.{{ tacet://org/Default/DevOps/Base/infra-domains/d }}
       secretName: arondo-domainx
 
 ---
@@ -56,12 +56,12 @@ metadata:
     gethomepage.dev/enabled: "true"
     gethomepage.dev/group: AI
     gethomepage.dev/name: Arondo Dev
-    gethomepage.dev/href: https://arondo.{{ tacet://*/infra.domains/d }}/
+    gethomepage.dev/href: https://arondo.{{ tacet://org/Default/DevOps/Base/infra-domains/d }}/
     gethomepage.dev/weight: "80"
 spec:
   ingressClassName: traefik
   rules:
-    - host: arondo.{{ tacet://*/infra.domains/d }}
+    - host: arondo.{{ tacet://org/Default/DevOps/Base/infra-domains/d }}
       http:
         paths:
           - path: /
@@ -73,7 +73,7 @@ spec:
                   name: default
   tls:
     - hosts:
-        - arondo.{{ tacet://*/infra.domains/d }}
+        - arondo.{{ tacet://org/Default/DevOps/Base/infra-domains/d }}
       secretName: arondo-domaind
 
 ---
@@ -89,7 +89,7 @@ metadata:
 spec:
   ingressClassName: traefik
   rules:
-    - host: arondo.{{ tacet://*/infra.domains/d }}
+    - host: arondo.{{ tacet://org/Default/DevOps/Base/infra-domains/d }}
       http:
         paths:
           - path: /manifest.webmanifest
@@ -164,5 +164,5 @@ spec:
                   name: default
   tls:
     - hosts:
-        - arondo.{{ tacet://*/infra.domains/d }}
+        - arondo.{{ tacet://org/Default/DevOps/Base/infra-domains/d }}
       secretName: arondo-domaind

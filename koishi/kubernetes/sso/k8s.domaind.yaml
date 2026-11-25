@@ -6,10 +6,10 @@ metadata:
   namespace: sso
 type: Opaque
 data:
-  clientid: {{ tacet://*/traefik.oss.domaind.keys/gcp-clientid?encoding=base64 }}
-  clientsecret: {{ tacet://*/traefik.oss.domaind.keys/gcp-clientsecret?encoding=base64 }}
+  clientid: {{ tacet://org/Default/DevOps/Koishi/traefik.oss.domaind.keys/gcp-clientid?encoding=base64 }}
+  clientsecret: {{ tacet://org/Default/DevOps/Koishi/traefik.oss.domaind.keys/gcp-clientsecret?encoding=base64 }}
   # something random
-  secret: {{ tacet://*/traefik.oss.domaind.keys/secret?encoding=base64 }}
+  secret: {{ tacet://org/Default/DevOps/Koishi/traefik.oss.domaind.keys/secret?encoding=base64 }}
 
 ---
 # https://github.com/thomseddon/traefik-forward-auth
@@ -37,8 +37,8 @@ spec:
           args:
             [
               "--rule.high.action=auth",
-              '--rule.high.rule="Host(`subscout.{{ tacet://*/infra.domains/d }}`)"',
-              '--rule.high.whitelist="{{ tacet://*/infra-emails/hh }},{{ tacet://*/infra-emails/hz }}"',
+              '--rule.high.rule="Host(`subscout.{{ tacet://org/Default/DevOps/Base/infra-domains/d }}`)"',
+              '--rule.high.whitelist="{{ tacet://org/Default/DevOps/Base/infra-emails/hh }},{{ tacet://org/Default/DevOps/Base/infra-emails/hz }}"',
             ]
           env:
             - name: PROVIDERS_GOOGLE_CLIENT_ID
@@ -57,15 +57,15 @@ spec:
                   name: domaind
                   key: secret
             - name: COOKIE_DOMAIN
-              value: {{ tacet://*/infra.domains/d }}
+              value: {{ tacet://org/Default/DevOps/Base/infra-domains/d }}
             - name: AUTH_HOST
-              value: gsso.{{ tacet://*/infra.domains/d }}
+              value: gsso.{{ tacet://org/Default/DevOps/Base/infra-domains/d }}
             - name: INSECURE_COOKIE
               value: "false"
             - name: URL_PATH
               value: /_oauth
             - name: WHITELIST
-              value: {{ tacet://*/infra-emails/hh }},{{ tacet://*/infra-emails/hz }},{{ tacet://*/infra-emails/cq }},{{ tacet://*/infra-emails/ck }}
+              value: {{ tacet://org/Default/DevOps/Base/infra-emails/hh }},{{ tacet://org/Default/DevOps/Base/infra-emails/hz }},{{ tacet://org/Default/DevOps/Base/infra-emails/cq }},{{ tacet://org/Default/DevOps/Base/infra-emails/ck }}
             - name: LOG_LEVEL
               value: info
             - name: LIFETIME
@@ -114,7 +114,7 @@ metadata:
 spec:
   ingressClassName: traefik
   rules:
-    - host: gsso.{{ tacet://*/infra.domains/d }}
+    - host: gsso.{{ tacet://org/Default/DevOps/Base/infra-domains/d }}
       http:
         paths:
           - path: /
@@ -126,5 +126,5 @@ spec:
                   name: default
   tls:
     - hosts:
-        - gsso.{{ tacet://*/infra.domains/d }}
+        - gsso.{{ tacet://org/Default/DevOps/Base/infra-domains/d }}
       secretName: auth-domaind

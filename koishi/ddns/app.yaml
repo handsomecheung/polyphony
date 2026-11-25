@@ -11,15 +11,15 @@ metadata:
   name: common-envs
   namespace: ddns
 data:
-  DOMAIN_X: "{{ tacet://*/infra.domains/x }}"
-  DOMAIN_Y: "{{ tacet://*/infra.domains/y }}"
-  DOMAIN_P: "{{ tacet://*/infra.domains/p }}"
-  DOMAIN_C: "{{ tacet://*/infra.domains/c }}"
-  DOMAIN_D: "{{ tacet://*/infra.domains/d }}"
-  DOMAIN_U: "{{ tacet://*/infra.domains/u }}"
-  COMAPI_HOST_NUR: "http://{{ tacet://*/infra.machine.nur/ip }}:{{ tacet://*/koishi.comapi.port/password }}"
-  COMAPI_HOST_NIPPON: "http://{{ tacet://*/infra.machine.nippon/ip }}:{{ tacet://*/koishi.comapi.port/password }}"
-  COMAPI_HOST_MINIBA: "http://{{ tacet://*/infra.machine.miniba/ip }}:{{ tacet://*/koishi.comapi.port/password }}"
+  DOMAIN_X: "{{ tacet://org/Default/DevOps/Base/infra-domains/x }}"
+  DOMAIN_Y: "{{ tacet://org/Default/DevOps/Base/infra-domains/y }}"
+  DOMAIN_P: "{{ tacet://org/Default/DevOps/Base/infra-domains/p }}"
+  DOMAIN_C: "{{ tacet://org/Default/DevOps/Base/infra-domains/c }}"
+  DOMAIN_D: "{{ tacet://org/Default/DevOps/Base/infra-domains/d }}"
+  DOMAIN_U: "{{ tacet://org/Default/DevOps/Base/infra-domains/u }}"
+  COMAPI_HOST_NUR: "http://{{ tacet://org/Default/DevOps/Koishi/infra.machine.nur/ip }}:{{ tacet://org/Default/DevOps/Koishi/comapi/port }}"
+  COMAPI_HOST_NIPPON: "http://{{ tacet://org/Default/DevOps/Koishi/infra.machine.nippon/ip }}:{{ tacet://org/Default/DevOps/Koishi/comapi/port }}"
+  COMAPI_HOST_MINIBA: "http://{{ tacet://org/Default/DevOps/Koishi/infra.machine.miniba/ip }}:{{ tacet://org/Default/DevOps/Koishi/comapi/port }}"
   COMAPI_PATH_IPV6: "/ipv6"
 
 ---
@@ -46,7 +46,7 @@ spec:
                     name: common-envs
               env:
                 - name: CLOUDFLARE_API_TOKEN
-                  value: "{{ tacet://*/cloudflare.dns-update.token/password }}"
+                  value: "{{ tacet://org/Default/DevOps/Koishi/cloudflare.dns-update.token/password }}"
               command:
                 - python3
                 - -u
@@ -77,9 +77,9 @@ spec:
                     name: common-envs
               env:
                 - name: ACCESS_ID
-                  value: "{{ tacet://*/aliyun.dns-update.key/id }}"
+                  value: "{{ tacet://org/Default/DevOps/Koishi/aliyun.dns-update.key/id }}"
                 - name: ACCESS_SECRET
-                  value: "{{ tacet://*/aliyun.dns-update.key/secret }}"
+                  value: "{{ tacet://org/Default/DevOps/Koishi/aliyun.dns-update.key/secret }}"
               command:
                 - python3
                 - -u

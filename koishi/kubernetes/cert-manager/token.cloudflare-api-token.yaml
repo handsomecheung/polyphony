@@ -6,4 +6,4 @@ metadata:
   namespace: cert-manager
 type: Opaque
 stringData:
-  api-token: "{{ tacet://*/cloudflare.dns-update.token/password }}"
+  api-token: "{{ tacet://org/Default/DevOps/Koishi/cloudflare.dns-update.token/password }}"

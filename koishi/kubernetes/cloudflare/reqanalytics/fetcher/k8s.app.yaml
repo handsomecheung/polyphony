@@ -5,9 +5,9 @@ metadata:
   name: reqanalytics-fetcher-config
   namespace: cloudflare
 data:
-  DOMAIN_X: "{{ tacet://*/infra.domains/x }}"
-  DOMAIN_C: "{{ tacet://*/infra.domains/c }}"
-  DOMAIN_D: "{{ tacet://*/infra.domains/d }}"
+  DOMAIN_X: "{{ tacet://org/Default/DevOps/Base/infra-domains/x }}"
+  DOMAIN_C: "{{ tacet://org/Default/DevOps/Base/infra-domains/c }}"
+  DOMAIN_D: "{{ tacet://org/Default/DevOps/Base/infra-domains/d }}"
   OUTPUT_DIR: "/data"
   LOOKBACK_HOURS: "48"
 
@@ -38,7 +38,7 @@ spec:
                     name: reqanalytics-fetcher-config
               env:
                 - name: CLOUDFLARE_ANALYTICS_TOKEN
-                  value: "{{ tacet://*/cloudflare.analytics.token/password }}"
+                  value: "{{ tacet://org/Default/DevOps/Koishi/cloudflare.analytics.token/password }}"
               command:
                 - python3
                 - -u

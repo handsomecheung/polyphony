@@ -35,7 +35,7 @@
         "outbound": "direct"
       },
       {
-        "domain_suffix": ["home.{{ tacet://*/infra.domains/x }}"],
+        "domain_suffix": ["home.{{ tacet://org/Default/DevOps/Base/infra-domains/x }}"],
         "outbound": "direct"
       }
     ]

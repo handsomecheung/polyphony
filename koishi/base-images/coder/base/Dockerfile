@@ -1,7 +1,7 @@
 FROM ubuntu:22.04
 
 ENV DEBIAN_FRONTEND=noninteractive
-ENV MY_TZ="{{ tacet://*/koishi.deploy.timezone/password }}"
+ENV MY_TZ="{{ tacet://org/Default/DevOps/Koishi/Base/infra-infos/timezone }}"
 
 COPY --from=docker:dind /usr/local/bin/docker /usr/local/bin/
 RUN apt-get update && \

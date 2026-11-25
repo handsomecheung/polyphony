@@ -46,7 +46,7 @@ spec:
             - name: CACHE_KEY_PREFIX
               value: "webreader:markdown:v2:"
             - name: FIRECRAWL_APIKEY
-              value: "{{ tacet://*/firecrawl.infos/api-key }}"
+              value: "{{ tacet://org/Default/DevOps/Koishi/firecrawl.infos/api-key }}"
             - name: REDIS_URL
               value: "redis://redis.database:6379"
             - name: REDIS_CACHE_TTL_SECONDS
@@ -104,12 +104,12 @@ metadata:
     gethomepage.dev/enabled: "true"
     gethomepage.dev/group: Tool
     gethomepage.dev/name: Webreader
-    gethomepage.dev/href: https://webreader.{{ tacet://*/infra.domains/x }}/dashboard
+    gethomepage.dev/href: https://webreader.{{ tacet://org/Default/DevOps/Base/infra-domains/x }}/dashboard
     gethomepage.dev/weight: "70"
 spec:
   ingressClassName: traefik
   rules:
-    - host: webreader.{{ tacet://*/infra.domains/x }}
+    - host: webreader.{{ tacet://org/Default/DevOps/Base/infra-domains/x }}
       http:
         paths:
           - path: /
@@ -121,7 +121,7 @@ spec:
                   name: default
   tls:
     - hosts:
-        - webreader.{{ tacet://*/infra.domains/x }}
+        - webreader.{{ tacet://org/Default/DevOps/Base/infra-domains/x }}
       secretName: webreader-tls
 
 ---
@@ -136,7 +136,7 @@ metadata:
 spec:
   ingressClassName: traefik
   rules:
-    - host: webreader.home4p.{{ tacet://*/infra.domains/x }}
+    - host: webreader.home4p.{{ tacet://org/Default/DevOps/Base/infra-domains/x }}
       http:
         paths:
           - path: /
@@ -148,5 +148,5 @@ spec:
                   name: default
   tls:
     - hosts:
-        - webreader.home4p.{{ tacet://*/infra.domains/x }}
+        - webreader.home4p.{{ tacet://org/Default/DevOps/Base/infra-domains/x }}
       secretName: webreader-home4p-tls

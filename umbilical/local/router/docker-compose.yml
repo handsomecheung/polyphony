@@ -2,9 +2,9 @@
 # not use bridge mode at all because of the NetworkManager DNS issue in raspberrypi 64 bit OS
 services:
   tunnel-ssh:
-    image: {{ tacet://*/umbilical.deploy.cloudpublic_registry_host/password }}/umbilical/tunnel:latest
+    image: {{ tacet://org/Default/DevOps/Umbilical/Base/infra-infos/cloudpublic-registry-host }}/umbilical/tunnel:latest
     environment:
-      TZ: "{{ tacet://*/umbilical.deploy.timezone/password }}"
+      TZ: "{{ tacet://org/Default/DevOps/Umbilical/Base/infra-infos/timezone }}"
     volumes:
       - ./tunnel-ssh/ssh:/root/.ssh
       - ./tunnel-ssh/entrypoint.sh:/entrypoint.sh
@@ -13,9 +13,9 @@ services:
     restart: always
 
   tunnel:
-    image: {{ tacet://*/umbilical.deploy.cloudpublic_registry_host/password }}/umbilical/tunnel:latest
+    image: {{ tacet://org/Default/DevOps/Umbilical/Base/infra-infos/cloudpublic-registry-host }}/umbilical/tunnel:latest
     environment:
-      TZ: "{{ tacet://*/umbilical.deploy.timezone/password }}"
+      TZ: "{{ tacet://org/Default/DevOps/Umbilical/Base/infra-infos/timezone }}"
     volumes:
       - ./tunnel/ssh:/root/.ssh
       - ./tunnel/entrypoint.sh:/entrypoint.sh
@@ -24,9 +24,9 @@ services:
     restart: unless-stopped
 
   ipset-watcher:
-    image: {{ tacet://*/umbilical.deploy.cloudpublic_registry_host/password }}/umbilical/ipset-watcher:latest
+    image: {{ tacet://org/Default/DevOps/Umbilical/Base/infra-infos/cloudpublic-registry-host }}/umbilical/ipset-watcher:latest
     environment:
-      TZ: "{{ tacet://*/umbilical.deploy.timezone/password }}"
+      TZ: "{{ tacet://org/Default/DevOps/Umbilical/Base/infra-infos/timezone }}"
     privileged: true
     network_mode: host
     volumes:
@@ -37,12 +37,12 @@ services:
     restart: unless-stopped
 
   ddns:
-    image: {{ tacet://*/umbilical.deploy.cloudpublic_registry_host/password }}/umbilical/ddns:latest
+    image: {{ tacet://org/Default/DevOps/Umbilical/Base/infra-infos/cloudpublic-registry-host }}/umbilical/ddns:latest
     environment:
-      TZ: "{{ tacet://*/umbilical.deploy.timezone/password }}"
-      DOMAIN: "{{ tacet://*/infra.domains/u }}"
-      ALIYUN_ACCESSKEY_ID: "{{ tacet://*/aliyun.dns-update.key/id }}"
-      ALIYUN_ACCESSKEY_SECRET: "{{ tacet://*/aliyun.dns-update.key/secret }}"
+      TZ: "{{ tacet://org/Default/DevOps/Umbilical/Base/infra-infos/timezone }}"
+      DOMAIN: "{{ tacet://org/Default/DevOps/Base/infra-domains/u }}"
+      ALIYUN_ACCESSKEY_ID: "{{ tacet://org/Default/DevOps/Umbilical/aliyun.dns-update.key/id }}"
+      ALIYUN_ACCESSKEY_SECRET: "{{ tacet://org/Default/DevOps/Umbilical/aliyun.dns-update.key/secret }}"
     volumes:
       - ./ddns:/code
     network_mode: host
@@ -51,22 +51,22 @@ services:
     restart: unless-stopped
 
   wakeup:
-    image: {{ tacet://*/umbilical.deploy.cloudpublic_registry_host/password }}/umbilical/wakeup:latest
+    image: {{ tacet://org/Default/DevOps/Umbilical/Base/infra-infos/cloudpublic-registry-host }}/umbilical/wakeup:latest
     privileged: true
     network_mode: host
     environment:
-      TZ: "{{ tacet://*/umbilical.deploy.timezone/password }}"
+      TZ: "{{ tacet://org/Default/DevOps/Umbilical/Base/infra-infos/timezone }}"
       GOTTY_WS_ORIGIN: ".*"
       TERM: "xterm-256color"
       GOTTY_PORT: "37902"
-      MAC_SILVER: "{{ tacet://*/infra.machine.silver/mac }}"
-      UMBILICAL_IPV4_PREFIX: "{{ tacet://*/umbilical.infra.infos/subnetv4 }}."
+      MAC_SILVER: "{{ tacet://org/Default/DevOps/Umbilical/infra.machine.silver/mac }}"
+      UMBILICAL_IPV4_PREFIX: "{{ tacet://org/Default/DevOps/Umbilical/Base/infra-infos/subnetv4 }}."
     restart: unless-stopped
 
   sing-box:
-    image: {{ tacet://*/umbilical.deploy.cloudpublic_registry_host/password }}/umbilical/sing-box:latest
+    image: {{ tacet://org/Default/DevOps/Umbilical/Base/infra-infos/cloudpublic-registry-host }}/umbilical/sing-box:latest
     environment:
-      TZ: "{{ tacet://*/umbilical.deploy.timezone/password }}"
+      TZ: "{{ tacet://org/Default/DevOps/Umbilical/Base/infra-infos/timezone }}"
     privileged: true
     network_mode: host
     volumes:
@@ -79,9 +79,9 @@ services:
       - NET_RAW
 
   vouch:
-    image: {{ tacet://*/umbilical.deploy.cloudpublic_registry_host/password }}/umbilical/vouch:latest-arm
+    image: {{ tacet://org/Default/DevOps/Umbilical/Base/infra-infos/cloudpublic-registry-host }}/umbilical/vouch:latest-arm
     environment:
-      TZ: "{{ tacet://*/umbilical.deploy.timezone/password }}"
+      TZ: "{{ tacet://org/Default/DevOps/Umbilical/Base/infra-infos/timezone }}"
     volumes:
       - ./vouch/config:/config
     network_mode: host
@@ -90,10 +90,10 @@ services:
   nginx:
     depends_on:
       - vouch
-    image: {{ tacet://*/umbilical.deploy.cloudpublic_registry_host/password }}/umbilical/openresty:latest
+    image: {{ tacet://org/Default/DevOps/Umbilical/Base/infra-infos/cloudpublic-registry-host }}/umbilical/openresty:latest
     command: ["nginx", "-g", "daemon off;"]
     environment:
-      TZ: "{{ tacet://*/umbilical.deploy.timezone/password }}"
+      TZ: "{{ tacet://org/Default/DevOps/Umbilical/Base/infra-infos/timezone }}"
     volumes:
       - ../../../static/letsencrypt:/etc/letsencrypt
       - ./nginx/configs/index:/usr/share/nginx/index

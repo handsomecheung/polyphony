@@ -27,5 +27,5 @@ spec:
                 - name: DB_USERNAME
                   value: "finance"
                 - name: DB_PASSWORD
-                  value: "{{ tacet://*/database.postgres-local.accounts/finance }}"
+                  value: "{{ tacet://org/Default/DevOps/Koishi/database.postgres-local.accounts/finance }}"
           restartPolicy: Never

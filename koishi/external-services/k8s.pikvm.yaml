@@ -41,7 +41,7 @@ ports:
     protocol: TCP
 endpoints:
   - addresses:
-      - "{{ tacet://*/infra.machine.r4b4gPiKVM/ip }}"
+      - "{{ tacet://org/Default/DevOps/Koishi/infra.machine.r4b4gPiKVM/ip }}"
     conditions:
       ready: true
 
@@ -59,13 +59,13 @@ metadata:
     gethomepage.dev/group: Development
     gethomepage.dev/name: PiKVM
     gethomepage.dev/icon: pikvm
-    gethomepage.dev/href: https://pikvm.{{ tacet://*/infra.domains/x }}/
-    gethomepage.dev/siteMonitor: https://pikvm.{{ tacet://*/infra.domains/x }}/
+    gethomepage.dev/href: https://pikvm.{{ tacet://org/Default/DevOps/Base/infra-domains/x }}/
+    gethomepage.dev/siteMonitor: https://pikvm.{{ tacet://org/Default/DevOps/Base/infra-domains/x }}/
     gethomepage.dev/weight: "32"
 spec:
   ingressClassName: traefik
   rules:
-    - host: pikvm.{{ tacet://*/infra.domains/x }}
+    - host: pikvm.{{ tacet://org/Default/DevOps/Base/infra-domains/x }}
       http:
         paths:
           - path: /
@@ -77,7 +77,7 @@ spec:
                   name: default
   tls:
     - hosts:
-        - pikvm.{{ tacet://*/infra.domains/x }}
+        - pikvm.{{ tacet://org/Default/DevOps/Base/infra-domains/x }}
       secretName: pikvm-domainx
 
 ---
@@ -93,7 +93,7 @@ metadata:
 spec:
   ingressClassName: traefik
   rules:
-    - host: pikvm.home4p.{{ tacet://*/infra.domains/x }}
+    - host: pikvm.home4p.{{ tacet://org/Default/DevOps/Base/infra-domains/x }}
       http:
         paths:
           - path: /
@@ -105,5 +105,5 @@ spec:
                   name: default
   tls:
     - hosts:
-        - pikvm.home4p.{{ tacet://*/infra.domains/x }}
+        - pikvm.home4p.{{ tacet://org/Default/DevOps/Base/infra-domains/x }}
       secretName: pikvm-home4p-domainx

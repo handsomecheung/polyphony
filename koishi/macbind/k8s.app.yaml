@@ -23,11 +23,11 @@ spec:
               mountPath: /config/macip-mapping.json
           env:
             - name: NTT_ROUTER
-              value: "http://{{ tacet://*/infra.machine.ntt/ip }}"
+              value: "http://{{ tacet://org/Default/DevOps/Koishi/infra.machine.ntt/ip }}"
             - name: NTT_ROUTER_USERNAME
               value: "user"
             - name: NTT_ROUTER_PASSWORD
-              value: "{{ tacet://*/router-ntt.NTT-XG-100NE/password }}"
+              value: "{{ tacet://org/Default/DevOps/Koishi/router-ntt.NTT-XG-100NE/password }}"
             - name: MAC_MAPPING_PATH
               value: "/config/macip-mapping.json"
       restartPolicy: Never

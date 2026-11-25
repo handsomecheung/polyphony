@@ -1,6 +1,6 @@
 # umbilical
 
-Umbilical is the network boundary management layer for the polyphony home lab. It bridges on-premises machines (router node `r3b`, secondary machine `silver`) with a public cloud VM (`jserver`) through encrypted WireGuard VPN, autossh reverse tunnels, dynamic DNS, OAuth-gated ingress, transparent proxy routing via sing-box, and remote power management (Wake-on-LAN and shutdown). Configuration templates use Tacet placeholders such as `{{ tacet://*/item-name/password }}`, `{{ tacet://*/item-name/field-name }}`, and `{{ tacet://*/item-name/filename }}`, keeping secrets out of source control. Append `?encoding=base64` to a URI when Base64 output is required. Render these templates with `tacet-wrapper inject`.
+Umbilical is the network boundary management layer for the polyphony home lab. It bridges on-premises machines (router node `r3b`, secondary machine `silver`) with a public cloud VM (`jserver`) through encrypted WireGuard VPN, autossh reverse tunnels, dynamic DNS, OAuth-gated ingress, transparent proxy routing via sing-box, and remote power management (Wake-on-LAN and shutdown). Configuration templates use Tacet placeholders such as `{{ tacet://org/Default/DevOps/Umbilical/item-name/password }}`, `{{ tacet://org/Default/DevOps/Umbilical/item-name/field-name }}`, and `{{ tacet://org/Default/DevOps/Umbilical/item-name/filename }}`, keeping secrets out of source control. Append `?encoding=base64` to a URI when Base64 output is required. Render these templates with `tacet-wrapper inject`.
 
 ## Directory Structure
 
@@ -128,7 +128,7 @@ cd images/<name>
 | `shutdown`      | `umbilical/ubuntu:24.04`           | `tmux`, GoTTY v2.0.0-alpha.3 (amd64)                                      |
 | `ubuntu/24.04`  | `ubuntu:24.04`                     | shared base for shutdown image                                            |
 
-`my-build-image.sh` reads the registry host with `tacet-wrapper read "tacet://*/umbilical.deploy.cloudpublic_registry_host/password"`, creates a named buildx builder, rsyncs sources to a temporary build directory under `/mnt/coder-sharepoint/build-image/`, and removes the directory after a successful push.
+`my-build-image.sh` reads the registry host with `tacet-wrapper read "tacet://org/Default/DevOps/Umbilical/Base/infra-infos/cloudpublic-registry-host"`, creates a named buildx builder, rsyncs sources to a temporary build directory under `/mnt/coder-sharepoint/build-image/`, and removes the directory after a successful push.
 
 ## Network Architecture
 

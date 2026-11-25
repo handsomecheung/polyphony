@@ -144,12 +144,12 @@ metadata:
     gethomepage.dev/group: AI
     gethomepage.dev/name: Ollama-WebUI
     gethomepage.dev/icon: https://ollama.com/public/icon-64x64.png
-    gethomepage.dev/href: https://ollama-webui.{{ tacet://*/infra.domains/x }}
+    gethomepage.dev/href: https://ollama-webui.{{ tacet://org/Default/DevOps/Base/infra-domains/x }}
     gethomepage.dev/weight: "50"
 spec:
   ingressClassName: traefik
   rules:
-    - host: ollama-webui.{{ tacet://*/infra.domains/x }}
+    - host: ollama-webui.{{ tacet://org/Default/DevOps/Base/infra-domains/x }}
       http:
         paths:
           - path: /
@@ -161,7 +161,7 @@ spec:
                   name: default
   tls:
     - hosts:
-        - ollama-webui.{{ tacet://*/infra.domains/x }}
+        - ollama-webui.{{ tacet://org/Default/DevOps/Base/infra-domains/x }}
       secretName: ollama-webui-domainx
 
 ---
@@ -176,7 +176,7 @@ metadata:
 spec:
   ingressClassName: traefik
   rules:
-    - host: ollama.home4p.{{ tacet://*/infra.domains/x }}
+    - host: ollama.home4p.{{ tacet://org/Default/DevOps/Base/infra-domains/x }}
       http:
         paths:
           - path: /
@@ -188,5 +188,5 @@ spec:
                   name: default
   tls:
     - hosts:
-        - ollama.home4p.{{ tacet://*/infra.domains/x }}
+        - ollama.home4p.{{ tacet://org/Default/DevOps/Base/infra-domains/x }}
       secretName: ollama-home4p-domainx

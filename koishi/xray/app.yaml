@@ -23,19 +23,19 @@ data:
             "clients": [
               {
                 // run uuidgen
-                "id": "{{ tacet://*/v2ray.uuids/gopya }}",
+                "id": "{{ tacet://org/Default/DevOps/Koishi/v2ray.uuids/gopya }}",
                 "alterId": 0
               },
               {
-                "id": "{{ tacet://*/v2ray.uuids/umbilical }}",
+                "id": "{{ tacet://org/Default/DevOps/Koishi/v2ray.uuids/umbilical }}",
                 "alterId": 0
               },
               {
-                "id": "{{ tacet://*/v2ray.uuids/sofmacpro }}",
+                "id": "{{ tacet://org/Default/DevOps/Koishi/v2ray.uuids/sofmacpro }}",
                 "alterId": 0
               },
               {
-                "id": "{{ tacet://*/v2ray.uuids/cupid }}",
+                "id": "{{ tacet://org/Default/DevOps/Koishi/v2ray.uuids/cupid }}",
                 "alterId": 0
               }
             ],
@@ -55,7 +55,7 @@ data:
           "settings": {
             "clients": [
               {
-                "id": "{{ tacet://*/v2ray.uuids/sofmacpro }}",
+                "id": "{{ tacet://org/Default/DevOps/Koishi/v2ray.uuids/sofmacpro }}",
                 "alterId": 0
               }
             ],
@@ -86,7 +86,7 @@ data:
                 "users": [
                   {
                     "user": "default",
-                    "pass": "{{ tacet://*/wireproxy/socks5 }}",
+                    "pass": "{{ tacet://org/Default/DevOps/Koishi/wireproxy/socks5 }}",
                     "level": 0
                   }
                 ]
@@ -190,7 +190,7 @@ metadata:
 spec:
   ingressClassName: traefik
   rules:
-    - host: x.{{ tacet://*/infra.domains/x }}
+    - host: x.{{ tacet://org/Default/DevOps/Base/infra-domains/x }}
       http:
         paths:
           - path: /kaser
@@ -209,5 +209,5 @@ spec:
                   name: umbilical
   tls:
     - hosts:
-        - x.{{ tacet://*/infra.domains/x }}
+        - x.{{ tacet://org/Default/DevOps/Base/infra-domains/x }}
       secretName: x-domainx

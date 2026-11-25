@@ -3,7 +3,7 @@ services:
   watchtower:
     image: containrrr/watchtower:latest
     environment:
-      TZ: "{{ tacet://*/koishi.deploy.timezone/password }}"
+      TZ: "{{ tacet://org/Default/DevOps/Koishi/Base/infra-infos/timezone }}"
       DOCKER_API_VERSION: "1.53"
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
@@ -12,25 +12,25 @@ services:
     restart: unless-stopped
 
   comapi:
-    image: {{ tacet://*/koishi.deploy.cloudpublic_registry_host/password }}/{{ tacet://*/koishi.deploy.cloudpublic_registry_id/password }}/compose/comapi:latest
+    image: {{ tacet://org/Default/DevOps/Koishi/Base/infra-infos/cloudpublic-registry-host }}/{{ tacet://org/Default/DevOps/Koishi/Base/infra-infos/cloudpublic-registry-id }}/compose/comapi:latest
     environment:
-      TZ: "{{ tacet://*/koishi.deploy.timezone/password }}"
-      KOISHI_IPV4_PREFIX: "{{ tacet://*/koishi.infra.infos/subnetv4 }}."
+      TZ: "{{ tacet://org/Default/DevOps/Koishi/Base/infra-infos/timezone }}"
+      KOISHI_IPV4_PREFIX: "{{ tacet://org/Default/DevOps/Koishi/Base/infra-infos/subnetv4 }}."
     pid: host
     network_mode: host # exposed port 37900
     restart: unless-stopped
 
   wakeup:
-    image: {{ tacet://*/koishi.deploy.cloudpublic_registry_host/password }}/{{ tacet://*/koishi.deploy.cloudpublic_registry_id/password }}/compose/wakeup:latest
+    image: {{ tacet://org/Default/DevOps/Koishi/Base/infra-infos/cloudpublic-registry-host }}/{{ tacet://org/Default/DevOps/Koishi/Base/infra-infos/cloudpublic-registry-id }}/compose/wakeup:latest
     environment:
-      TZ: "{{ tacet://*/koishi.deploy.timezone/password }}"
+      TZ: "{{ tacet://org/Default/DevOps/Koishi/Base/infra-infos/timezone }}"
       GOTTY_WS_ORIGIN: ".*"
       TERM: "xterm-256color"
       GOTTY_PORT: "37902"
-      MAC_NUR: "{{ tacet://*/infra.machine.nur/mac }}"
-      MAC_MINIBA: "{{ tacet://*/infra.machine.miniba/mac }}"
-      MAC_NIPPON: "{{ tacet://*/infra.machine.nippon/mac }}"
-      KOISHI_IPV4_PREFIX: "{{ tacet://*/koishi.infra.infos/subnetv4 }}."
+      MAC_NUR: "{{ tacet://org/Default/DevOps/Koishi/infra.machine.nur/mac }}"
+      MAC_MINIBA: "{{ tacet://org/Default/DevOps/Koishi/infra.machine.miniba/mac }}"
+      MAC_NIPPON: "{{ tacet://org/Default/DevOps/Koishi/infra.machine.nippon/mac }}"
+      KOISHI_IPV4_PREFIX: "{{ tacet://org/Default/DevOps/Koishi/Base/infra-infos/subnetv4 }}."
     volumes:
       - /home/box/.kube/config:/root/.kube/config
     privileged: true
@@ -38,9 +38,9 @@ services:
     restart: unless-stopped
 
   dnsmasq:
-    image: {{ tacet://*/koishi.deploy.cloudprivate_registry_host/password }}/{{ tacet://*/koishi.deploy.cloudprivate_registry_id/password }}/docker/compose/dnsmasq:latest
+    image: {{ tacet://org/Default/DevOps/Koishi/Base/infra-infos/cloudprivate-registry-host }}/{{ tacet://org/Default/DevOps/Koishi/Base/infra-infos/cloudprivate-registry-id }}/docker/compose/dnsmasq:latest
     environment:
-      TZ: "{{ tacet://*/koishi.deploy.timezone/password }}"
+      TZ: "{{ tacet://org/Default/DevOps/Koishi/Base/infra-infos/timezone }}"
       DNS1: "1.0.0.1"
       DNS2: "1.1.1.1"
     ports:

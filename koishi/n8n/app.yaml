@@ -43,9 +43,9 @@ spec:
           image: docker.n8n.io/n8nio/n8n
           env:
             - name: WEBHOOK_URL
-              value: "https://n8n.{{ tacet://*/infra.domains/x }}"
+              value: "https://n8n.{{ tacet://org/Default/DevOps/Base/infra-domains/x }}"
             - name: N8N_EDITOR_BASE_URL
-              value: "https://n8n.{{ tacet://*/infra.domains/x }}"
+              value: "https://n8n.{{ tacet://org/Default/DevOps/Base/infra-domains/x }}"
           volumeMounts:
             - name: default-common
               subPath: n8n/data
@@ -96,12 +96,12 @@ metadata:
     gethomepage.dev/group: AI
     gethomepage.dev/name: n8n
     gethomepage.dev/icon: https://n8n.io/favicon.ico
-    gethomepage.dev/href: https://n8n.{{ tacet://*/infra.domains/x }}
+    gethomepage.dev/href: https://n8n.{{ tacet://org/Default/DevOps/Base/infra-domains/x }}
     gethomepage.dev/weight: "40"
 spec:
   ingressClassName: traefik
   rules:
-    - host: n8n.{{ tacet://*/infra.domains/x }}
+    - host: n8n.{{ tacet://org/Default/DevOps/Base/infra-domains/x }}
       http:
         paths:
           - path: /
@@ -113,7 +113,7 @@ spec:
                   name: default
   tls:
     - hosts:
-        - n8n.{{ tacet://*/infra.domains/x }}
+        - n8n.{{ tacet://org/Default/DevOps/Base/infra-domains/x }}
       secretName: n8n
 
 ---
@@ -127,7 +127,7 @@ metadata:
 spec:
   ingressClassName: traefik
   rules:
-    - host: n8n.{{ tacet://*/infra.domains/x }}
+    - host: n8n.{{ tacet://org/Default/DevOps/Base/infra-domains/x }}
       http:
         paths:
           - path: /rest/oauth2-credential/callback
@@ -139,5 +139,5 @@ spec:
                   name: default
   tls:
     - hosts:
-        - n8n.{{ tacet://*/infra.domains/x }}
+        - n8n.{{ tacet://org/Default/DevOps/Base/infra-domains/x }}
       secretName: n8n

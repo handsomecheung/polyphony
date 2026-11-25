@@ -13,21 +13,21 @@ coder:
   replicaCount: 1
   env:
     - name: TZ
-      value: "{{ tacet://*/koishi.deploy.timezone/password }}"
+      value: "{{ tacet://org/Default/DevOps/Koishi/Base/infra-infos/timezone }}"
     - name: CODER_PG_CONNECTION_URL
-      value: "postgresql://coder:{{ tacet://*/database.postgres-local.accounts/coder }}@postgres.database:5432/coder?sslmode=disable"
+      value: "postgresql://coder:{{ tacet://org/Default/DevOps/Koishi/database.postgres-local.accounts/coder }}@postgres.database:5432/coder?sslmode=disable"
     - name: CODER_ACCESS_URL
-      value: "https://coder.{{ tacet://*/infra.domains/x }}"
+      value: "https://coder.{{ tacet://org/Default/DevOps/Base/infra-domains/x }}"
     - name: CODER_OAUTH2_GITHUB_CLIENT_ID
-      value: "{{ tacet://*/coder.github-token.org/id }}"
+      value: "{{ tacet://org/Default/DevOps/Koishi/coder.github-token.org/id }}"
     - name: CODER_OAUTH2_GITHUB_CLIENT_SECRET
-      value: "{{ tacet://*/coder.github-token.org/secret }}"
+      value: "{{ tacet://org/Default/DevOps/Koishi/coder.github-token.org/secret }}"
     - name: CODER_DISABLE_PASSWORD_AUTH
       value: "true"
     - name: CODER_OAUTH2_GITHUB_ALLOW_SIGNUPS
       value: "true"
     - name: CODER_OAUTH2_GITHUB_ALLOWED_ORGS
-      value: "{{ tacet://*/coder.github-token.org/name }}"
+      value: "{{ tacet://org/Default/DevOps/Koishi/coder.github-token.org/name }}"
   service:
     type: ClusterIP
   ingress:
@@ -39,9 +39,9 @@ coder:
       gethomepage.dev/group: Development
       gethomepage.dev/name: coder
       gethomepage.dev/icon: coder
-      gethomepage.dev/href: https://coder.{{ tacet://*/infra.domains/x }}/
+      gethomepage.dev/href: https://coder.{{ tacet://org/Default/DevOps/Base/infra-domains/x }}/
       gethomepage.dev/weight: "10"
-    host: coder.{{ tacet://*/infra.domains/x }}
+    host: coder.{{ tacet://org/Default/DevOps/Base/infra-domains/x }}
     tls:
       enable: true
       secretName: coder-domainx

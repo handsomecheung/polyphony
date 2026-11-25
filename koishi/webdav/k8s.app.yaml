@@ -40,10 +40,10 @@ data:
 
     	route /* {
     		basic_auth {
-                {{ tacet://*/infra.common-users/hh }} {{ tacet://*/webdav.hh/hash }}
-                {{ tacet://*/infra.common-users/cc }} {{ tacet://*/webdav.cc/hash }}
-                {{ tacet://*/infra.common-users/hz73 }} {{ tacet://*/webdav.hz73/hash }}
-                hifi {{ tacet://*/webdav.hifi/hash }}
+                {{ tacet://org/Default/DevOps/Koishi/infra.common-users/hh }} {{ tacet://org/Default/DevOps/Koishi/webdav.hh/hash }}
+                {{ tacet://org/Default/DevOps/Koishi/infra.common-users/cc }} {{ tacet://org/Default/DevOps/Koishi/webdav.cc/hash }}
+                {{ tacet://org/Default/DevOps/Koishi/infra.common-users/hz73 }} {{ tacet://org/Default/DevOps/Koishi/webdav.hz73/hash }}
+                hifi {{ tacet://org/Default/DevOps/Koishi/webdav.hifi/hash }}
     		}
 
     		request_body {
@@ -110,46 +110,46 @@ spec:
               mountPath: /etc/caddy
             - name: user-data-slight
               subPath: upload
-              mountPath: /data/{{ tacet://*/infra.common-users/hh }}/user-data-slight/upload
+              mountPath: /data/{{ tacet://org/Default/DevOps/Koishi/infra.common-users/hh }}/user-data-slight/upload
             - name: user-data-slight
               subPath: share-point
-              mountPath: /data/{{ tacet://*/infra.common-users/hh }}/user-data-slight/share-point
+              mountPath: /data/{{ tacet://org/Default/DevOps/Koishi/infra.common-users/hh }}/user-data-slight/share-point
             - name: user-data-slight
               subPath: private-data/hero
-              mountPath: /data/{{ tacet://*/infra.common-users/hh }}/user-data-slight/private-data/hero
+              mountPath: /data/{{ tacet://org/Default/DevOps/Koishi/infra.common-users/hh }}/user-data-slight/private-data/hero
             - name: user-data-slight
               subPath: private-data/hero-pending
-              mountPath: /data/{{ tacet://*/infra.common-users/hh }}/user-data-slight/private-data/hero-pending
+              mountPath: /data/{{ tacet://org/Default/DevOps/Koishi/infra.common-users/hh }}/user-data-slight/private-data/hero-pending
             - name: coder-sharepoint
-              mountPath: /data/{{ tacet://*/infra.common-users/hh }}/coder-sharepoint
+              mountPath: /data/{{ tacet://org/Default/DevOps/Koishi/infra.common-users/hh }}/coder-sharepoint
             - name: decrypted
-              mountPath: /data/{{ tacet://*/infra.common-users/hh }}/decrypted
+              mountPath: /data/{{ tacet://org/Default/DevOps/Koishi/infra.common-users/hh }}/decrypted
 
             - name: user-data-slight
               subPath: private-data/foldersync/gphoto/cc/pending
-              mountPath: /data/{{ tacet://*/infra.common-users/hh }}/gphoto/cc-pending
+              mountPath: /data/{{ tacet://org/Default/DevOps/Koishi/infra.common-users/hh }}/gphoto/cc-pending
             - name: user-data-slight
               subPath: private-data/foldersync/gphoto/cc/sync
-              mountPath: /data/{{ tacet://*/infra.common-users/hh }}/gphoto/cc-sync
+              mountPath: /data/{{ tacet://org/Default/DevOps/Koishi/infra.common-users/hh }}/gphoto/cc-sync
             - name: user-data-slight
               subPath: private-data/foldersync/gphoto/hh/from-cc
-              mountPath: /data/{{ tacet://*/infra.common-users/hh }}/gphoto/hh-sync
+              mountPath: /data/{{ tacet://org/Default/DevOps/Koishi/infra.common-users/hh }}/gphoto/hh-sync
 
             - name: coder-workspaces
               subPath: private-workspace/repos/local/mystatic
-              mountPath: /data/{{ tacet://*/infra.common-users/hh }}/repos/local/mystatic
+              mountPath: /data/{{ tacet://org/Default/DevOps/Koishi/infra.common-users/hh }}/repos/local/mystatic
 
             - name: user-data-slight
               subPath: share-point
-              mountPath: /data/{{ tacet://*/infra.common-users/hz73 }}/share-point
+              mountPath: /data/{{ tacet://org/Default/DevOps/Koishi/infra.common-users/hz73 }}/share-point
 
             - name: user-data-slight
               subPath: share-point
-              mountPath: /data/{{ tacet://*/infra.common-users/cc }}/share-point
+              mountPath: /data/{{ tacet://org/Default/DevOps/Koishi/infra.common-users/cc }}/share-point
 
             - name: coder-workspaces
               subPath: private-workspace/repos/local/mystatic
-              mountPath: /data/{{ tacet://*/infra.common-users/cc }}/repos/mystatic
+              mountPath: /data/{{ tacet://org/Default/DevOps/Koishi/infra.common-users/cc }}/repos/mystatic
 
           resources:
             requests:
@@ -210,7 +210,7 @@ metadata:
 spec:
   ingressClassName: traefik
   rules:
-    - host: webdav.{{ tacet://*/infra.domains/x }}
+    - host: webdav.{{ tacet://org/Default/DevOps/Base/infra-domains/x }}
       http:
         paths:
           - path: /
@@ -222,5 +222,5 @@ spec:
                   name: default
   tls:
     - hosts:
-        - webdav.{{ tacet://*/infra.domains/x }}
+        - webdav.{{ tacet://org/Default/DevOps/Base/infra-domains/x }}
       secretName: webdav-domainx

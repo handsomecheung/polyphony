@@ -7,8 +7,8 @@ metadata:
 type: Opaque
 stringData:
   credentials.ini: |
-    dns_aliyun_access_key = {{ tacet://*/aliyun.letsencrypt-refresh.key/id }}
-    dns_aliyun_access_key_secret = {{ tacet://*/aliyun.letsencrypt-refresh.key/secret }}
+    dns_aliyun_access_key = {{ tacet://org/Default/DevOps/Koishi/aliyun.letsencrypt-refresh.key/id }}
+    dns_aliyun_access_key_secret = {{ tacet://org/Default/DevOps/Koishi/aliyun.letsencrypt-refresh.key/secret }}
 
 ---
 apiVersion: batch/v1
@@ -46,21 +46,21 @@ spec:
             - certonly
             - --non-interactive
             - --agree-tos
-            - --email={{ tacet://*/infra-emails/hh }}
+            - --email={{ tacet://org/Default/DevOps/Base/infra-emails/hh }}
             - --authenticator=dns-aliyun
             - --dns-aliyun-credentials=/credentials.ini
             - -d
-            - "{{ tacet://*/infra.domains/u }}"
+            - "{{ tacet://org/Default/DevOps/Base/infra-domains/u }}"
             - -d
-            - "*.{{ tacet://*/infra.domains/u }}"
+            - "*.{{ tacet://org/Default/DevOps/Base/infra-domains/u }}"
             - -d
-            - "*.public.{{ tacet://*/infra.domains/u }}"
+            - "*.public.{{ tacet://org/Default/DevOps/Base/infra-domains/u }}"
             - -d
-            - "*.silver.{{ tacet://*/infra.domains/u }}"
+            - "*.silver.{{ tacet://org/Default/DevOps/Base/infra-domains/u }}"
             - -d
-            - "*.direct.{{ tacet://*/infra.domains/u }}"
+            - "*.direct.{{ tacet://org/Default/DevOps/Base/infra-domains/u }}"
             - -d
-            - "*.j.{{ tacet://*/infra.domains/u }}"
+            - "*.j.{{ tacet://org/Default/DevOps/Base/infra-domains/u }}"
           volumeMounts:
             - name: letsencrypt-etc
               mountPath: /etc/letsencrypt
@@ -79,7 +79,7 @@ spec:
             - -c
             - |
               set -e
-              domain="{{ tacet://*/infra.domains/u }}"
+              domain="{{ tacet://org/Default/DevOps/Base/infra-domains/u }}"
               mkdir -p "/data/certs/${domain}"
               chown 1000:1000 "/data/certs/${domain}"
               for file in cert.pem chain.pem fullchain.pem privkey.pem; do

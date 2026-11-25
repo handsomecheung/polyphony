@@ -62,9 +62,9 @@ spec:
               "-r",
               "-p", # Set ownership and permissions on the shares
               "-u",
-              "{{ tacet://*/infra.common-users/hh }};{{ tacet://*/samba.user.hh/password}}",
+              "{{ tacet://org/Default/DevOps/Koishi/samba-user-hh/username }};{{ tacet://org/Default/DevOps/Koishi/samba-user-hh/password }}",
               "-u",
-              "{{ tacet://*/infra.common-users/cc }};{{ tacet://*/samba.user.cc/password}}",
+              "{{ tacet://org/Default/DevOps/Koishi/samba-user-cc/username }};{{ tacet://org/Default/DevOps/Koishi/samba-user-cc/password }}",
               "-s",
               "LocalSharePoint;/mnt/user-data-slight/share-point;yes;no;yes",
             ]

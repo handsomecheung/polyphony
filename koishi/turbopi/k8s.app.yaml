@@ -42,11 +42,11 @@ spec:
               containerPort: 3000
           env:
             - name: TURBOPI_IP
-              value: "{{ tacet://*/infra.machine.r4b8gTurboPi/ip }}"
+              value: "{{ tacet://org/Default/DevOps/Koishi/infra.machine.r4b8gTurboPi/ip }}"
             - name: RPC_URL
-              value: "http://{{ tacet://*/infra.machine.r4b8gTurboPi/ip }}:9030"
+              value: "http://{{ tacet://org/Default/DevOps/Koishi/infra.machine.r4b8gTurboPi/ip }}:9030"
             - name: CAMERA_STREAM_URL
-              value: "http://{{ tacet://*/infra.machine.r4b8gTurboPi/ip }}:8080"
+              value: "http://{{ tacet://org/Default/DevOps/Koishi/infra.machine.r4b8gTurboPi/ip }}:8080"
           resources:
             limits:
               cpu: 200m
@@ -83,12 +83,12 @@ metadata:
     gethomepage.dev/enabled: "true"
     gethomepage.dev/group: Tool
     gethomepage.dev/name: TurboPi
-    gethomepage.dev/href: https://turbopi.{{ tacet://*/infra.domains/x }}
+    gethomepage.dev/href: https://turbopi.{{ tacet://org/Default/DevOps/Base/infra-domains/x }}
     gethomepage.dev/weight: "85"
 spec:
   ingressClassName: traefik
   rules:
-    - host: turbopi.{{ tacet://*/infra.domains/x }}
+    - host: turbopi.{{ tacet://org/Default/DevOps/Base/infra-domains/x }}
       http:
         paths:
           - path: /
@@ -100,5 +100,5 @@ spec:
                   name: default
   tls:
     - hosts:
-        - turbopi.{{ tacet://*/infra.domains/x }}
+        - turbopi.{{ tacet://org/Default/DevOps/Base/infra-domains/x }}
       secretName: turbopi-domainx

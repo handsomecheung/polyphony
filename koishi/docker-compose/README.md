@@ -10,7 +10,7 @@ Each Kubernetes node (nur, miniba, nippon) runs a set of docker-compose services
 
 ### Service Deployment Model
 
-- **Secret templating**: Source templates in `nippon/local/`, `nur/local/`, `miniba/local/` contain placeholder variables (e.g., `{{ tacet://*/koishi.deploy.timezone/password }}`) rendered by `sync.sh` using `tacet-wrapper inject`.
+- **Secret templating**: Source templates in `nippon/local/`, `nur/local/`, `miniba/local/` contain placeholder variables (e.g., `{{ tacet://org/Default/DevOps/Koishi/Base/infra-infos/timezone }}`) rendered by `sync.sh` using `tacet-wrapper inject`.
 - **Synchronization**: `sync.sh` copies rendered configs to live deployment directories on each node via rsync.
 - **Current state**: The `current/local/` directory contains example rendered configs with concrete values (registry IPs, timezone, subnet prefix).
 - **Service lifecycle**: Each node's `local/` directory includes `docker-compose.yml` plus `restart.sh`, `stop.sh`, and `rebuild.sh` scripts that use `sudo docker compose` to control services.
@@ -39,7 +39,7 @@ HTTP service exposing node metrics via Warp web framework.
 - Uses `pnet` crate to enumerate network interfaces
 - Runs `uptime` and `free -m` commands for CPU load and memory usage
 - Reads `/sys/class/thermal/thermal_zone0/temp` for CPU temperature (in millidegree Celsius); falls back to any available thermal zone
-- Requires `KOISHI_IPV4_PREFIX` environment variable 
+- Requires `KOISHI_IPV4_PREFIX` environment variable
 
 **Build**:
 ```bash
@@ -94,13 +94,13 @@ DNS server providing split-view domain resolution for machines and Kubernetes se
 
 **Configuration** (`dnsmasq.conf`):
 - Upstream resolvers: 1.1.1.1, 8.8.8.8
-- Host records: maps short names (nur, miniba, nippon, gopya) to subnet-local IPs 
+- Host records: maps short names (nur, miniba, nippon, gopya) to subnet-local IPs
 - Domain mappings: routes `home.*`, `home4p.*`, `openlist.*`, `plex.*`, `webdav.*`, `vaultwarden.*` domains to specific node IPs based on configured domain suffixes
 - Disables IPv6 for split-view domains (replies with `::`)
 
 **Template placeholders**:
-- `{{ tacet://*/koishi.infra.infos/subnetv4 }}` — Subnet prefix
-- `{{ tacet://*/infra.domains/x }}`, `{{ tacet://*/infra.domains/t }}`, etc. — Domain suffixes for different split-view zones
+- `{{ tacet://org/Default/DevOps/Koishi/Base/infra-infos/subnetv4 }}` — Subnet prefix
+- `{{ tacet://org/Default/DevOps/Base/infra-domains/x }}`, `{{ tacet://org/Default/DevOps/Base/infra-domains/t }}`, etc. — Domain suffixes for different split-view zones
 
 **Build**:
 - Base: dockurr/dnsmasq
@@ -150,7 +150,7 @@ ssh nur "cd current/local && ./restart.sh comapi"
 ## Network Topology
 
 DNS names (dnsmasq):
-- Short names: `nur`, `miniba`, `nippon`, `gopya` → subnet IPs 
+- Short names: `nur`, `miniba`, `nippon`, `gopya` → subnet IPs
 - Split-view domains: `home.*`, `home4p.*`, `openlist.*`, `plex.*`, `webdav.*`, `vaultwarden.*` → node-specific IPs
 
 ## Cross-Links

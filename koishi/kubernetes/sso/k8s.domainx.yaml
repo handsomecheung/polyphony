@@ -6,10 +6,10 @@ metadata:
   namespace: sso
 type: Opaque
 data:
-  clientid: {{ tacet://*/traefik.oss.domainx.keys/gcp-clientid?encoding=base64 }}
-  clientsecret: {{ tacet://*/traefik.oss.domainx.keys/gcp-clientsecret?encoding=base64 }}
+  clientid: {{ tacet://org/Default/DevOps/Koishi/traefik.oss.domainx.keys/gcp-clientid?encoding=base64 }}
+  clientsecret: {{ tacet://org/Default/DevOps/Koishi/traefik.oss.domainx.keys/gcp-clientsecret?encoding=base64 }}
   # something random
-  secret: {{ tacet://*/traefik.oss.domainx.keys/secret?encoding=base64 }}
+  secret: {{ tacet://org/Default/DevOps/Koishi/traefik.oss.domainx.keys/secret?encoding=base64 }}
 
 ---
 # https://github.com/thomseddon/traefik-forward-auth
@@ -37,20 +37,20 @@ spec:
           args:
             [
               "--rule.vw.action=auth",
-              '--rule.vw.rule="Host(`vaultwarden.{{ tacet://*/infra.domains/x }}`) && Path(`/admin`)"',
-              '--rule.vw.whitelist="{{ tacet://*/infra-emails/hh }}"',
+              '--rule.vw.rule="Host(`vaultwarden.{{ tacet://org/Default/DevOps/Base/infra-domains/x }}`) && Path(`/admin`)"',
+              '--rule.vw.whitelist="{{ tacet://org/Default/DevOps/Base/infra-emails/hh }}"',
 
               "--rule.high.action=auth",
-              '--rule.high.rule="Host(`cockpit-nur.{{ tacet://*/infra.domains/x }}`, `shutdown-nur.{{ tacet://*/infra.domains/x }}`, `router-netgear.{{ tacet://*/infra.domains/x }}`, `router-ntt.{{ tacet://*/infra.domains/x }}`, `router-ntt-softbank.{{ tacet://*/infra.domains/x }}`, `traefik.{{ tacet://*/infra.domains/x }}`, `kubernetes.{{ tacet://*/infra.domains/x }}`, `dbgate.{{ tacet://*/infra.domains/x }}`, `jackett.{{ tacet://*/infra.domains/x }}`, `shouseki.{{ tacet://*/infra.domains/x }}`, `bliss.{{ tacet://*/infra.domains/x }}`, `jellyfin.{{ tacet://*/infra.domains/x }}`, `qbittorrent-vuetorrent.{{ tacet://*/infra.domains/x }}`, `qbittorrent.{{ tacet://*/infra.domains/x }}`, `stable-diffusion-webui.{{ tacet://*/infra.domains/x }}`, `wakeup.{{ tacet://*/infra.domains/x }}`, `wireguard.{{ tacet://*/infra.domains/x }}`, `wireproxy.{{ tacet://*/infra.domains/x }}`, `mbtty.{{ tacet://*/infra.domains/x }}`, `mbvnc.{{ tacet://*/infra.domains/x }}`, `openclaw.{{ tacet://*/infra.domains/x }}`)"',
-              '--rule.high.whitelist="{{ tacet://*/infra-emails/hh }}"',
+              '--rule.high.rule="Host(`cockpit-nur.{{ tacet://org/Default/DevOps/Base/infra-domains/x }}`, `shutdown-nur.{{ tacet://org/Default/DevOps/Base/infra-domains/x }}`, `router-netgear.{{ tacet://org/Default/DevOps/Base/infra-domains/x }}`, `router-ntt.{{ tacet://org/Default/DevOps/Base/infra-domains/x }}`, `router-ntt-softbank.{{ tacet://org/Default/DevOps/Base/infra-domains/x }}`, `traefik.{{ tacet://org/Default/DevOps/Base/infra-domains/x }}`, `kubernetes.{{ tacet://org/Default/DevOps/Base/infra-domains/x }}`, `dbgate.{{ tacet://org/Default/DevOps/Base/infra-domains/x }}`, `jackett.{{ tacet://org/Default/DevOps/Base/infra-domains/x }}`, `shouseki.{{ tacet://org/Default/DevOps/Base/infra-domains/x }}`, `bliss.{{ tacet://org/Default/DevOps/Base/infra-domains/x }}`, `jellyfin.{{ tacet://org/Default/DevOps/Base/infra-domains/x }}`, `qbittorrent-vuetorrent.{{ tacet://org/Default/DevOps/Base/infra-domains/x }}`, `qbittorrent.{{ tacet://org/Default/DevOps/Base/infra-domains/x }}`, `stable-diffusion-webui.{{ tacet://org/Default/DevOps/Base/infra-domains/x }}`, `wakeup.{{ tacet://org/Default/DevOps/Base/infra-domains/x }}`, `wireguard.{{ tacet://org/Default/DevOps/Base/infra-domains/x }}`, `wireproxy.{{ tacet://org/Default/DevOps/Base/infra-domains/x }}`, `mbtty.{{ tacet://org/Default/DevOps/Base/infra-domains/x }}`, `mbvnc.{{ tacet://org/Default/DevOps/Base/infra-domains/x }}`, `openclaw.{{ tacet://org/Default/DevOps/Base/infra-domains/x }}`)"',
+              '--rule.high.whitelist="{{ tacet://org/Default/DevOps/Base/infra-emails/hh }}"',
 
               "--rule.dev.action=auth",
-              '--rule.dev.rule="Host(`pikvm-controller.{{ tacet://*/infra.domains/x }}`, `pikvm.{{ tacet://*/infra.domains/x }}`, `guacamole.{{ tacet://*/infra.domains/x }}`, `devbox-nur-codeserver.{{ tacet://*/infra.domains/x }}`, `ollama-webui.{{ tacet://*/infra.domains/x }}`, `n8n.{{ tacet://*/infra.domains/x }}`, `chameleon.{{ tacet://*/infra.domains/x }}`, `grafana.{{ tacet://*/infra.domains/x }}`, `jupyterlab-tensor.{{ tacet://*/infra.domains/x }}`, `jupyterlab-torch.{{ tacet://*/infra.domains/x }}`)"',
-              '--rule.dev.whitelist="{{ tacet://*/infra-emails/hh }},{{ tacet://*/infra-emails/hz }}"',
+              '--rule.dev.rule="Host(`pikvm-controller.{{ tacet://org/Default/DevOps/Base/infra-domains/x }}`, `pikvm.{{ tacet://org/Default/DevOps/Base/infra-domains/x }}`, `guacamole.{{ tacet://org/Default/DevOps/Base/infra-domains/x }}`, `devbox-nur-codeserver.{{ tacet://org/Default/DevOps/Base/infra-domains/x }}`, `ollama-webui.{{ tacet://org/Default/DevOps/Base/infra-domains/x }}`, `n8n.{{ tacet://org/Default/DevOps/Base/infra-domains/x }}`, `chameleon.{{ tacet://org/Default/DevOps/Base/infra-domains/x }}`, `grafana.{{ tacet://org/Default/DevOps/Base/infra-domains/x }}`, `jupyterlab-tensor.{{ tacet://org/Default/DevOps/Base/infra-domains/x }}`, `jupyterlab-torch.{{ tacet://org/Default/DevOps/Base/infra-domains/x }}`)"',
+              '--rule.dev.whitelist="{{ tacet://org/Default/DevOps/Base/infra-emails/hh }},{{ tacet://org/Default/DevOps/Base/infra-emails/hz }}"',
 
               "--rule.hz.action=auth",
-              '--rule.hz.rule="Host(`dbgate-lite.{{ tacet://*/infra.domains/x }}`)"',
-              '--rule.hz.whitelist="{{ tacet://*/infra-emails/hz }}"',
+              '--rule.hz.rule="Host(`dbgate-lite.{{ tacet://org/Default/DevOps/Base/infra-domains/x }}`)"',
+              '--rule.hz.whitelist="{{ tacet://org/Default/DevOps/Base/infra-emails/hz }}"',
             ]
           env:
             - name: PROVIDERS_GOOGLE_CLIENT_ID
@@ -69,15 +69,15 @@ spec:
                   name: domainx
                   key: secret
             - name: COOKIE_DOMAIN
-              value: {{ tacet://*/infra.domains/x }}
+              value: {{ tacet://org/Default/DevOps/Base/infra-domains/x }}
             - name: AUTH_HOST
-              value: gsso.{{ tacet://*/infra.domains/x }}
+              value: gsso.{{ tacet://org/Default/DevOps/Base/infra-domains/x }}
             - name: INSECURE_COOKIE
               value: "false"
             - name: URL_PATH
               value: /_oauth
             - name: WHITELIST
-              value: {{ tacet://*/infra-emails/hh }},{{ tacet://*/infra-emails/hz }},{{ tacet://*/infra-emails/cq }},{{ tacet://*/infra-emails/ck }}
+              value: {{ tacet://org/Default/DevOps/Base/infra-emails/hh }},{{ tacet://org/Default/DevOps/Base/infra-emails/hz }},{{ tacet://org/Default/DevOps/Base/infra-emails/cq }},{{ tacet://org/Default/DevOps/Base/infra-emails/ck }}
             - name: LOG_LEVEL
               value: info
             - name: LIFETIME
@@ -126,7 +126,7 @@ metadata:
 spec:
   ingressClassName: traefik
   rules:
-    - host: gsso.{{ tacet://*/infra.domains/x }}
+    - host: gsso.{{ tacet://org/Default/DevOps/Base/infra-domains/x }}
       http:
         paths:
           - path: /
@@ -138,5 +138,5 @@ spec:
                   name: default
   tls:
     - hosts:
-        - gsso.{{ tacet://*/infra.domains/x }}
+        - gsso.{{ tacet://org/Default/DevOps/Base/infra-domains/x }}
       secretName: auth-domainx

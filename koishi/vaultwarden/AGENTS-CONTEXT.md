@@ -16,8 +16,8 @@ This document complements [README.md](file:///mnt/coder-workspaces/private-works
   - **Resource requests**: 100m CPU, 50Mi memory.
   - **Network Policy**: Strict egress deny-all.
   - **Ingress routes**:
-    - Public: `vaultwarden.{{ tacet://*/infra.domains/x }}/` (no authentication, weight 30).
-    - Admin: `vaultwarden.{{ tacet://*/infra.domains/x }}/admin` (protected by `sso-domainx` middleware, weight 40).
+    - Public: `vaultwarden.{{ tacet://org/Default/DevOps/Base/infra-domains/x }}/` (no authentication, weight 30).
+    - Admin: `vaultwarden.{{ tacet://org/Default/DevOps/Base/infra-domains/x }}/admin` (protected by `sso-domainx` middleware, weight 40).
   - **TLS**: Auto-managed by cert-manager with DNS-01 Cloudflare challenge.
   - **Limits**: 525MB request body limit configured on Traefik buffering middleware.
 
@@ -25,8 +25,8 @@ This document complements [README.md](file:///mnt/coder-workspaces/private-works
 
 Build and deployment tooling accesses Vaultwarden through `tacet-wrapper`:
 
-- `tacet-wrapper read "tacet://*/item-name/password"` retrieves an item password.
-- `tacet-wrapper read "tacet://*/item-name/field-name"` retrieves a custom field; a filename selects an attachment.
+- `tacet-wrapper read "tacet://org/Default/DevOps/Koishi/item-name/password"` retrieves an item password.
+- `tacet-wrapper read "tacet://org/Default/DevOps/Koishi/item-name/field-name"` retrieves a custom field; a filename selects an attachment.
 - `tacet-wrapper inject` resolves placeholders in configuration templates.
 - `scripts/tacet-source-env` loads `TACET_SERVER`, `TACET_CLIENT_ID`, `TACET_CLIENT_SECRET`, and `TACET_PASSWORD` from the protected environment file. The wrapper logs in when needed and unlocks locked sessions before executing the command.
 
@@ -34,14 +34,16 @@ Build and deployment tooling accesses Vaultwarden through `tacet-wrapper`:
 
 Build and deployment templates use `tacet-wrapper inject` with the following syntax:
 
-| Placeholder                  | Example                                                                     | Meaning                             |
-|:-----------------------------|:----------------------------------------------------------------------------|:------------------------------------|
-| `{{ tacet://*/name/password }}`               | `{{ tacet://*/koishi.litellm/password }}`                                                    | Password of item `name`             |
-| `{{ tacet://*/name/password?encoding=base64 }}`         | `{{ tacet://*/koishi.litellm/password?encoding=base64 }}`                                              | Base64-encoded password             |
-| `{{ tacet://*/name/field }}`       | `{{ tacet://*/infra.common-users/hh }}`                                           | Custom field `field` of item `name` |
-| `{{ tacet://*/name/field?encoding=base64 }}` | `{{ tacet://*/infra.common-users/hh?encoding=base64 }}`                                     | Base64-encoded custom field         |
-| `{{ tacet://*/name/file }}`        | `{{ tacet://*/koishi.foldersync.sshkeys.system.files/ssh_host_ecdsa_key }}`       | Attachment content                  |
-| `{{ tacet://*/name/file?encoding=base64 }}`  | `{{ tacet://*/koishi.foldersync.sshkeys.system.files/ssh_host_ecdsa_key?encoding=base64 }}` | Base64-encoded attachment           |
+URIs must specify the organization and full collection path: `tacet://org/<organization>/<collection-path>/<name>/<selector>`. These examples use organization `Default` and collection `DevOps/Koishi`; `name`, `field`, and `file` in the placeholder column are values to replace. Wildcard URI lookup is being removed; use explicit paths for all new references.
+
+| Placeholder                                                             | Example                                                                                                             | Meaning                             |
+| :---------------------------------------------------------------------- | :------------------------------------------------------------------------------------------------------------------ | :---------------------------------- |
+| `{{ tacet://org/Default/DevOps/Koishi/name/password }}`                 | `{{ tacet://org/Default/DevOps/Koishi/koishi.litellm/password }}`                                                   | Password of item `name`             |
+| `{{ tacet://org/Default/DevOps/Koishi/name/password?encoding=base64 }}` | `{{ tacet://org/Default/DevOps/Koishi/koishi.litellm/password?encoding=base64 }}`                                   | Base64-encoded password             |
+| `{{ tacet://org/Default/DevOps/Koishi/name/field }}`                    | `{{ tacet://org/Default/DevOps/Koishi/infra.common-users/hh }}`                                                     | Custom field `field` of item `name` |
+| `{{ tacet://org/Default/DevOps/Koishi/name/field?encoding=base64 }}`    | `{{ tacet://org/Default/DevOps/Koishi/infra.common-users/hh?encoding=base64 }}`                                     | Base64-encoded custom field         |
+| `{{ tacet://org/Default/DevOps/Koishi/name/file }}`                     | `{{ tacet://org/Default/DevOps/Koishi/koishi.foldersync.sshkeys.system.files/ssh_host_ecdsa_key }}`                 | Attachment content                  |
+| `{{ tacet://org/Default/DevOps/Koishi/name/file?encoding=base64 }}`     | `{{ tacet://org/Default/DevOps/Koishi/koishi.foldersync.sshkeys.system.files/ssh_host_ecdsa_key?encoding=base64 }}` | Base64-encoded attachment           |
 
 ### Portwarden Backup Tool (`portwarden/`)
 
@@ -82,7 +84,7 @@ Provides complete filesystem snapshot backup capability.
   - Port 80/443 to Traefik (internal proxy routing).
   - Cluster IP of `fs-downserver` in `default` namespace.
   - Cluster IP of `vaultwarden` in `default-vaultwarden` namespace.
-  - Subnet `{{ tacet://*/koishi.infra.infos/subnetv4 }}.0/24` for authorized local external interfaces.
+  - Subnet `{{ tacet://org/Default/DevOps/Koishi/Base/infra-infos/subnetv4 }}.0/24` for authorized local external interfaces.
 
 ---
 

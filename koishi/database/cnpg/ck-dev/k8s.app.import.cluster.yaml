@@ -18,12 +18,12 @@ spec:
           externalCluster: postgres-old
       # インポート開始前にロールを作成
       postInitSQL:
-        - CREATE ROLE nulltrace WITH LOGIN PASSWORD '{{ tacet://*/database.postgres.ck-dev.accounts/nulltrace }}';
-        - CREATE ROLE formant WITH LOGIN PASSWORD '{{ tacet://*/database.postgres.ck-dev.accounts/formant }}';
-        - CREATE ROLE kausabu WITH LOGIN PASSWORD '{{ tacet://*/database.postgres.ck-dev.accounts/kausabu }}';
-        - CREATE ROLE home WITH LOGIN PASSWORD '{{ tacet://*/database.postgres.ck-dev.accounts/home }}';
-        - CREATE ROLE pushion WITH LOGIN PASSWORD '{{ tacet://*/database.postgres.ck-dev.accounts/pushion }}';
-        - CREATE ROLE forma WITH LOGIN PASSWORD '{{ tacet://*/database.postgres.ck-dev.accounts/forma }}';
+        - CREATE ROLE nulltrace WITH LOGIN PASSWORD '{{ tacet://org/Default/DevOps/Koishi/CK/Dev/database.postgres.ck-dev.accounts/nulltrace }}';
+        - CREATE ROLE formant WITH LOGIN PASSWORD '{{ tacet://org/Default/DevOps/Koishi/CK/Dev/database.postgres.ck-dev.accounts/formant }}';
+        - CREATE ROLE kausabu WITH LOGIN PASSWORD '{{ tacet://org/Default/DevOps/Koishi/CK/Dev/database.postgres.ck-dev.accounts/kausabu }}';
+        - CREATE ROLE home WITH LOGIN PASSWORD '{{ tacet://org/Default/DevOps/Koishi/CK/Dev/database.postgres.ck-dev.accounts/home }}';
+        - CREATE ROLE pushion WITH LOGIN PASSWORD '{{ tacet://org/Default/DevOps/Koishi/CK/Dev/database.postgres.ck-dev.accounts/pushion }}';
+        - CREATE ROLE forma WITH LOGIN PASSWORD '{{ tacet://org/Default/DevOps/Koishi/CK/Dev/database.postgres.ck-dev.accounts/forma }}';
 
   externalClusters:
     - name: postgres-old

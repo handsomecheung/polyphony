@@ -92,7 +92,7 @@ metadata:
 spec:
   ingressClassName: traefik
   rules:
-    - host: downserver.{{ tacet://*/infra.domains/x }}
+    - host: downserver.{{ tacet://org/Default/DevOps/Base/infra-domains/x }}
       http:
         paths:
           - path: /cksns/
@@ -104,5 +104,5 @@ spec:
                   name: default
   tls:
     - hosts:
-        - downserver.{{ tacet://*/infra.domains/x }}
+        - downserver.{{ tacet://org/Default/DevOps/Base/infra-domains/x }}
       secretName: downserver-domainx

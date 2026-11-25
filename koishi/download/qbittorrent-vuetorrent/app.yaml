@@ -65,12 +65,12 @@ metadata:
     gethomepage.dev/name: VueTorrent
     gethomepage.dev/description: WebUI for qBittorrent made with Vue.js!
     gethomepage.dev/icon: https://vuetorrent.github.io/demo/icon.svg
-    gethomepage.dev/href: https://qbittorrent-vuetorrent.{{ tacet://*/infra.domains/x }}/
+    gethomepage.dev/href: https://qbittorrent-vuetorrent.{{ tacet://org/Default/DevOps/Base/infra-domains/x }}/
     gethomepage.dev/weight: "60"
 spec:
   ingressClassName: traefik
   rules:
-    - host: qbittorrent-vuetorrent.{{ tacet://*/infra.domains/x }}
+    - host: qbittorrent-vuetorrent.{{ tacet://org/Default/DevOps/Base/infra-domains/x }}
       http:
         paths:
           - path: /
@@ -82,5 +82,5 @@ spec:
                   name: default
   tls:
     - hosts:
-        - qbittorrent-vuetorrent.{{ tacet://*/infra.domains/x }}
+        - qbittorrent-vuetorrent.{{ tacet://org/Default/DevOps/Base/infra-domains/x }}
       secretName: qbittorrentvuetorrent-domainx

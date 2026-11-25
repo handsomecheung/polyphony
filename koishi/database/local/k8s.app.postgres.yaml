@@ -32,7 +32,7 @@ spec:
             - name: POSTGRES_USER
               value: postgres
             - name: POSTGRES_PASSWORD
-              value: "{{ tacet://*/database.postgres-local.accounts/postgres }}"
+              value: "{{ tacet://org/Default/DevOps/Koishi/database.postgres-local.accounts/postgres }}"
             - name: POSTGRES_DB
               value: default
           volumeMounts:

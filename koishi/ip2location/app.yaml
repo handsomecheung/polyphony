@@ -58,7 +58,7 @@ metadata:
 spec:
   ingressClassName: traefik
   rules:
-    - host: ip2location.home4p.{{ tacet://org/Default/Network/Koishi/Infra/infra.domains/x }}
+    - host: ip2location.home4p.{{ tacet://org/Default/Network/Koishi/Infra/infra-domains/x }}
       http:
         paths:
           - path: /
@@ -70,5 +70,5 @@ spec:
                   name: default
   tls:
     - hosts:
-        - ip2location.home4p.{{ tacet://org/Default/Network/Koishi/Infra/infra.domains/x }}
+        - ip2location.home4p.{{ tacet://org/Default/Network/Koishi/Infra/infra-domains/x }}
       secretName: ip2location-home4p

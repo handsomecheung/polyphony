@@ -30,7 +30,7 @@ ports:
     protocol: TCP
 endpoints:
   - addresses:
-      - "{{ tacet://*/infra.machine.netgear/ip }}"
+      - "{{ tacet://org/Default/DevOps/Koishi/infra.machine.netgear/ip }}"
     conditions:
       ready: true
 
@@ -47,14 +47,14 @@ metadata:
     gethomepage.dev/group: Network
     gethomepage.dev/name: Netgear WAX206 Admin
     gethomepage.dev/icon: https://www.netgear.com/favicon.ico
-    gethomepage.dev/href: https://router-netgear.{{ tacet://*/infra.domains/x }}
-    gethomepage.dev/siteMonitor: https://router-netgear.{{ tacet://*/infra.domains/x }}
+    gethomepage.dev/href: https://router-netgear.{{ tacet://org/Default/DevOps/Base/infra-domains/x }}
+    gethomepage.dev/siteMonitor: https://router-netgear.{{ tacet://org/Default/DevOps/Base/infra-domains/x }}
     gethomepage.dev/pod-selector: ""
     gethomepage.dev/weight: "20"
 spec:
   ingressClassName: traefik
   rules:
-    - host: router-netgear.{{ tacet://*/infra.domains/x }}
+    - host: router-netgear.{{ tacet://org/Default/DevOps/Base/infra-domains/x }}
       http:
         paths:
           - path: /
@@ -66,7 +66,7 @@ spec:
                   name: default
   tls:
     - hosts:
-        - router-netgear.{{ tacet://*/infra.domains/x }}
+        - router-netgear.{{ tacet://org/Default/DevOps/Base/infra-domains/x }}
       secretName: router-netgear-domainx
 
 ---
@@ -100,7 +100,7 @@ ports:
     protocol: TCP
 endpoints:
   - addresses:
-      - "{{ tacet://*/infra.machine.ntt/ip }}"
+      - "{{ tacet://org/Default/DevOps/Koishi/infra.machine.ntt/ip }}"
     conditions:
       ready: true
 
@@ -117,14 +117,14 @@ metadata:
     gethomepage.dev/group: Network
     gethomepage.dev/name: NTT XG-100NE
     gethomepage.dev/icon: https://group.ntt/favicon.png
-    gethomepage.dev/href: https://router-ntt.{{ tacet://*/infra.domains/x }}
-    gethomepage.dev/siteMonitor: https://router-ntt.{{ tacet://*/infra.domains/x }}
+    gethomepage.dev/href: https://router-ntt.{{ tacet://org/Default/DevOps/Base/infra-domains/x }}
+    gethomepage.dev/siteMonitor: https://router-ntt.{{ tacet://org/Default/DevOps/Base/infra-domains/x }}
     gethomepage.dev/pod-selector: ""
     gethomepage.dev/weight: "22"
 spec:
   ingressClassName: traefik
   rules:
-    - host: router-ntt.{{ tacet://*/infra.domains/x }}
+    - host: router-ntt.{{ tacet://org/Default/DevOps/Base/infra-domains/x }}
       http:
         paths:
           - path: /
@@ -136,7 +136,7 @@ spec:
                   name: ntt
   tls:
     - hosts:
-        - router-ntt.{{ tacet://*/infra.domains/x }}
+        - router-ntt.{{ tacet://org/Default/DevOps/Base/infra-domains/x }}
       secretName: router-ntt-domainx
 
 ---
@@ -152,14 +152,14 @@ metadata:
     gethomepage.dev/group: Network
     gethomepage.dev/name: NTT XG-100NE Softbank
     gethomepage.dev/icon: https://www.softbank.jp/assets/set/common/p/img/favicon.ico
-    gethomepage.dev/href: https://router-ntt-softbank.{{ tacet://*/infra.domains/x }}/t/
-    gethomepage.dev/siteMonitor: https://router-ntt-softbank.{{ tacet://*/infra.domains/x }}/t/
+    gethomepage.dev/href: https://router-ntt-softbank.{{ tacet://org/Default/DevOps/Base/infra-domains/x }}/t/
+    gethomepage.dev/siteMonitor: https://router-ntt-softbank.{{ tacet://org/Default/DevOps/Base/infra-domains/x }}/t/
     gethomepage.dev/pod-selector: ""
     gethomepage.dev/weight: "24"
 spec:
   ingressClassName: traefik
   rules:
-    - host: router-ntt-softbank.{{ tacet://*/infra.domains/x }}
+    - host: router-ntt-softbank.{{ tacet://org/Default/DevOps/Base/infra-domains/x }}
       http:
         paths:
           - path: /
@@ -171,5 +171,5 @@ spec:
                   name: softbank
   tls:
     - hosts:
-        - router-ntt-softbank.{{ tacet://*/infra.domains/x }}
+        - router-ntt-softbank.{{ tacet://org/Default/DevOps/Base/infra-domains/x }}
       secretName: router-ntt-softbank-domainx

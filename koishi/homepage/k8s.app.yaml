@@ -221,7 +221,7 @@ spec:
           imagePullPolicy: Always
           env:
             - name: HOMEPAGE_ALLOWED_HOSTS
-              value: {{ tacet://*/infra.domains/x }}
+              value: {{ tacet://org/Default/DevOps/Base/infra-domains/x }}
           volumeMounts:
             - name: config
               mountPath: /app/config
@@ -279,7 +279,7 @@ metadata:
 spec:
   ingressClassName: traefik
   rules:
-    - host: {{ tacet://*/infra.domains/x }}
+    - host: {{ tacet://org/Default/DevOps/Base/infra-domains/x }}
       http:
         paths:
           - path: /
@@ -291,5 +291,5 @@ spec:
                   name: default
   tls:
     - hosts:
-        - {{ tacet://*/infra.domains/x }}
+        - {{ tacet://org/Default/DevOps/Base/infra-domains/x }}
       secretName: homepage-domainx

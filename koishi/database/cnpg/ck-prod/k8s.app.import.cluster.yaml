@@ -17,11 +17,11 @@ spec:
         source:
           externalCluster: postgres-old
       postInitSQL:
-        - CREATE ROLE home WITH LOGIN PASSWORD '{{ tacet://*/database.postgres.ck-prod.accounts/home }}';
-        - CREATE ROLE formant WITH LOGIN PASSWORD '{{ tacet://*/database.postgres.ck-prod.accounts/formant }}';
-        - CREATE ROLE forma WITH LOGIN PASSWORD '{{ tacet://*/database.postgres.ck-prod.accounts/forma }}';
-        - CREATE ROLE pushion WITH LOGIN PASSWORD '{{ tacet://*/database.postgres.ck-prod.accounts/pushion }}';
-        - CREATE ROLE nulltrace WITH LOGIN PASSWORD '{{ tacet://*/database.postgres.ck-prod.accounts/nulltrace }}';
+        - CREATE ROLE home WITH LOGIN PASSWORD '{{ tacet://org/Default/DevOps/Koishi/CK/Prod/database.postgres.ck-prod.accounts/home }}';
+        - CREATE ROLE formant WITH LOGIN PASSWORD '{{ tacet://org/Default/DevOps/Koishi/CK/Prod/database.postgres.ck-prod.accounts/formant }}';
+        - CREATE ROLE forma WITH LOGIN PASSWORD '{{ tacet://org/Default/DevOps/Koishi/CK/Prod/database.postgres.ck-prod.accounts/forma }}';
+        - CREATE ROLE pushion WITH LOGIN PASSWORD '{{ tacet://org/Default/DevOps/Koishi/CK/Prod/database.postgres.ck-prod.accounts/pushion }}';
+        - CREATE ROLE nulltrace WITH LOGIN PASSWORD '{{ tacet://org/Default/DevOps/Koishi/CK/Prod/database.postgres.ck-prod.accounts/nulltrace }}';
 
   externalClusters:
     - name: postgres-old

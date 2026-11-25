@@ -19,12 +19,12 @@ echo "kubectl and tacet configured. start building image ..."
 cmd_kubectl="kubectl"
 cmd_tacet="tacet-wrapper"
 
-host_cloudpublic=$(${cmd_tacet} read 'tacet://*/koishi.deploy.cloudpublic_registry_host/password')
-host_cloudprivate=$(${cmd_tacet} read 'tacet://*/koishi.deploy.cloudprivate_registry_host/password')
+host_cloudpublic=$(${cmd_tacet} read 'tacet://org/Default/DevOps/Koishi/Base/infra-infos/cloudpublic-registry-host')
+host_cloudprivate=$(${cmd_tacet} read 'tacet://org/Default/DevOps/Koishi/Base/infra-infos/cloudprivate-registry-host')
 
-cloudpublic_registry_id=$(${cmd_tacet} read 'tacet://*/koishi.deploy.cloudpublic_registry_id/password')
-cloudprivate_registry_id=$(${cmd_tacet} read 'tacet://*/koishi.deploy.cloudprivate_registry_id/password')
-cloudpublic_registry_password=$(${cmd_tacet} read 'tacet://*/github.docker-image.token/password')
+cloudpublic_registry_id=$(${cmd_tacet} read 'tacet://org/Default/DevOps/Koishi/Base/infra-infos/cloudpublic-registry-id')
+cloudprivate_registry_id=$(${cmd_tacet} read 'tacet://org/Default/DevOps/Koishi/Base/infra-infos/cloudprivate-registry-id')
+cloudpublic_registry_password=$(${cmd_tacet} read 'tacet://org/Default/DevOps/Koishi/Base/github-dockerimage/token')
 
 # for push cache layer and cloudprivate
 docker login "${host_cloudpublic}" --username "${cloudpublic_registry_id}" --password "${cloudpublic_registry_password}"

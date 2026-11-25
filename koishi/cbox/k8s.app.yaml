@@ -6,7 +6,7 @@ metadata:
   namespace: others
 type: Opaque
 data:
-  password: "{{ tacet://*/koishi.container.cbox/password?encoding=base64 }}"
+  password: "{{ tacet://org/Default/DevOps/Koishi/koishi.container.cbox/password?encoding=base64 }}"
 
 ---
 apiVersion: apps/v1

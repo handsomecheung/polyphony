@@ -7,7 +7,7 @@ Koishi is a personal home-lab Kubernetes cluster managed as a fully declarative 
 - **Web-First (Web >>> App)**: Every service that normally requires a desktop or mobile application is replaced with, or supplemented by, a browser-accessible equivalent—DBGate for databases, Coder/code-server for IDEs, Guacamole for remote desktops, openlist for file browsing, JupyterLab for notebooks. No specialized client is ever required.
 - **Access From Anywhere**: A layered connectivity stack (Cloudflare proxy, WireGuard, DDNS, Traefik ingress) ensures every internal service is reachable from any network without manual VPN configuration.
 - **HTTPS Everywhere**: TLS is mandatory and automatic. cert-manager issues wildcard and per-domain certificates via Let's Encrypt DNS-01 challenges resolved through the Cloudflare API. HTTP is globally redirected to HTTPS at the Traefik entrypoint.
-- **No Secrets in Code**: Sensitive values are never committed. All `{{ tacet://*/item-name/password }}` placeholders in YAML and Dockerfile sources are rendered at deploy time by Tacet through `tacet-wrapper` against a self-hosted Vaultwarden vault. The git history is clean by design; the `infra/` hooks enforce this with a pre-commit keyword blacklist.
+- **No Secrets in Code**: Sensitive values are never committed. All `{{ tacet://org/Default/DevOps/Koishi/item-name/password }}` placeholders in YAML and Dockerfile sources are rendered at deploy time by Tacet through `tacet-wrapper` against a self-hosted Vaultwarden vault. The git history is clean by design; the `infra/` hooks enforce this with a pre-commit keyword blacklist.
 - **Infra as Code**: The entire cluster state—networking, storage, builds, schedules, RBAC, DNS—is defined in this repository and applied via `my-k8s-deploy`.
 
 ---
@@ -130,13 +130,15 @@ Runs via `docker-compose` on each node. Polls every 120 seconds, mounts `/var/ru
 
 Vaultwarden (`vaultwarden/server:latest`) is the cluster's secret backend, deployed in the `default-vaultwarden` namespace with a strict NetworkPolicy that blocks all pod egress. Tacet resolves passwords, custom fields, and attachments from the vault. Build and deployment tooling uses `tacet-wrapper read` for individual values and `tacet-wrapper inject` for template placeholders:
 
+Use explicit organization and collection paths: `tacet://org/<organization>/<collection-path>/<item-name>/<selector>`. The examples below use organization `Default` and collection `DevOps/Koishi`; replace `item-name` and the selector with the target item and its password, custom field, or attachment. Wildcard URI lookup is being removed; specify the full path for every reference.
+
 ```text
-{{ tacet://*/item-name/password }}                  → item password
-{{ tacet://*/item-name/field-name }}                → custom field value
-{{ tacet://*/item-name/filename }}                  → attachment content
-{{ tacet://*/item-name/password?encoding=base64 }}  → Base64-encoded password
-{{ tacet://*/item-name/field-name?encoding=base64 }} → Base64-encoded field
-{{ tacet://*/item-name/filename?encoding=base64 }}   → Base64-encoded attachment
+{{ tacet://org/Default/DevOps/Koishi/item-name/password }}                   → item password
+{{ tacet://org/Default/DevOps/Koishi/item-name/field-name }}                 → custom field value
+{{ tacet://org/Default/DevOps/Koishi/item-name/filename }}                   → attachment content
+{{ tacet://org/Default/DevOps/Koishi/item-name/password?encoding=base64 }}   → Base64-encoded password
+{{ tacet://org/Default/DevOps/Koishi/item-name/field-name?encoding=base64 }} → Base64-encoded field
+{{ tacet://org/Default/DevOps/Koishi/item-name/filename?encoding=base64 }}   → Base64-encoded attachment
 ```
 
 Vault data is backed up nightly by two mechanisms:

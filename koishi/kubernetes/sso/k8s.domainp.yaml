@@ -6,10 +6,10 @@ metadata:
   namespace: sso
 type: Opaque
 data:
-  clientid: {{ tacet://*/traefik.oss.domainp.keys/gcp-clientid?encoding=base64 }}
-  clientsecret: {{ tacet://*/traefik.oss.domainp.keys/gcp-clientsecret?encoding=base64 }}
+  clientid: {{ tacet://org/Default/DevOps/Koishi/traefik.oss.domainp.keys/gcp-clientid?encoding=base64 }}
+  clientsecret: {{ tacet://org/Default/DevOps/Koishi/traefik.oss.domainp.keys/gcp-clientsecret?encoding=base64 }}
   # something random
-  secret: {{ tacet://*/traefik.oss.domainp.keys/secret?encoding=base64 }}
+  secret: {{ tacet://org/Default/DevOps/Koishi/traefik.oss.domainp.keys/secret?encoding=base64 }}
 
 ---
 # https://github.com/thomseddon/traefik-forward-auth
@@ -37,16 +37,16 @@ spec:
           args:
             [
               "--rule.high.action=auth",
-              '--rule.high.rule="Host(`mq.{{ tacet://*/infra.domains/p }}`)"',
-              '--rule.high.whitelist="{{ tacet://*/infra-emails/hh }}"',
+              '--rule.high.rule="Host(`mq.{{ tacet://org/Default/DevOps/Base/infra-domains/p }}`)"',
+              '--rule.high.whitelist="{{ tacet://org/Default/DevOps/Base/infra-emails/hh }}"',
 
               "--rule.dev.action=auth",
-              '--rule.dev.rule="Host(`webapp-dev.{{ tacet://*/infra.domains/p }}`, `mq-dev.{{ tacet://*/infra.domains/p }}`)"',
-              '--rule.dev.whitelist="{{ tacet://*/infra-emails/hh }},{{ tacet://*/infra-emails/hz }}"',
+              '--rule.dev.rule="Host(`webapp-dev.{{ tacet://org/Default/DevOps/Base/infra-domains/p }}`, `mq-dev.{{ tacet://org/Default/DevOps/Base/infra-domains/p }}`)"',
+              '--rule.dev.whitelist="{{ tacet://org/Default/DevOps/Base/infra-emails/hh }},{{ tacet://org/Default/DevOps/Base/infra-emails/hz }}"',
 
               "--rule.dev.action=auth",
-              '--rule.dev.rule="Host(`webapp-cdev.{{ tacet://*/infra.domains/p }}`)"',
-              '--rule.dev.whitelist="{{ tacet://*/infra-emails/hh }},{{ tacet://*/infra-emails/hz }},{{ tacet://*/infra-emails/cq }}"',
+              '--rule.dev.rule="Host(`webapp-cdev.{{ tacet://org/Default/DevOps/Base/infra-domains/p }}`)"',
+              '--rule.dev.whitelist="{{ tacet://org/Default/DevOps/Base/infra-emails/hh }},{{ tacet://org/Default/DevOps/Base/infra-emails/hz }},{{ tacet://org/Default/DevOps/Base/infra-emails/cq }}"',
             ]
           env:
             - name: PROVIDERS_GOOGLE_CLIENT_ID
@@ -65,15 +65,15 @@ spec:
                   name: domainp
                   key: secret
             - name: COOKIE_DOMAIN
-              value: {{ tacet://*/infra.domains/p }}
+              value: {{ tacet://org/Default/DevOps/Base/infra-domains/p }}
             - name: AUTH_HOST
-              value: gsso.{{ tacet://*/infra.domains/p }}
+              value: gsso.{{ tacet://org/Default/DevOps/Base/infra-domains/p }}
             - name: INSECURE_COOKIE
               value: "false"
             - name: URL_PATH
               value: /_oauth
             - name: WHITELIST
-              value: {{ tacet://*/infra-emails/hh }},{{ tacet://*/infra-emails/hz }},{{ tacet://*/infra-emails/cq }}
+              value: {{ tacet://org/Default/DevOps/Base/infra-emails/hh }},{{ tacet://org/Default/DevOps/Base/infra-emails/hz }},{{ tacet://org/Default/DevOps/Base/infra-emails/cq }}
             - name: LOG_LEVEL
               value: info
             - name: LIFETIME
@@ -122,7 +122,7 @@ metadata:
 spec:
   ingressClassName: traefik
   rules:
-    - host: gsso.{{ tacet://*/infra.domains/p }}
+    - host: gsso.{{ tacet://org/Default/DevOps/Base/infra-domains/p }}
       http:
         paths:
           - path: /
@@ -134,5 +134,5 @@ spec:
                   name: default
   tls:
     - hosts:
-        - gsso.{{ tacet://*/infra.domains/p }}
+        - gsso.{{ tacet://org/Default/DevOps/Base/infra-domains/p }}
       secretName: auth-domainp

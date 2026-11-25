@@ -25,11 +25,11 @@
         <allowHoles>1</allowHoles>
         <encodedKeySize>44</encodedKeySize>
         <encodedKeyData>
-{{ tacet://*/aliyunpan.encryption.encfs/encodedKeyData }}
+{{ tacet://org/Default/DevOps/Koishi/aliyunpan.encryption.encfs/encodedKeyData }}
 </encodedKeyData>
         <saltLen>20</saltLen>
         <saltData>
-{{ tacet://*/aliyunpan.encryption.encfs/saltData }}
+{{ tacet://org/Default/DevOps/Koishi/aliyunpan.encryption.encfs/saltData }}
 </saltData>
         <kdfIterations>758711</kdfIterations>
         <desiredKDFDuration>500</desiredKDFDuration>

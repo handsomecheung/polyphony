@@ -19,7 +19,7 @@ spec:
   persistentVolumeReclaimPolicy: Retain
   volumeMode: Filesystem
   nfs:
-    server: {{ tacet://*/infra.machine.nur/ip }}
+    server: {{ tacet://org/Default/DevOps/Koishi/infra.machine.nur/ip }}
     path: /mnt/nfs/exports/disk/user-data-others
     readOnly: no
 
@@ -58,7 +58,7 @@ spec:
   persistentVolumeReclaimPolicy: Retain
   volumeMode: Filesystem
   nfs:
-    server: {{ tacet://*/infra.machine.nur/ip }}
+    server: {{ tacet://org/Default/DevOps/Koishi/infra.machine.nur/ip }}
     path: /mnt/nfs/exports/disk/user-data-music
     readOnly: no
 
@@ -97,7 +97,7 @@ spec:
   persistentVolumeReclaimPolicy: Retain
   volumeMode: Filesystem
   nfs:
-    server: {{ tacet://*/infra.machine.nur/ip }}
+    server: {{ tacet://org/Default/DevOps/Koishi/infra.machine.nur/ip }}
     path: /mnt/nfs/exports/disk/user-data-slight
     readOnly: no
 
@@ -136,7 +136,7 @@ spec:
   persistentVolumeReclaimPolicy: Retain
   volumeMode: Filesystem
   nfs:
-    server: {{ tacet://*/infra.machine.nur/ip }}
+    server: {{ tacet://org/Default/DevOps/Koishi/infra.machine.nur/ip }}
     path: /mnt/nfs/exports/disk/coder-sharepoint
     readOnly: no
 
@@ -175,7 +175,7 @@ spec:
   persistentVolumeReclaimPolicy: Retain
   volumeMode: Filesystem
   nfs:
-    server: {{ tacet://*/infra.machine.nur/ip }}
+    server: {{ tacet://org/Default/DevOps/Koishi/infra.machine.nur/ip }}
     path: /mnt/nfs/exports/disk/coder-workspaces
     readOnly: no
 

@@ -1,7 +1,7 @@
 FROM ubuntu:24.04
 
 ENV DEBIAN_FRONTEND=noninteractive
-ENV MY_TZ="{{ tacet://*/koishi.deploy.timezone/password }}"
+ENV MY_TZ="{{ tacet://org/Default/DevOps/Koishi/Base/infra-infos/timezone }}"
 
 RUN apt-get update && \
 	ln -fs /usr/share/zoneinfo/${MY_TZ} /etc/localtime && \

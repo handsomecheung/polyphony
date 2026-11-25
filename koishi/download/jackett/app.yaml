@@ -83,12 +83,12 @@ metadata:
     gethomepage.dev/group: Media
     gethomepage.dev/name: jackett
     gethomepage.dev/icon: jackett
-    gethomepage.dev/href: https://jackett.{{ tacet://*/infra.domains/x }}/
+    gethomepage.dev/href: https://jackett.{{ tacet://org/Default/DevOps/Base/infra-domains/x }}/
     gethomepage.dev/weight: "70"
 spec:
   ingressClassName: traefik
   rules:
-    - host: jackett.{{ tacet://*/infra.domains/x }}
+    - host: jackett.{{ tacet://org/Default/DevOps/Base/infra-domains/x }}
       http:
         paths:
           - path: /
@@ -100,5 +100,5 @@ spec:
                   name: default
   tls:
     - hosts:
-        - jackett.{{ tacet://*/infra.domains/x }}
+        - jackett.{{ tacet://org/Default/DevOps/Base/infra-domains/x }}
       secretName: jackett-domainx

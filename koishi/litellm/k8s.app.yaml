@@ -37,19 +37,19 @@ spec:
             - name: UI_USERNAME
               value: "admin"
             - name: UI_PASSWORD
-              value: "{{ tacet://*/koishi.litellm/password }}"
+              value: "{{ tacet://org/Default/DevOps/Koishi/koishi.litellm/password }}"
             - name: OLLAMA_API_BASE
               value: "http://ollama"
             - name: LITELLM_MASTER_KEY
-              value: "{{ tacet://*/koishi.litellm/master-key }}"
+              value: "{{ tacet://org/Default/DevOps/Koishi/koishi.litellm/master-key }}"
             - name: LITELLM_SALT_KEY
-              value: "{{ tacet://*/koishi.litellm/salt-key }}"
+              value: "{{ tacet://org/Default/DevOps/Koishi/koishi.litellm/salt-key }}"
             - name: DATABASE_URL
-              value: "postgresql://litellm:{{ tacet://*/database.postgres-local.accounts/litellm }}@postgres.database:5432/litellm"
+              value: "postgresql://litellm:{{ tacet://org/Default/DevOps/Koishi/database.postgres-local.accounts/litellm }}@postgres.database:5432/litellm"
             - name: GEMINI_API_KEY
-              value: "{{ tacet://*/llm.api-keys/gemini-litellm }}"
+              value: "{{ tacet://org/Default/DevOps/Koishi/llm.api-keys/gemini-litellm }}"
             - name: ANTHROPIC_API_KEY
-              value: "{{ tacet://*/llm.api-keys/claude }}"
+              value: "{{ tacet://org/Default/DevOps/Koishi/llm.api-keys/claude }}"
           resources:
             requests:
               cpu: 500m
@@ -85,14 +85,14 @@ metadata:
     gethomepage.dev/enabled: "true"
     gethomepage.dev/group: AI
     gethomepage.dev/name: LiteLLM
-    gethomepage.dev/href: https://litellm.{{ tacet://*/infra.domains/x }}/ui
+    gethomepage.dev/href: https://litellm.{{ tacet://org/Default/DevOps/Base/infra-domains/x }}/ui
     gethomepage.dev/icon: https://framerusercontent.com/images/GtfMdzyrMj6FQY6lGLqI6bh2LYM.png
-    gethomepage.dev/siteMonitor: https://litellm.{{ tacet://*/infra.domains/x }}
+    gethomepage.dev/siteMonitor: https://litellm.{{ tacet://org/Default/DevOps/Base/infra-domains/x }}
     gethomepage.dev/weight: "30"
 spec:
   ingressClassName: traefik
   rules:
-    - host: litellm.{{ tacet://*/infra.domains/x }}
+    - host: litellm.{{ tacet://org/Default/DevOps/Base/infra-domains/x }}
       http:
         paths:
           - path: /
@@ -104,7 +104,7 @@ spec:
                   name: default
   tls:
     - hosts:
-        - litellm.{{ tacet://*/infra.domains/x }}
+        - litellm.{{ tacet://org/Default/DevOps/Base/infra-domains/x }}
       secretName: litellm-domainx
 
 ---
@@ -119,7 +119,7 @@ metadata:
 spec:
   ingressClassName: traefik
   rules:
-    - host: litellm.home4p.{{ tacet://*/infra.domains/x }}
+    - host: litellm.home4p.{{ tacet://org/Default/DevOps/Base/infra-domains/x }}
       http:
         paths:
           - path: /
@@ -131,5 +131,5 @@ spec:
                   name: default
   tls:
     - hosts:
-        - litellm.home4p.{{ tacet://*/infra.domains/x }}
+        - litellm.home4p.{{ tacet://org/Default/DevOps/Base/infra-domains/x }}
       secretName: litellm-home4p-domainx

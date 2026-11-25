@@ -10,14 +10,14 @@ PublicKey = placeholder
 PresharedKey = placeholder
 AllowedIPs = 0.0.0.0/0, ::/0
 PersistentKeepalive = 0
-Endpoint = wireguard.{{ tacet://*/infra.domains/u }}:51820
+Endpoint = wireguard.{{ tacet://org/Default/DevOps/Base/infra-domains/u }}:51820
 
 [Socks5]
 BindAddress = 0.0.0.0:1080
 Username = default
-Password = {{ tacet://*/wireproxy/socks5 }}
+Password = {{ tacet://org/Default/DevOps/Koishi/wireproxy/socks5 }}
 
 [HTTP]
 BindAddress = 0.0.0.0:8080
 Username = default
-Password = {{ tacet://*/wireproxy/http }}
+Password = {{ tacet://org/Default/DevOps/Koishi/wireproxy/http }}

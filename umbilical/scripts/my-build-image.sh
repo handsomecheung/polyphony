@@ -32,7 +32,7 @@ if [ -z "$NAME" ]; then
 fi
 
 if [[ "${NAME}" == "cloudpublic/"* ]]; then
-    host_cloudpublic=$(tacet-wrapper read "tacet://*/umbilical.deploy.cloudpublic_registry_host/password")
+    host_cloudpublic=$(tacet-wrapper read "tacet://org/Default/DevOps/Umbilical/Base/infra-infos/cloudpublic-registry-host")
 
     IMAGE="${NAME/cloudpublic/${host_cloudpublic}}"
 else

@@ -84,14 +84,14 @@ metadata:
     gethomepage.dev/enabled: "true"
     gethomepage.dev/group: Media
     gethomepage.dev/name: roon
-    gethomepage.dev/href: https://roon.{{ tacet://*/infra.domains/x }}/display/
+    gethomepage.dev/href: https://roon.{{ tacet://org/Default/DevOps/Base/infra-domains/x }}/display/
     gethomepage.dev/icon: https://roon.app/apple-touch-icon.png
-    gethomepage.dev/siteMonitor: https://roon.{{ tacet://*/infra.domains/x }}/display/
+    gethomepage.dev/siteMonitor: https://roon.{{ tacet://org/Default/DevOps/Base/infra-domains/x }}/display/
     gethomepage.dev/weight: "3"
 spec:
   ingressClassName: traefik
   rules:
-    - host: roon.{{ tacet://*/infra.domains/x }}
+    - host: roon.{{ tacet://org/Default/DevOps/Base/infra-domains/x }}
       http:
         paths:
           - path: /
@@ -103,5 +103,5 @@ spec:
                   name: web
   tls:
     - hosts:
-        - roon.{{ tacet://*/infra.domains/x }}
+        - roon.{{ tacet://org/Default/DevOps/Base/infra-domains/x }}
       secretName: roon-domainx

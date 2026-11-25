@@ -31,7 +31,7 @@ spec:
             - name: SHOW_URL
               value: "true"
             - name: ROOT_URL
-              value: "https://downserver.{{ tacet://*/infra.domains/x }}/cksns"
+              value: "https://downserver.{{ tacet://org/Default/DevOps/Base/infra-domains/x }}/cksns"
             - name: UPSERVER_ALLOWED_ROOT
               value: "false"
             - name: UPSERVER_ALLOWED_SUBDIRS
@@ -89,12 +89,12 @@ metadata:
     gethomepage.dev/enabled: "true"
     gethomepage.dev/group: CK Misc
     gethomepage.dev/name: Upload to SNS
-    gethomepage.dev/href: https://upserver-cksns.{{ tacet://*/infra.domains/x }}/
+    gethomepage.dev/href: https://upserver-cksns.{{ tacet://org/Default/DevOps/Base/infra-domains/x }}/
     gethomepage.dev/weight: "50"
 spec:
   ingressClassName: traefik
   rules:
-    - host: upserver-cksns.{{ tacet://*/infra.domains/x }}
+    - host: upserver-cksns.{{ tacet://org/Default/DevOps/Base/infra-domains/x }}
       http:
         paths:
           - path: /
@@ -106,7 +106,7 @@ spec:
                   name: default
   tls:
     - hosts:
-        - upserver-cksns.{{ tacet://*/infra.domains/x }}
+        - upserver-cksns.{{ tacet://org/Default/DevOps/Base/infra-domains/x }}
       secretName: upserver-cksns-domainx
 
 ---
@@ -121,7 +121,7 @@ metadata:
 spec:
   ingressClassName: traefik
   rules:
-    - host: upserver-cksns.home4p.{{ tacet://*/infra.domains/x }}
+    - host: upserver-cksns.home4p.{{ tacet://org/Default/DevOps/Base/infra-domains/x }}
       http:
         paths:
           - path: /
@@ -133,5 +133,5 @@ spec:
                   name: default
   tls:
     - hosts:
-        - upserver-cksns.home4p.{{ tacet://*/infra.domains/x }}
+        - upserver-cksns.home4p.{{ tacet://org/Default/DevOps/Base/infra-domains/x }}
       secretName: upserver-cksns-home4p-domainx

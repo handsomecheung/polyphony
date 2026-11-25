@@ -77,7 +77,7 @@ metadata:
 spec:
   ingressClassName: traefik
   rules:
-    - host: aria2.{{ tacet://*/infra.domains/x }}
+    - host: aria2.{{ tacet://org/Default/DevOps/Base/infra-domains/x }}
       http:
         paths:
           - path: /
@@ -89,5 +89,5 @@ spec:
                   name: default
   tls:
     - hosts:
-        - aria2.{{ tacet://*/infra.domains/x }}
+        - aria2.{{ tacet://org/Default/DevOps/Base/infra-domains/x }}
       secretName: aria2-domainx

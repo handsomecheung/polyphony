@@ -7,8 +7,8 @@ require File.join(File.expand_path(__dir__), 'common')
 CMD_KUBECTL = "kubectl"
 CMD_TACET = "tacet-wrapper"
 
-# TACET_COLLECTION = "org/Default/Network/Koishi/Infra"
-TACET_COLLECTION = "*"
+TACET_COLLECTION_KOISHI_BASE = "org/Default/DevOps/Koishi/Base"
+TACET_COLLECTION_BASE = "org/Default/DevOps/Base"
 
 CLOUDPRIVATE_REGISTRY_PREFIX = 'cloudprivate/'
 CLOUDPUBLIC_REGISTRY_PREFIX = 'cloudpublic/'
@@ -25,20 +25,20 @@ module Kubectl
     output
   end
 
-  def self.tacet_read_infra(item, filed)
-    self.tacet_read(TACET_COLLECTION, item, filed)
+  def self.tacet_read_infra(item, filed, collection = TACET_COLLECTION_KOISHI_BASE)
+    self.tacet_read(collection, item, filed)
   end
 
   def self.tacet_download_infra(item, filename)
-    self.tacet_download(TACET_COLLECTION, item, filename)
+    self.tacet_download(TACET_COLLECTION_KOISHI_BASE, item, filename)
   end
 
   def self.get_secret_config_deploy(key)
-    self.tacet_read_infra("koishi.deploy.#{key}", 'password')
+    self.tacet_read_infra("infra-infos", key)
   end
 
   def self.get_secret_config_domain(name)
-    self.tacet_read_infra("infra.domains", name)
+    self.tacet_read_infra("infra-domains", name, TACET_COLLECTION_BASE)
   end
 
   def self.get_noindex_domains
@@ -54,19 +54,19 @@ module Kubectl
   end
 
   def self.get_cloudprivate_registry_id
-    @cloudprivate_registry_id ||= get_secret_config_deploy 'cloudprivate_registry_id'
+    @cloudprivate_registry_id ||= get_secret_config_deploy 'cloudprivate-registry-id'
   end
 
   def self.get_cloudprivate_registry_host
-    @cloudprivate_registry_host ||= get_secret_config_deploy 'cloudprivate_registry_host'
+    @cloudprivate_registry_host ||= get_secret_config_deploy 'cloudprivate-registry-host'
   end
 
   def self.get_cloudpublic_registry_id
-    @cloudpublic_registry_id ||= get_secret_config_deploy 'cloudpublic_registry_id'
+    @cloudpublic_registry_id ||= get_secret_config_deploy 'cloudpublic-registry-id'
   end
 
   def self.get_cloudpublic_registry_host
-    @cloudpublic_registry_host ||= get_secret_config_deploy 'cloudpublic_registry_host'
+    @cloudpublic_registry_host ||= get_secret_config_deploy 'cloudpublic-registry-host'
   end
 
   def self.gen_tmpdir
@@ -287,8 +287,8 @@ module Kubectl
   end
 
   def self.create_doc_pullsecret_cloudprivate(namespace)
-    key_file = self.tacet_download_infra('gcp.files', 'pull-image.json')
-    email = get_secret_config_deploy "email"
+    key_file = self.tacet_download_infra('googlecloud-deploy-infos', 'pull-image.json')
+    email = get_secret_config_deploy "deploy-email"
     out = run_command %{#{CMD_KUBECTL} -n #{namespace} create secret docker-registry #{CLOUDPRIVATE_REGISTRY_SECRET_NAME} --docker-server #{get_cloudprivate_registry_host}  --docker-username _json_key --docker-email #{email} --docker-password="$(cat #{key_file})" --dry-run=client  -o yaml}
     YAML.safe_load out
   end
