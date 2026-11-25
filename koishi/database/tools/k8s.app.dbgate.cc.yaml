@@ -1,0 +1,140 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: dbgate-cc
+  namespace: default
+  labels:
+    app.kubernetes.io/name: dbgate-cc
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: dbgate-cc
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: dbgate-cc
+    spec:
+      containers:
+        - name: app
+          image: dbgate/dbgate:latest
+          imagePullPolicy: Always
+          env:
+            - name: CONNECTIONS
+              value: kausabudev
+
+            - name: LABEL_kausabudev
+              value: Kausabu Dev
+            - name: SERVER_kausabudev
+              value: postgres.ck-dev
+            - name: PORT_kausabudev
+              value: "5432"
+            - name: USER_kausabudev
+              value: kausabu
+            - name: PASSWORD_kausabudev
+              value: "{{ tacet://org/Default/DevOps/Koishi/CK/Dev/database.postgres.ck-dev.accounts/kausabu }}"
+            - name: ENGINE_kausabudev
+              value: postgres@dbgate-plugin-postgres
+
+          ports:
+            - name: default
+              containerPort: 3000
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: dbgate-cc
+  namespace: default
+  labels:
+    app.kubernetes.io/name: dbgate-cc
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: dbgate-cc
+  ports:
+    - name: default
+      port: 3000
+      protocol: TCP
+      targetPort: default
+
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: dbgate-cc
+  namespace: default
+  annotations:
+    cert-manager.io/cluster-issuer: cluster-letsencrypt-dns-cloudflare
+    traefik.ingress.kubernetes.io/router.middlewares: middleware-antimitm@kubernetescrd,sso-domainx@kubernetescrd
+    gethomepage.dev/enabled: "true"
+    gethomepage.dev/group: CC
+    gethomepage.dev/name: dbgate
+    gethomepage.dev/icon: https://avatars.githubusercontent.com/u/78292618
+    gethomepage.dev/href: https://dbgate-cc.{{ tacet://org/Default/DevOps/Base/infra-domains/x }}/
+    gethomepage.dev/siteMonitor: https://dbgate-cc.{{ tacet://org/Default/DevOps/Base/infra-domains/x }}/
+    gethomepage.dev/weight: "51"
+spec:
+  ingressClassName: traefik
+  rules:
+    - host: dbgate-cc.{{ tacet://org/Default/DevOps/Base/infra-domains/x }}
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: dbgate-cc
+                port:
+                  name: default
+  tls:
+    - hosts:
+        - dbgate-cc.{{ tacet://org/Default/DevOps/Base/infra-domains/x }}
+      secretName: dbgate-cc-domainx
+
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: dbgate-cc
+  namespace: default
+spec:
+  podSelector:
+    matchExpressions:
+      - key: app.kubernetes.io/name
+        operator: In
+        values:
+          - dbgate-cc
+  policyTypes:
+    - Egress
+  egress:
+    # Allow communication to Kubernetes DNS service
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kube-system
+        - podSelector:
+            matchLabels:
+              k8s-app: kube-dns
+      ports:
+        - protocol: UDP
+          port: 53
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kube-system
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: traefik
+    - to:
+        - ipBlock:
+            cidr: {{ tacet://org/Default/DevOps/Koishi/Base/infra-infos/subnetv4 }}.0/24
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: db-ck-dev
