@@ -24,3 +24,17 @@ Each subdirectory within the root represents a distinct service or architectural
     - **Do NOT** use the `sudo` command explicitly; it is unavailable and will result in a "command not found" error.
     - If a password is required during execution, the user will provide it (the Agent must support user input).
 *   **Package Management:** Although based on Ubuntu, `devbox` is configured with the **Nix package manager**. Use Nix to install any required packages.
+
+## Agent skills
+
+### Issue tracker
+
+Issues and specs are tracked in GitHub Issues for `handsomecheung/polyphony`. See `docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+Use the five default triage labels. See `docs/agents/triage-labels.md`.
+
+### Domain docs
+
+Use a single-context root glossary and ADR directory. See `docs/agents/domain.md`.
