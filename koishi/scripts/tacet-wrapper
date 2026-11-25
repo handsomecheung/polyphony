@@ -7,6 +7,10 @@ source "${DIR}/tacet-source-env"
 
 export TACET_SERVER TACET_CLIENT_ID TACET_CLIENT_SECRET TACET_PASSWORD
 
+if [[ ${1:-} == login ]]; then
+    exec tacet "$@"
+fi
+
 status=$(tacet status)
 if [[ $status =~ Logged\ in:[[:space:]]+No ]]; then
     : "${TACET_SERVER:?TACET_SERVER is required}"
